@@ -25,6 +25,7 @@ from sqlalchemy import (
 )
 
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
 
@@ -84,7 +85,42 @@ class MMEmail(object):
           ie: mysql://mm3_user:mm3_password@localhost/mm3
         :kwarg debug, a boolean to set the debug mode on or off.
         """
-        self.engine = create_engine(url, echo=True)
+        self.engine = create_engine(url, echo=debug)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+    def get_email(self, list_name, message_id):
+        """ Return an Email object found in the database corresponding
+        to the Message-ID provided.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg message_id, Message-ID as found in the headers of the email.
+        Used here to uniquely identify the email present in the database.
+        """
+        return self.session.query(Email).filter_by(list_name=list_name,
+            message_id=message_id).one()
+
+    def get_archives(self, list_name, start, end):
+        """ Return all the thread started emails between two given dates.
+        
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg start, a datetime object representing the starting date of
+        the interval to query.
+        :arg end, a datetime object representing the ending date of
+        the interval to query.
+        """
+        # Beginning of thread == No 'References' header
+        archives = []
+        for el in self.session.query(Email).filter(
+                Email.list_name == list_name,
+                Email.date >= start,
+                Email.date <= end,
+                Email.references == None,
+                ).order_by(Email.date):
+            archives.append(el)
+        return archives
 
 
 def create(url):
@@ -102,4 +138,12 @@ def create(url):
 
 
 if __name__ == '__main__':
-    create('postgresql://mm3:mm3@localhost/mm3')
+    import datetime
+    url = 'postgresql://mm3:mm3@localhost/mm3'
+    #create(url)
+    mmemail = MMEmail(url)
+    print mmemail.get_email('devel',
+        'Pine.LNX.4.55.0307210822320.19648@verdande.oobleck.net')
+    start = datetime.datetime(2012, 3, 1)
+    end = datetime.datetime(2012, 3, 30)
+    print len(mmemail.get_archives('devel', start, end))

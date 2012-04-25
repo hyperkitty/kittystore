@@ -15,7 +15,7 @@ from dateutil import tz
 from kitchen.text.converters import to_bytes
 from hashlib import sha1
 
-from kittystore.sastore import Email
+from kittystore.kittysastore import Email
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound

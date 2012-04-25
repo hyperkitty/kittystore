@@ -51,9 +51,9 @@ class Email(Base):
     references = Column(Text)
     full = Column(Text)
 
-    def __init__(self, list_name, sender, email, subject, content, 
+    def __init__(self, list_name, sender, email, subject, content,
         date, message_id, stable_url_id, thread_id, references, full):
-        """ Constructor instanciating the defaults values """
+        """ Constructor instanciating the defaults values. """
         self.list_name = list_name
         self.sender = sender
         self.email = email
@@ -67,6 +67,7 @@ class Email(Base):
         self.full = full
 
     def __repr__(self):
+        """ Representation of the Email object when printed. """
         return "<Email('%s', '%s','%s', '%s', '%s')>" % (self.list_name,
             self.sender, self.email, self.date, self.subject)
 

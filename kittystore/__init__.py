@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-MMEmail - Interface defining the API to be implemented for each store
+KittyStore - Interface defining the API to be implemented for each store
           according to their specific back-end
 
 Copyright (C) 2012 Pierre-Yves Chibon

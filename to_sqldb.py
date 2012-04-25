@@ -23,7 +23,7 @@ from sqlalchemy.exc import OperationalError, InvalidRequestError
 
 
 TOTALCNT = 0
-DB_URL = 'postgresql://mm3:mm3@localhost/mm3'
+DB_URL = 'postgres://mm3:mm3@localhost/mm3'
 engine = create_engine(DB_URL, echo=False,
     pool_recycle=3600)
 Session = sessionmaker(bind=engine)

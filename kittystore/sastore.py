@@ -31,7 +31,10 @@ Base = declarative_base()
 
 
 class Email(Base):
-    """ Email table. """
+    """ Email table.
+
+    Define the fields of the table and their types.
+    """
 
     __tablename__ = 'email'
     id = Column(Integer, primary_key=True)
@@ -69,6 +72,20 @@ class Email(Base):
     def save(self, session):
         """ Save the object into the database. """
         session.add(self)
+
+
+def create(url):
+    """ Create the tables in the database using the information from the
+    url obtained.
+
+    :arg url, URL used to connect to the database. The URL contains
+    information with regards to the database engine, the host to connect
+    to, the user and password and the database name.
+      ie: <engine>://<user>:<password>@<host>/<dbname>
+      ie: mysql://mm3_user:mm3_password@localhost/mm3
+    """
+    engine = create_engine(url, echo=True)
+    Base.metadata.create_all(engine)
 
 
 class MMEmail(object):
@@ -121,20 +138,6 @@ class MMEmail(object):
                 ).order_by(Email.date):
             archives.append(el)
         return archives
-
-
-def create(url):
-    """ Create the tables in the database using the information from the
-    url obtained.
-
-    :arg url, URL used to connect to the database. The URL contains
-    information with regards to the database engine, the host to connect
-    to, the user and password and the database name.
-      ie: <engine>://<user>:<password>@<host>/<dbname>
-      ie: mysql://mm3_user:mm3_password@localhost/mm3
-    """
-    engine = create_engine(url, echo=True)
-    Base.metadata.create_all(engine)
 
 
 if __name__ == '__main__':

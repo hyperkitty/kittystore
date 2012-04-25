@@ -39,15 +39,15 @@ class Email(Base):
 
     __tablename__ = 'email'
     id = Column(Integer, primary_key=True)
-    list_name = Column(String(50), nullable=False)
+    list_name = Column(String(50), nullable=False, index=True)
     sender = Column(String(100), nullable=False)
     email = Column(String(75), nullable=False)
-    subject = Column(Text, nullable=False)
-    content = Column(Text, nullable=False)
-    date = Column(DateTime)
+    subject = Column(Text, nullable=False, index=True)
+    content = Column(Text, nullable=False, index=True)
+    date = Column(DateTime, index=True)
     message_id = Column(String(150), unique=True, nullable=False)
     stable_url_id = Column(String(250), unique=True, nullable=False)
-    thread_id = Column(String(150), nullable=False)
+    thread_id = Column(String(150), nullable=False, index=True)
     references = Column(Text)
     full = Column(Text)
 

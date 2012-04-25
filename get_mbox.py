@@ -13,7 +13,6 @@ months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
 
 def archive_downloader(i):
     """ Retrieve the archive for all the year and month defined. """
-    print i
     list_name = i[0]
     year = i[1]
     month = i[2]
@@ -36,7 +35,7 @@ def archive_downloader(i):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 1 or '-h' in sys.argv or '--help' in sys.argv:
+    if len(sys.argv) < 2 or '-h' in sys.argv or '--help' in sys.argv:
         print '''USAGE:
 python get_mbox.py list_name'''
     else:

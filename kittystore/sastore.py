@@ -140,7 +140,7 @@ class MMEmail(object):
             archives.append(el)
         return archives
 
-    def get_thread_length(list_name, thread_id):
+    def get_thread_length(self, list_name, thread_id):
         """ Return the number of email present in a thread. This thread
         is uniquely identified by its thread_id.
 
@@ -154,7 +154,7 @@ class MMEmail(object):
                 Email.list_name == list_name,
                 Email.thread_id == thread_id).count()
 
-    def get_thread_participants(list_name, thread_id):
+    def get_thread_participants(self, list_name, thread_id):
         """ Return the list of participant in a thread. This thread
         is uniquely identified by its thread_id.
 
@@ -163,9 +163,9 @@ class MMEmail(object):
         :arg thread_id, unique identifier of the thread as specified in
         the database.
         """
-        return self.session.query(distinct(Email.From)).filter(
+        return self.session.query(distinct(Email.sender)).filter(
                 Email.list_name == list_name,
-                Email.thread_id == thread_id)
+                Email.thread_id == thread_id).all()
 
     def get_archives_length(self, list_name):
         """ Return a dictionnary of years, months for which there are
@@ -189,6 +189,45 @@ class MMEmail(object):
         archives[now.year] = range(1,13)[:now.month]
         return archives
 
+    def search_sender(self, list_name, keyword):
+        """ Returns a list of email containing the specified keyword in
+        the name or email address of the sender of the email.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg keyword, keyword to search in the database.
+        """
+        mails = self.session.query(Email).filter(
+                Email.list_name == list_name,
+                Email.sender.like('%{0}%'.format(keyword))
+                ).all()
+        mails.extend(self.session.query(Email).filter(
+                Email.list_name == list_name,
+                Email.email.like('%{0}%'.format(keyword))
+                ).all())
+        return mails
+
+    def search_subject(self, list_name, keyword):
+        """ Returns a list of email containing the specified keyword in
+        their subject.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg keyword, keyword to search in the subject of the emails.
+        """
+        return self.session.query(Email).filter(
+                Email.subject.like('%{0}%'.format(keyword))
+                ).all()
+
+    def get_list_size(self, list_name):
+        """ Return the number of emails stored for a given mailing list.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        """
+        return self.session.query(Email).filter_by(list_name=list_name
+            ).count()
+
 
 if __name__ == '__main__':
     import datetime
@@ -200,4 +239,11 @@ if __name__ == '__main__':
     start = datetime.datetime(2012, 3, 1)
     end = datetime.datetime(2012, 3, 30)
     print len(mmemail.get_archives('devel', start, end))
+    print mmemail.get_thread_length('devel',
+        '4FCWUV6BCP3A5PASNFX6L5JOAE4GJ7F2')
+    print mmemail.get_thread_participants('devel',
+        '4FCWUV6BCP3A5PASNFX6L5JOAE4GJ7F2')
     print mmemail.get_archives_length('devel')
+    print len(mmemail.search_sender('devel', 'pingou'))
+    print len(mmemail.search_subject('devel', 'rawhid'))
+    print mmemail.get_list_size('devel')

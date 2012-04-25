@@ -15,6 +15,11 @@ See http://www.gnu.org/copyleft/gpl.html  for the full text of the
 license.
 """
 
+import datetime
+
+from kittystore import KittyStore
+
+
 from sqlalchemy import (
     create_engine,
     distinct,
@@ -24,14 +29,13 @@ from sqlalchemy import (
     String,
     Text,
 )
-
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-Base = declarative_base()
+BASE = declarative_base()
 
 
-class Email(Base):
+class Email(BASE):
     """ Email table.
 
     Define the fields of the table and their types.
@@ -76,22 +80,23 @@ class Email(Base):
         session.add(self)
 
 
-def create(url):
+def create(db_url):
     """ Create the tables in the database using the information from the
     url obtained.
 
-    :arg url, URL used to connect to the database. The URL contains
+    :arg db_url, URL used to connect to the database. The URL contains
     information with regards to the database engine, the host to connect
     to, the user and password and the database name.
       ie: <engine>://<user>:<password>@<host>/<dbname>
       ie: mysql://mm3_user:mm3_password@localhost/mm3
     """
-    engine = create_engine(url, echo=True)
-    Base.metadata.create_all(engine)
+    engine = create_engine(db_url, echo=True)
+    BASE.metadata.create_all(engine)
 
 
-class MMEmail(object):
-    """ Interface to query emails from the database. """
+class KittySAStore(KittyStore):
+    """ SQL-Alchemy powered interface to query emails from the database.
+    """
 
     def __init__(self, url, debug=False):
         """ Constructor.
@@ -105,8 +110,8 @@ class MMEmail(object):
         :kwarg debug, a boolean to set the debug mode on or off.
         """
         self.engine = create_engine(url, echo=debug)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+        session = sessionmaker(bind=self.engine)
+        self.session = session()
 
     def get_archives(self, list_name, start, end):
         """ Return all the thread started emails between two given dates.
@@ -119,15 +124,12 @@ class MMEmail(object):
         the interval to query.
         """
         # Beginning of thread == No 'References' header
-        archives = []
-        for el in self.session.query(Email).filter(
+        return self.session.query(Email).filter(
                 Email.list_name == list_name,
                 Email.date >= start,
                 Email.date <= end,
                 Email.references == None,
-                ).order_by(Email.date):
-            archives.append(el)
-        return archives
+                ).order_by(Email.date).all()
 
     def get_archives_length(self, list_name):
         """ Return a dictionnary of years, months for which there are
@@ -145,10 +147,10 @@ class MMEmail(object):
         year = entry.date.year
         month = entry.date.month
         while year < now.year:
-            archives[year] = range(1,13)[(month -1):]
+            archives[year] = range(1, 13)[(month -1):]
             year = year + 1
             month = 1
-        archives[now.year] = range(1,13)[:now.month]
+        archives[now.year] = range(1, 13)[:now.month]
         return archives
 
     def get_email(self, list_name, message_id):
@@ -208,6 +210,7 @@ class MMEmail(object):
         :arg keyword, keyword to search in the content of the emails.
         """
         return self.session.query(Email).filter(
+                Email.list_name == list_name,
                 Email.content.like('%{0}%'.format(keyword))
                 ).all()
 
@@ -221,9 +224,11 @@ class MMEmail(object):
         the emails.
         """
         mails = self.session.query(Email).filter(
+                Email.list_name == list_name,
                 Email.content.like('%{0}%'.format(keyword))
                 ).all()
         mails.extend(self.session.query(Email).filter(
+                Email.list_name == list_name,
                 Email.subject.like('%{0}%'.format(keyword))
                 ).all())
         return mails
@@ -255,28 +260,6 @@ class MMEmail(object):
         :arg keyword, keyword to search in the subject of the emails.
         """
         return self.session.query(Email).filter(
+                Email.list_name == list_name,
                 Email.subject.like('%{0}%'.format(keyword))
                 ).all()
-
-
-if __name__ == '__main__':
-    import datetime
-    url = 'postgres://mm3:mm3@localhost/mm3'
-    create(url)
-    mmemail = MMEmail(url)#, debug=True)
-    print mmemail.get_email('devel',
-        'Pine.LNX.4.55.0307210822320.19648@verdande.oobleck.net')
-    start = datetime.datetime(2012, 3, 1)
-    end = datetime.datetime(2012, 3, 30)
-    print len(mmemail.get_archives('devel', start, end))
-    print mmemail.get_thread_length('devel',
-        '4FCWUV6BCP3A5PASNFX6L5JOAE4GJ7F2')
-    print mmemail.get_thread_participants('devel',
-        '4FCWUV6BCP3A5PASNFX6L5JOAE4GJ7F2')
-    print mmemail.get_archives_length('devel')
-    print 'Subject', len(mmemail.search_subject('devel', 'rawhid'))
-    print 'Content', len(mmemail.search_content('devel', 'rawhid'))
-    print 'Content-Subject', len(
-        mmemail.search_content_subject('devel', 'rawhid'))
-    print 'Sender', len(mmemail.search_sender('devel', 'pingou'))
-    print mmemail.get_list_size('devel')

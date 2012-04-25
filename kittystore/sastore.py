@@ -17,6 +17,7 @@ license.
 
 from sqlalchemy import (
     create_engine,
+    distinct,
     Column,
     Integer,
     DateTime,
@@ -139,14 +140,64 @@ class MMEmail(object):
             archives.append(el)
         return archives
 
+    def get_thread_length(list_name, thread_id):
+        """ Return the number of email present in a thread. This thread
+        is uniquely identified by its thread_id.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg thread_id, unique identifier of the thread as specified in
+        the database.
+        """
+
+        return self.session.query(Email).filter(
+                Email.list_name == list_name,
+                Email.thread_id == thread_id).count()
+
+    def get_thread_participants(list_name, thread_id):
+        """ Return the list of participant in a thread. This thread
+        is uniquely identified by its thread_id.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg thread_id, unique identifier of the thread as specified in
+        the database.
+        """
+        return self.session.query(distinct(Email.From)).filter(
+                Email.list_name == list_name,
+                Email.thread_id == thread_id)
+
+    def get_archives_length(self, list_name):
+        """ Return a dictionnary of years, months for which there are
+        potentially archives available for a given list (based on the
+        oldest post on the list).
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        """
+        archives = {}
+        entry = self.session.query(Email).filter(
+                Email.list_name == list_name
+                ).order_by(Email.date).limit(1).one()
+        now = datetime.datetime.now()
+        year = entry.date.year
+        month = entry.date.month
+        while year < now.year:
+            archives[year] = range(1,13)[(month -1):]
+            year = year + 1
+            month = 1
+        archives[now.year] = range(1,13)[:now.month]
+        return archives
+
 
 if __name__ == '__main__':
     import datetime
     url = 'postgresql://mm3:mm3@localhost/mm3'
     #create(url)
-    mmemail = MMEmail(url)
+    mmemail = MMEmail(url)#, debug=True)
     print mmemail.get_email('devel',
         'Pine.LNX.4.55.0307210822320.19648@verdande.oobleck.net')
     start = datetime.datetime(2012, 3, 1)
     end = datetime.datetime(2012, 3, 30)
     print len(mmemail.get_archives('devel', start, end))
+    print mmemail.get_archives_length('devel')

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-sastore - an object mapper and interface to a SQL database
+KittySAStore - an object mapper and interface to a SQL database
            representation of emails for mailman 3.
 
 Copyright (C) 2012 Pierre-Yves Chibon

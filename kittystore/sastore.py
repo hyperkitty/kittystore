@@ -261,8 +261,8 @@ class MMEmail(object):
 
 if __name__ == '__main__':
     import datetime
-    url = 'postgresql://mm3:mm3@localhost/mm3'
-    #create(url)
+    url = 'postgres://mm3:mm3@localhost/mm3'
+    create(url)
     mmemail = MMEmail(url)#, debug=True)
     print mmemail.get_email('devel',
         'Pine.LNX.4.55.0307210822320.19648@verdande.oobleck.net')

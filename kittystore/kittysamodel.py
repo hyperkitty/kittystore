@@ -15,46 +15,64 @@ See http://www.gnu.org/copyleft/gpl.html  for the full text of the
 license.
 """
 
-import datetime
-
 from sqlalchemy import (
-    create_engine,
+    Table,
     Column,
     Integer,
     DateTime,
     String,
     Text,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-
-BASE = declarative_base()
+from sqlalchemy.orm import mapper
 
 
-class Email(BASE):
+def get_table(table, metadata):
+    """ For a given string, create the table with the corresponding name,
+    and following the defined structure and returns the Table object of
+    the said table.
+
+    :arg table, the name of the table in the database.
+    :arg metadata, MetaData object containing the information relative
+    to the connection to the database.
+    """
+    table = Table( table, metadata,
+        Column('id', Integer, primary_key=True),
+        Column('sender', String(100), nullable=False),
+        Column('email', String(75), nullable=False),
+        Column('subject', Text, nullable=False, index=True),
+        Column('content', Text, nullable=False),
+        Column('date', DateTime, index=True),
+        Column('message_id', String(150), unique=True, nullable=False),
+        Column('stable_url_id', String(250), unique=True, nullable=False),
+        Column('thread_id', String(150), nullable=False, index=True),
+        Column('references', Text),
+        Column('full', Text), useexisting=True)
+    metadata.create_all()
+    return table
+
+
+def get_class_object(table, entity_name, metadata, **kw):
+    """ For a given table name, returns the object mapping the said
+    table.
+
+    :arg table, the name of the table in the database.
+    :arg metadata, MetaData object containing the information relative
+    to the connection to the database.
+    """
+    newcls = type(entity_name, (Email, ), {})
+    mapper(newcls, get_table(table, metadata), **kw)
+    return newcls
+
+
+class Email(object):
     """ Email table.
 
     Define the fields of the table and their types.
     """
 
-    __tablename__ = 'email'
-    id = Column(Integer, primary_key=True)
-    list_name = Column(String(50), nullable=False, index=True)
-    sender = Column(String(100), nullable=False)
-    email = Column(String(75), nullable=False)
-    subject = Column(Text, nullable=False, index=True)
-    content = Column(Text, nullable=False)
-    date = Column(DateTime, index=True)
-    message_id = Column(String(150), unique=True, nullable=False)
-    stable_url_id = Column(String(250), unique=True, nullable=False)
-    thread_id = Column(String(150), nullable=False, index=True)
-    references = Column(Text)
-    full = Column(Text)
-
     def __init__(self, list_name, sender, email, subject, content,
         date, message_id, stable_url_id, thread_id, references, full):
         """ Constructor instanciating the defaults values. """
-        self.list_name = list_name
         self.sender = sender
         self.email = email
         self.subject = subject
@@ -68,26 +86,9 @@ class Email(BASE):
 
     def __repr__(self):
         """ Representation of the Email object when printed. """
-        return "<Email('%s', '%s','%s', '%s', '%s')>" % (self.list_name,
-            self.sender, self.email, self.date, self.subject)
+        return "<Email('%s', '%s', '%s', '%s')>" % (self.sender,
+            self.email, self.date, self.subject)
 
     def save(self, session):
         """ Save the object into the database. """
         session.add(self)
-
-
-def create(db_url):
-    """ Create the tables in the database using the information from the
-    url obtained.
-
-    :arg db_url, URL used to connect to the database. The URL contains
-    information with regards to the database engine, the host to connect
-    to, the user and password and the database name.
-      ie: <engine>://<user>:<password>@<host>/<dbname>
-      ie: mysql://mm3_user:mm3_password@localhost/mm3
-    """
-    engine = create_engine(db_url, echo=True)
-    BASE.metadata.create_all(engine)
-
-if __name__ == '__main__':
-    create('postgres://mm3:mm3@localhost/mm3')

@@ -24,5 +24,5 @@ License
 
 .. _GPL v2.0: http://www.gnu.org/licenses/gpl-2.0.html
 
-``mm_store`` is licensed under the `GPL v2.0`_
+``KittyStore`` is licensed under the `GPL v2.0`_
 

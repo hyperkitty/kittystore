@@ -26,7 +26,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import mapper
 
 
-def get_table(table, metadata):
+def get_table(table, metadata, create=False):
     """ For a given string, create the table with the corresponding name,
     and following the defined structure and returns the Table object of
     the said table.
@@ -34,6 +34,8 @@ def get_table(table, metadata):
     :arg table, the name of the table in the database.
     :arg metadata, MetaData object containing the information relative
     to the connection to the database.
+    :kwarg create, a boolean stipulating whether the table should be
+    created if it does not already exist in the database.
     """
     table = Table( table, metadata,
         Column('id', Integer, primary_key=True),
@@ -47,20 +49,23 @@ def get_table(table, metadata):
         Column('thread_id', String(150), nullable=False, index=True),
         Column('references', Text),
         Column('full', Text), useexisting=True)
-    metadata.create_all()
+    if create:
+        metadata.create_all()
     return table
 
 
-def get_class_object(table, entity_name, metadata, **kw):
+def get_class_object(table, entity_name, metadata, create=False, **kw):
     """ For a given table name, returns the object mapping the said
     table.
 
     :arg table, the name of the table in the database.
     :arg metadata, MetaData object containing the information relative
     to the connection to the database.
+    :kwarg create, a boolean stipulating whether the table should be
+    created if it does not already exist in the database.
     """
     newcls = type(entity_name, (Email, ), {})
-    mapper(newcls, get_table(table, metadata), **kw)
+    mapper(newcls, get_table(table, metadata, create), **kw)
     return newcls
 
 

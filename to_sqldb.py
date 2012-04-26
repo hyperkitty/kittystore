@@ -15,8 +15,9 @@ from dateutil import tz
 from kitchen.text.converters import to_bytes
 from hashlib import sha1
 
-from kittystore.kittysastore import Email
-from sqlalchemy import create_engine
+from kittystore.kittysamodel import Email, get_class_object
+from kittystore.kittysastore import list_to_table_name, KittySAStore
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import OperationalError, InvalidRequestError
@@ -26,6 +27,7 @@ TOTALCNT = 0
 DB_URL = 'postgres://mm3:mm3@localhost/mm3'
 engine = create_engine(DB_URL, echo=False,
     pool_recycle=3600)
+store = KittySAStore(DB_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -38,21 +40,20 @@ def convert_date(date_string):
     return dt.astimezone(tz.tzutc())
 
 
-def db_get_mail(message_id):
-    """ Check if the given message_id is already present in the database.
+def to_db(mbfile, list_name):
+    """ Upload all the emails in a mbox file into the database using
+    kittystore API.
+
+    :arg mbfile, a mailbox file from which the emails are extracted and
+    upload to the database.
+    :arg list_name, the fully qualified list name.
     """
-    try:
-        return session.query(Email).filter_by(message_id=message_id).one()
-    except NoResultFound:
-        return None
-
-
-def to_db(mbfile, database):
-    """ Upload all the emails in a mbox file into a mongo database. """
     global TOTALCNT
     cnt = 0
     cnt_read = 0
     for message in mailbox.mbox(mbfile):
+        email = get_class_object(list_to_table_name(list_name), 'email',
+                    MetaData(engine), create=True)
         cnt_read = cnt_read + 1
         #print cnt_read
         TOTALCNT = TOTALCNT + 1
@@ -75,16 +76,16 @@ def to_db(mbfile, database):
             regex = '(.*)\((.*)\)'
             match = re.match(regex, infos['From'])
             if match:
-                email, name = match.groups()
+                email_add, name = match.groups()
                 infos['From'] = name
-                email = email.replace(' at ', '@')
-                infos['Email'] = email.strip()
+                email_add = email_add.replace(' at ', '@')
+                infos['Email'] = email_add.strip()
         try:
             if not 'MessageID' in infos:
                 print '  Failed: No Message-ID for email:'
                 print '   Content:', message['Subject'], message['Date'], message['From']
                 continue
-            if not db_get_mail(infos['MessageID']):
+            if not store.get_email(list_name, infos['MessageID']):
                 infos['Date'] = convert_date(infos['Date'])
                 infos['Content'] = message.get_payload()
                 thread_id = 0
@@ -99,7 +100,7 @@ def to_db(mbfile, database):
                         infos['References'] = infos['InReplyTo']
                         del(infos['InReplyTo'])
                     ref = ref.replace('<', '').replace('>', '')
-                    res = db_get_mail(ref)
+                    res = store.get_email(list_name, ref)
                     if res and res.thread_id:
                         infos['ThreadID'] = res.thread_id
                     else:
@@ -117,7 +118,7 @@ def to_db(mbfile, database):
                 if not 'References' in infos:
                     infos['References'] = None
                 #print infos.keys()
-                email = Email(list_name=database,
+                mail = email(
                     sender=infos['From'],
                     email=infos['Email'],
                     subject=infos['Subject'],
@@ -128,7 +129,7 @@ def to_db(mbfile, database):
                     thread_id=infos['ThreadID'],
                     references=infos['References'],
                     full=infos['Full'])
-                email.save(session)
+                mail.save(session)
                 cnt = cnt + 1
                 session.commit()
         except Exception, err:
@@ -142,9 +143,11 @@ def to_db(mbfile, database):
     print '  %s email read' % cnt_read
     print '  %s email added to the database' % cnt
 
-def get_table_size(database):
+def get_table_size(list_name):
     """ Return the size of the document in mongodb. """
-    print '  %s emails are stored into the database' % session.query(Email).count()
+    email = get_class_object(list_to_table_name(list_name), 'email',
+                    MetaData(engine))
+    print '  %s emails are stored into the database' % session.query(email).count()
 
 
 if __name__ == '__main__':

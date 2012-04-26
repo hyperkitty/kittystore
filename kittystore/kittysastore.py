@@ -18,12 +18,13 @@ license.
 import datetime
 
 from kittystore import KittyStore
-from kittysamodel import get_class_object
+from kittystore.kittysamodel import get_class_object
 
 
 from sqlalchemy import create_engine, distinct, MetaData, and_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
 
 
 def list_to_table_name(list_name):
@@ -116,8 +117,13 @@ class KittySAStore(KittyStore):
         """
         email = get_class_object(list_to_table_name(list_name), 'email',
             self.metadata)
-        return self.session.query(email).filter_by(
-            message_id=message_id).one()
+        mail = None
+        try:
+            mail = self.session.query(email).filter_by(
+                message_id=message_id).one()
+        except NoResultFound:
+            pass
+        return mail
 
     def get_list_size(self, list_name):
         """ Return the number of emails stored for a given mailing list.

@@ -51,9 +51,9 @@ def to_db(mbfile, list_name):
     global TOTALCNT
     cnt = 0
     cnt_read = 0
-    for message in mailbox.mbox(mbfile):
-        email = get_class_object(list_to_table_name(list_name), 'email',
+    email = get_class_object(list_to_table_name(list_name), 'email',
                     MetaData(engine), create=True)
+    for message in mailbox.mbox(mbfile):
         cnt_read = cnt_read + 1
         #print cnt_read
         TOTALCNT = TOTALCNT + 1

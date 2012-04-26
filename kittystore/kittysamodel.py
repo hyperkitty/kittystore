@@ -75,8 +75,8 @@ class Email(object):
     Define the fields of the table and their types.
     """
 
-    def __init__(self, list_name, sender, email, subject, content,
-        date, message_id, stable_url_id, thread_id, references, full):
+    def __init__(self, sender, email, subject, content, date, message_id,
+        stable_url_id, thread_id, references, full):
         """ Constructor instanciating the defaults values. """
         self.sender = sender
         self.email = email

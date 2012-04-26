@@ -18,12 +18,28 @@ license.
 import datetime
 
 from kittystore import KittyStore
-from kittysamodel import Email
+from kittysamodel import get_class_object
 
 
-from sqlalchemy import create_engine, distinct
+from sqlalchemy import create_engine, distinct, MetaData, and_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+
+def list_to_table_name(list_name):
+    """ For a given fully qualified list name, return the table name.
+    What the method does is to transform the special characters from the
+    list name to underscore ('_') and append the 'KS_' prefix in front.
+    (KS stands for KittyStore).
+
+    Characters replaced: -.@
+
+    :arg list_name, the fully qualified list name to be transformed to
+    the table name.
+    """
+    for char in ['-', '.', '@']:
+        list_name = list_name.replace(char, '_')
+    return 'HK_%s' % list_name
 
 
 class KittySAStore(KittyStore):
@@ -42,6 +58,7 @@ class KittySAStore(KittyStore):
         :kwarg debug, a boolean to set the debug mode on or off.
         """
         self.engine = create_engine(url, echo=debug)
+        self.metadata = MetaData(self.engine)
         session = sessionmaker(bind=self.engine)
         self.session = session()
 
@@ -56,12 +73,14 @@ class KittySAStore(KittyStore):
         the interval to query.
         """
         # Beginning of thread == No 'References' header
-        return self.session.query(Email).filter(
-                Email.list_name == list_name,
-                Email.date >= start,
-                Email.date <= end,
-                Email.references == None,
-                ).order_by(Email.date).all()
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        return self.session.query(distinct(email.sender)).filter(
+            and_(
+                email.date >= start,
+                email.date <= end,
+                email.references == None)
+                ).all()
 
     def get_archives_length(self, list_name):
         """ Return a dictionnary of years, months for which there are
@@ -72,9 +91,10 @@ class KittySAStore(KittyStore):
         should be searched.
         """
         archives = {}
-        entry = self.session.query(Email).filter(
-                Email.list_name == list_name
-                ).order_by(Email.date).limit(1).one()
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        entry = self.session.query(email).order_by(
+                    email.date).limit(1).all()[0]
         now = datetime.datetime.now()
         year = entry.date.year
         month = entry.date.month
@@ -94,7 +114,9 @@ class KittySAStore(KittyStore):
         :arg message_id, Message-ID as found in the headers of the email.
         Used here to uniquely identify the email present in the database.
         """
-        return self.session.query(Email).filter_by(list_name=list_name,
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        return self.session.query(email).filter_by(
             message_id=message_id).one()
 
     def get_list_size(self, list_name):
@@ -103,8 +125,9 @@ class KittySAStore(KittyStore):
         :arg list_name, name of the mailing list in which this email
         should be searched.
         """
-        return self.session.query(Email).filter_by(list_name=list_name
-            ).count()
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        return self.session.query(email).count()
 
     def get_thread_length(self, list_name, thread_id):
         """ Return the number of email present in a thread. This thread
@@ -115,10 +138,10 @@ class KittySAStore(KittyStore):
         :arg thread_id, unique identifier of the thread as specified in
         the database.
         """
-
-        return self.session.query(Email).filter(
-                Email.list_name == list_name,
-                Email.thread_id == thread_id).count()
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        return self.session.query(email).filter_by(
+                    thread_id=thread_id).count()
 
     def get_thread_participants(self, list_name, thread_id):
         """ Return the list of participant in a thread. This thread
@@ -129,9 +152,10 @@ class KittySAStore(KittyStore):
         :arg thread_id, unique identifier of the thread as specified in
         the database.
         """
-        return self.session.query(distinct(Email.sender)).filter(
-                Email.list_name == list_name,
-                Email.thread_id == thread_id).all()
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        return self.session.query(distinct(email.sender)).filter(
+                email.thread_id == thread_id).all()
 
     def search_content(self, list_name, keyword):
         """ Returns a list of email containing the specified keyword in
@@ -141,9 +165,10 @@ class KittySAStore(KittyStore):
         should be searched.
         :arg keyword, keyword to search in the content of the emails.
         """
-        return self.session.query(Email).filter(
-                Email.list_name == list_name,
-                Email.content.like('%{0}%'.format(keyword))
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        return self.session.query(email).filter(
+                email.content.like('%{0}%'.format(keyword))
                 ).all()
 
     def search_content_subject(self, list_name, keyword):
@@ -155,13 +180,13 @@ class KittySAStore(KittyStore):
         :arg keyword, keyword to search in the content or subject of
         the emails.
         """
-        mails = self.session.query(Email).filter(
-                Email.list_name == list_name,
-                Email.content.like('%{0}%'.format(keyword))
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        mails = self.session.query(email).filter(
+                email.content.like('%{0}%'.format(keyword))
                 ).all()
-        mails.extend(self.session.query(Email).filter(
-                Email.list_name == list_name,
-                Email.subject.like('%{0}%'.format(keyword))
+        mails.extend(self.session.query(email).filter(
+                email.subject.like('%{0}%'.format(keyword))
                 ).all())
         return mails
 
@@ -173,13 +198,13 @@ class KittySAStore(KittyStore):
         should be searched.
         :arg keyword, keyword to search in the database.
         """
-        mails = self.session.query(Email).filter(
-                Email.list_name == list_name,
-                Email.sender.like('%{0}%'.format(keyword))
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        mails = self.session.query(email).filter(
+                email.sender.like('%{0}%'.format(keyword))
                 ).all()
-        mails.extend(self.session.query(Email).filter(
-                Email.list_name == list_name,
-                Email.email.like('%{0}%'.format(keyword))
+        mails.extend(self.session.query(email).filter(
+                email.email.like('%{0}%'.format(keyword))
                 ).all())
         return mails
 
@@ -191,7 +216,8 @@ class KittySAStore(KittyStore):
         should be searched.
         :arg keyword, keyword to search in the subject of the emails.
         """
-        return self.session.query(Email).filter(
-                Email.list_name == list_name,
-                Email.subject.like('%{0}%'.format(keyword))
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        return self.session.query(email).filter(
+                email.subject.like('%{0}%'.format(keyword))
                 ).all()

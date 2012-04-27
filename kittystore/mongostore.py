@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """
-mmstore - an object mapper and interface to the mongo database
-           representation of emails for mailman 3.
+KittyMGStore - an object mapper and interface to the mongo database
+                representation of emails for mailman 3.
 
 Copyright (C) 2012 Pierre-Yves Chibon
 Author: Pierre-Yves Chibon <pingou@pingoured.fr>
@@ -15,60 +15,210 @@ See http://www.gnu.org/copyleft/gpl.html  for the full text of the
 license.
 """
 
-from ming import Session, Document, Field, schema
-from ming.datastore import DataStore
 
+import pymongo
+import re
 from datetime import datetime
-
-host = 'localhost'
-port = '27017'
-database = 'test'
-bind = DataStore('mongodb://%s:%s/' %(host, port),
-            database=database)
-session = Session(bind)
+from kittystore import KittyStore
 
 
-class MMStore(Document):
-    """ Object representation of the information stored for every email
-    in the mongo database.
+class KittyMGStore(KittyStore):
+    """ Implementation of the store for a MongoDB backend. """
 
-    This class is the interface used to read and write to the database
-    any email it contains.
-    """
+    def __init__(self, host='localhost', port=27017):
+        """ Constructor.
+        Create the session using the engine defined in the url.
 
-    class __mongometa__:
-        """ Meta information required for the class """
-        name = 'mails'
-        session = session
-        custom_indexes = [
-            dict(fields=('MessageID',), unique=True, sparse=False),
-            dict(fields=('Date',), unique=False, sparse=True)
-        ]
+        :arg host, hostname or IP of the database server. Defaults to
+        'localhost'
+        :arg port, port of the database server. Defaults to '27017'
+        :kwarg debug, a boolean to set the debug mode on or off.
+        """
+        self.connection = pymongo.Connection(host, port)
 
-    # Unique identifier, specific to mongodb
-    _id = Field(schema.ObjectId)
-    # Name of the sender
-    From = Field(str)
-    # Email address of the sender
-    Email = Field(str)
-    # Email body
-    Content = Field(str)
-    # Date when the email was sent
-    Date = Field(datetime)
-    # Unique identifier of the message as present in the header
-    MessageID = Field(str)
-    # Helper to keep links consistent with pipermail
-    #LegacyID = Field(int)
-    # Assign a category to the email -- HK specific
-    #Category = Field(str)
-    # Full email (headers and body included)
-    Full = Field(str)
+    def get_archives(self, list_name, start, end):
+        """ Return all the thread started emails between two given dates.
+        
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg start, a datetime object representing the starting date of
+        the interval to query.
+        :arg end, a datetime object representing the ending date of
+        the interval to query.
+        """
+        mongodb = self.connection[list_name]
+        mongodb.mails.create_index('Date')
+        mongodb.mails.ensure_index('Date')
+        mongodb.mails.create_index('References')
+        mongodb.mails.ensure_index('References')
+        # Beginning of thread == No 'References' header
+        archives = []
+        for email in mongodb.mails.find(
+                {'References': {'$exists':False},
+                'InReplyTo': {'$exists':False},
+                "Date": {"$gt": start, "$lt": end}}, 
+                sort=[('Date', pymongo.DESCENDING)]):
+            archives.append(email)
+        return archives
 
+    def get_archives_length(self, list_name):
+        """ Return a dictionnary of years, months for which there are
+        potentially archives available for a given list (based on the
+        oldest post on the list).
 
-if __name__ == '__main__':
-    #store = MMStore(dict(From = 'test@test', Content = 'test'))
-    #store.m.save()
-    mail = MMStore.m.find({'MessageID':'jfc06g$ci3$1@dough.gmane.org'}).one()
-    print mail, mail.keys()
-    print dir(MMStore.__mongometa__.session.db.name)
-    print MMStore.__mongometa__.session.db.name
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        """
+        mongodb = self.connection[list_name]
+        mongodb.mails.create_index('Date')
+        mongodb.mails.ensure_index('Date')
+        archives = {}
+        entry = mongodb.mails.find_one(sort=[('Date', pymongo.ASCENDING)])
+        date = entry['Date']
+        now = datetime.now()
+        year = date.year
+        month = date.month
+        while year < now.year:
+            archives[year] = range(1, 13)[(month -1):]
+            year = year + 1
+            month = 1
+        archives[now.year] = range(1, 13)[:now.month]
+        return archives
+
+    def get_email(self, list_name, message_id):
+        """ Return an Email object found in the database corresponding
+        to the Message-ID provided.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg message_id, Message-ID as found in the headers of the email.
+        Used here to uniquely identify the email present in the database.
+        """
+        mongodb = self.connection[list_name]
+        mongodb.mails.create_index('MessageID')
+        mongodb.mails.ensure_index('MessageID')
+        return mongodb.mails.find_one({'MessageID': message_id})
+
+    def get_list_size(self, list_name):
+        """ Return the number of emails stored for a given mailing list.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        """
+        mongodb = self.connection[list_name]
+        return mongodb.mails.count()
+
+    def get_thread_length(self, list_name, thread_id):
+        """ Return the number of email present in a thread. This thread
+        is uniquely identified by its thread_id.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg thread_id, unique identifier of the thread as specified in
+        the database.
+        """
+        mongodb = self.connection[list_name]
+        mongodb.mails.create_index('ThreadID')
+        mongodb.mails.ensure_index('ThreadID')
+        return mongodb.mails.find({'ThreadID': thread_id}).count()
+
+    def get_thread_participants(self, list_name, thread_id):
+        """ Return the list of participant in a thread. This thread
+        is uniquely identified by its thread_id.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg thread_id, unique identifier of the thread as specified in
+        the database.
+        """
+        mongodb = self.connection[list_name]
+        mongodb.mails.create_index('ThreadID')
+        mongodb.mails.ensure_index('ThreadID')
+        authors = set()
+        for mail in mongodb.mails.find({'ThreadID': thread_id}):
+            authors.add(mail['From'])
+        return authors
+
+    def search_content(self, list_name, keyword):
+        """ Returns a list of email containing the specified keyword in
+        their content.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg keyword, keyword to search in the content of the emails.
+        """
+        mongodb = self.connection[list_name]
+        mongodb.mails.create_index('Date')
+        mongodb.mails.ensure_index('Date')
+        mongodb.mails.create_index('Content')
+        mongodb.mails.ensure_index('Content')
+        regex = '.*%s.*' % keyword
+        query_string = {'Content': re.compile(regex, re.IGNORECASE)}
+        return list(mongodb.mails.find(query_string, sort=[('Date',
+            pymongo.DESCENDING)]))
+
+    def search_content_subject(self, list_name, keyword):
+        """ Returns a list of email containing the specified keyword in
+        their content or their subject.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg keyword, keyword to search in the content or subject of
+        the emails.
+        """
+        mongodb = self.connection[list_name]
+        mongodb.mails.create_index('Date')
+        mongodb.mails.ensure_index('Date')
+        mongodb.mails.create_index('Content')
+        mongodb.mails.ensure_index('Content')
+        mongodb.mails.create_index('Subject')
+        mongodb.mails.ensure_index('Subject')
+        regex = '.*%s.*' % keyword
+        query_string = {'$or' : [
+            {'Content': re.compile(regex, re.IGNORECASE)},
+            {'Subject': re.compile(regex, re.IGNORECASE)}
+            ]}
+        return list(mongodb.mails.find(query_string, sort=[('Date',
+            pymongo.DESCENDING)]))
+
+    def search_sender(self, list_name, keyword):
+        """ Returns a list of email containing the specified keyword in
+        the name or email address of the sender of the email.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg keyword, keyword to search in the database.
+        """
+        mongodb = self.connection[list_name]
+        mongodb.mails.create_index('Date')
+        mongodb.mails.ensure_index('Date')
+        mongodb.mails.create_index('From')
+        mongodb.mails.ensure_index('From')
+        mongodb.mails.create_index('Email')
+        mongodb.mails.ensure_index('Email')
+        regex = '.*%s.*' % keyword
+        query_string = {'$or' : [
+            {'From': re.compile(regex, re.IGNORECASE)},
+            {'Email': re.compile(regex, re.IGNORECASE)}
+            ]}
+        return list(mongodb.mails.find(query_string, sort=[('Date',
+            pymongo.DESCENDING)]))
+        
+
+    def search_subject(self, list_name, keyword):
+        """ Returns a list of email containing the specified keyword in
+        their subject.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg keyword, keyword to search in the subject of the emails.
+        """
+        mongodb = self.connection[list_name]
+        mongodb.mails.create_index('Date')
+        mongodb.mails.ensure_index('Date')
+        mongodb.mails.create_index('Subject')
+        mongodb.mails.ensure_index('Subject')
+        regex = '.*%s.*' % keyword
+        query_string = {'Subject': re.compile(regex, re.IGNORECASE)}
+        return list(mongodb.mails.find(query_string, sort=[('Date',
+            pymongo.DESCENDING)]))

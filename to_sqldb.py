@@ -163,4 +163,5 @@ python to_sqldb.py list_name mbox_file [mbox_file]'''
                 to_db(mbfile, sys.argv[1])
                 get_table_size(sys.argv[1])
     session.close()
+    store.session.close()
 

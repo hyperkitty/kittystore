@@ -44,8 +44,10 @@ def get_table(table, metadata, create=False):
         Column('subject', Text, nullable=False, index=True),
         Column('content', Text, nullable=False),
         Column('date', DateTime, index=True),
-        Column('message_id', String(150), unique=True, nullable=False),
-        Column('stable_url_id', String(250), unique=True, nullable=False),
+        Column('message_id', String(150), index=True, unique=True,
+            nullable=False),
+        Column('stable_url_id', String(250), index=True, unique=True,
+            nullable=False),
         Column('thread_id', String(150), nullable=False, index=True),
         Column('references', Text),
         Column('full', Text), useexisting=True)

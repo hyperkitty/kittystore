@@ -5,7 +5,7 @@ from kittystore.kittysastore import KittySAStore
 
 if __name__ == '__main__':
     URL = 'postgres://mm3:mm3@localhost/mm3'
-    TABLE = 'email'
+    TABLE = 'devel'
     STORE = KittySAStore(URL)#, debug=True)
     #create(URL)
     print STORE.get_email(TABLE,
@@ -14,6 +14,7 @@ if __name__ == '__main__':
     START = datetime.datetime(2012, 3, 1)
     END = datetime.datetime(2012, 3, 30)
     print len(STORE.get_archives(TABLE, START, END))
+    print STORE.get_archives(TABLE, START, END)[0]
     print STORE.get_thread_length(TABLE,
         '4FCWUV6BCP3A5PASNFX6L5JOAE4GJ7F2')
     print STORE.get_thread_participants(TABLE,

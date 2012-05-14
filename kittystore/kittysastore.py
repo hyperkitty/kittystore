@@ -135,6 +135,25 @@ class KittySAStore(KittyStore):
             self.metadata)
         return self.session.query(email).count()
 
+    def get_thread(self, list_name, thread_id):
+        """ Return all the emails present in a thread. This thread
+        is uniquely identified by its thread_id.
+
+        :arg list_name, name of the mailing list in which this email
+        should be searched.
+        :arg thread_id, thread_id as used in the web-pages.
+        Used here to uniquely identify the thread in the database.
+        """
+        email = get_class_object(list_to_table_name(list_name), 'email',
+            self.metadata)
+        mail = None
+        try:
+            mail = self.session.query(email).filter_by(
+                thread_id=thread_id).all()
+        except NoResultFound:
+            pass
+        return mails
+
     def get_thread_length(self, list_name, thread_id):
         """ Return the number of email present in a thread. This thread
         is uniquely identified by its thread_id.

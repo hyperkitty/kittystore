@@ -76,7 +76,7 @@ class KittySAStore(KittyStore):
         # Beginning of thread == No 'References' header
         email = get_class_object(list_to_table_name(list_name), 'email',
             self.metadata)
-        return self.session.query(distinct(email.sender)).filter(
+        return self.session.query(email).filter(
             and_(
                 email.date >= start,
                 email.date <= end,

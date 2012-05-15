@@ -20,6 +20,7 @@ from sqlalchemy import (
     Column,
     Integer,
     DateTime,
+    LargeBinary,
     String,
     Text,
 )
@@ -50,7 +51,7 @@ def get_table(table, metadata, create=False):
             nullable=False),
         Column('thread_id', String(150), nullable=False, index=True),
         Column('references', Text),
-        Column('full', Text), useexisting=True)
+        Column('full', LargeBinary), useexisting=True)
     if create:
         metadata.create_all()
     return table

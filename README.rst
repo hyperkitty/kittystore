@@ -16,7 +16,8 @@ Source:  https://github.com/pypingou/kittystore
 Dependencies:
 -------------
 - SQLAlchemy
-- pymongo
+- bson
+- pymongo  (for mongodb)
 
 
 

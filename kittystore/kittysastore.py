@@ -152,7 +152,7 @@ class KittySAStore(KittyStore):
                 thread_id=thread_id).all()
         except NoResultFound:
             pass
-        return mails
+        return mail
 
     def get_thread_length(self, list_name, thread_id):
         """ Return the number of email present in a thread. This thread

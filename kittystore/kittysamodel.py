@@ -51,7 +51,8 @@ def get_table(table, metadata, create=False):
             nullable=False),
         Column('thread_id', String(150), nullable=False, index=True),
         Column('references', Text),
-        Column('full', LargeBinary), useexisting=True)
+        Column('full', LargeBinary),
+        useexisting=True)
     if create:
         metadata.create_all()
     return table

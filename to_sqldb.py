@@ -128,7 +128,8 @@ def to_db(mbfile, list_name):
                     stable_url_id=infos['MessageID'],
                     thread_id=infos['ThreadID'],
                     references=infos['References'],
-                    full=infos['Full'])
+                    full=infos['Full'],
+                    )
                 mail.save(session)
                 cnt = cnt + 1
                 session.commit()

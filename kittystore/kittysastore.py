@@ -21,7 +21,7 @@ from kittystore import KittyStore
 from kittystore.kittysamodel import get_class_object
 
 
-from sqlalchemy import create_engine, distinct, MetaData, and_, desc
+from sqlalchemy import create_engine, distinct, MetaData, and_, desc, or_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
@@ -195,7 +195,7 @@ class KittySAStore(KittyStore):
         email = get_class_object(list_to_table_name(list_name), 'email',
             self.metadata)
         mails = self.session.query(email).filter(
-                email.content.like('%{0}%'.format(keyword))
+                email.content.ilike('%{0}%'.format(keyword))
                 ).order_by(email.date).all()
         mails.reverse()
         return mails
@@ -211,12 +211,10 @@ class KittySAStore(KittyStore):
         """
         email = get_class_object(list_to_table_name(list_name), 'email',
             self.metadata)
-        mails = self.session.query(email).filter(
-                email.content.like('%{0}%'.format(keyword))
-                ).order_by(email.date).all()
-        mails.extend(self.session.query(email).filter(
-                email.subject.like('%{0}%'.format(keyword))
-                ).order_by(email.date).all())
+        mails = self.session.query(email).filter(or_(
+                email.content.ilike('%{0}%'.format(keyword)),
+                email.subject.ilike('%{0}%'.format(keyword))
+                )).order_by(email.date).all()
         mails.reverse()
         return mails
 
@@ -230,12 +228,10 @@ class KittySAStore(KittyStore):
         """
         email = get_class_object(list_to_table_name(list_name), 'email',
             self.metadata)
-        mails = self.session.query(email).filter(
-                email.sender.like('%{0}%'.format(keyword))
-                ).order_by(email.date).all()
-        mails.extend(self.session.query(email).filter(
-                email.email.like('%{0}%'.format(keyword))
-                ).order_by(email.date).all())
+        mails = self.session.query(email).filter(or_(
+                email.sender.ilike('%{0}%'.format(keyword)),
+                email.email.ilike('%{0}%'.format(keyword))
+                )).order_by(email.date).all()
         mails.reverse()
         return mails
 
@@ -250,7 +246,7 @@ class KittySAStore(KittyStore):
         email = get_class_object(list_to_table_name(list_name), 'email',
             self.metadata)
         mails = self.session.query(email).filter(
-                email.subject.like('%{0}%'.format(keyword))
+                email.subject.ilike('%{0}%'.format(keyword))
                 ).order_by(email.date).all()
         mails.reverse()
         return mails

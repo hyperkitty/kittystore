@@ -21,7 +21,7 @@ from kittystore import KittyStore
 from kittystore.kittysamodel import get_class_object
 
 
-from sqlalchemy import create_engine, distinct, MetaData, and_
+from sqlalchemy import create_engine, distinct, MetaData, and_, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
@@ -76,12 +76,14 @@ class KittySAStore(KittyStore):
         # Beginning of thread == No 'References' header
         email = get_class_object(list_to_table_name(list_name), 'email',
             self.metadata)
-        return self.session.query(email).filter(
+        mails = self.session.query(email).filter(
             and_(
                 email.date >= start,
                 email.date <= end,
                 email.references == None)
-                ).all()
+                ).order_by(email.date).all()
+        mails.reverse()
+        return mails
 
     def get_archives_length(self, list_name):
         """ Return a dictionnary of years, months for which there are
@@ -149,7 +151,7 @@ class KittySAStore(KittyStore):
         mail = None
         try:
             mail = self.session.query(email).filter_by(
-                thread_id=thread_id).all()
+                thread_id=thread_id).order_by(email.date).all()
         except NoResultFound:
             pass
         return mail
@@ -192,9 +194,11 @@ class KittySAStore(KittyStore):
         """
         email = get_class_object(list_to_table_name(list_name), 'email',
             self.metadata)
-        return self.session.query(email).filter(
+        mails = self.session.query(email).filter(
                 email.content.like('%{0}%'.format(keyword))
-                ).all()
+                ).order_by(email.date).all()
+        mails.reverse()
+        return mails
 
     def search_content_subject(self, list_name, keyword):
         """ Returns a list of email containing the specified keyword in
@@ -209,10 +213,11 @@ class KittySAStore(KittyStore):
             self.metadata)
         mails = self.session.query(email).filter(
                 email.content.like('%{0}%'.format(keyword))
-                ).all()
+                ).order_by(email.date).all()
         mails.extend(self.session.query(email).filter(
                 email.subject.like('%{0}%'.format(keyword))
-                ).all())
+                ).order_by(email.date).all())
+        mails.reverse()
         return mails
 
     def search_sender(self, list_name, keyword):
@@ -227,10 +232,11 @@ class KittySAStore(KittyStore):
             self.metadata)
         mails = self.session.query(email).filter(
                 email.sender.like('%{0}%'.format(keyword))
-                ).all()
+                ).order_by(email.date).all()
         mails.extend(self.session.query(email).filter(
                 email.email.like('%{0}%'.format(keyword))
-                ).all())
+                ).order_by(email.date).all())
+        mails.reverse()
         return mails
 
     def search_subject(self, list_name, keyword):
@@ -243,6 +249,8 @@ class KittySAStore(KittyStore):
         """
         email = get_class_object(list_to_table_name(list_name), 'email',
             self.metadata)
-        return self.session.query(email).filter(
+        mails = self.session.query(email).filter(
                 email.subject.like('%{0}%'.format(keyword))
-                ).all()
+                ).order_by(email.date).all()
+        mails.reverse()
+        return mails

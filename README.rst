@@ -37,3 +37,6 @@ Load the database:
 (this might be memory intensive, so you may want to do 2 or 3 years per run and split
 the runs)
 
+Alternatively, to load the data you may want to do something like:
+  for i in lists/devel-*; do python to_sqldb.py $i; done;
+

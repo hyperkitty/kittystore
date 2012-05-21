@@ -38,5 +38,5 @@ Load the database:
 the runs)
 
 Alternatively, to load the data you may want to do something like:
-  for i in lists/devel-*; do python to_sqldb.py $i; done;
+  for i in lists/devel-*; do python to_sqldb.py devel $i; done;
 

@@ -22,9 +22,9 @@ TOTALCNT = 0
 
 def convert_date(date_string):
     """ Convert the string of the date to a datetime object. """
-    date_string = date_string.strip()
+    date_string = date_string.split('(')[0].strip()
     dt = parse(date_string)
-    return dt
+    return dt.astimezone(tz.tzutc())
 
 
 def to_mongo(mbfile, database):

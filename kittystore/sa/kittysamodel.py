@@ -38,6 +38,11 @@ def get_table(table, metadata, create=False):
     :kwarg create, a boolean stipulating whether the table should be
     created if it does not already exist in the database.
     """
+    # TODO:
+    # - add an insertion timestamp to be able to calculate the "legacy id
+    #   number" which was used to identify the email in pipermail, and
+    #   eventually setup a proper redirection.
+    # - use the msg_hash_id and the list_id as a primary key
     table = Table( table, metadata,
         Column('id', Integer, primary_key=True),
         Column('sender', String(100), nullable=False),
@@ -95,8 +100,10 @@ class Email(object):
 
     def __repr__(self):
         """ Representation of the Email object when printed. """
-        return "<Email('%s', '%s', '%s', '%s')>" % (self.sender,
-            self.email, self.date, self.subject)
+        return "<Email('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')>" \
+                % (self.sender, self.email, self.date, self.subject,
+                   self.message_id, self.stable_url_id, self.thread_id,
+                   self.references)
 
     def save(self, session):
         """ Save the object into the database. """

@@ -1,5 +1,6 @@
 *.pyc
 static_files/
 *~
+*.egg-info
 
 lists/

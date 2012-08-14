@@ -19,11 +19,15 @@ license.
 import pymongo
 import re
 from datetime import datetime
-from kittystore import KittyStore
+
+from zope.interface import implements
+from mailman.interfaces.messages import IMessageStore
 
 
-class KittyMGStore(KittyStore):
+class KittyMGStore(object):
     """ Implementation of the store for a MongoDB backend. """
+
+    implements(IMessageStore)
 
     def __init__(self, host='localhost', port=27017):
         """ Constructor.

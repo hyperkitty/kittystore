@@ -17,6 +17,7 @@ license.
 import email.utils
 import time
 import re
+from email.header import decode_header
 from datetime import datetime, tzinfo
 from base64 import b32encode
 from hashlib import sha1
@@ -53,7 +54,15 @@ def parseaddr(address):
     mbox archives.
     """
     address = address.replace(" at ", "@")
-    return email.utils.parseaddr(address)
+    from_name, from_email = email.utils.parseaddr(address)
+    from_decoded = []
+    for decoded, charset in decode_header(from_name):
+        if charset is None:
+            from_decoded.append(unicode(decoded))
+        else:
+            from_decoded.append(decoded.decode(charset))
+    from_name = "".join(from_decoded)
+    return from_name, from_email
 
 def parsedate(datestring):
     if datestring is None:

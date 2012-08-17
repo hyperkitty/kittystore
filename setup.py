@@ -19,5 +19,6 @@ setup(
         'zope.interface',
         'SQLAlchemy==0.7.8',
         'python-dateutil < 2.0' # 2.0+ is for Python 3
+        'mock',
         ],
     )

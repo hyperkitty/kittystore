@@ -16,6 +16,7 @@ license.
 
 import email.utils
 import time
+import re
 from datetime import datetime, tzinfo
 from base64 import b32encode
 from hashlib import sha1
@@ -26,6 +27,9 @@ import dateutil.parser
 __all__ = ("get_message_id_hash", "parseaddr", "parsedate",
            "get_ref_and_thread_id",
            )
+
+
+IN_BRACKETS_RE = re.compile("[^<]*<([^>]+)>.*")
 
 
 def get_message_id_hash(msg_id):
@@ -68,13 +72,13 @@ def get_ref_and_thread_id(message, list_name, store):
             and not message.has_key("In-Reply-To")):
         return None, None
     # It's a reply, use the thread_id from the parent email
-    ref = message.get("References")
-    if ref is not None:
+    ref_id = message.get("References")
+    if ref_id is not None:
         # There can be multiple references, use the first one
-        ref = ref.split()[0].strip()
+        ref_id = ref_id.split()[0].strip()
     else:
-        ref = message.get("In-Reply-To")
-    ref = ref.strip("<>")
+        ref_id = message.get("In-Reply-To")
+    ref_id = IN_BRACKETS_RE.match(ref_id).group(1)
     # It's a reply, use the thread_id from the parent email
     ref_msg = store.get_message_by_id_from_list(list_name, ref_id)
     if ref_msg is None:
@@ -82,5 +86,5 @@ def get_ref_and_thread_id(message, list_name, store):
     else:
         # re-use parent's thread-id
         thread_id = ref_msg.thread_id
-    return ref, thread_id
+    return ref_id, thread_id
 

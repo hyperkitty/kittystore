@@ -44,7 +44,12 @@ def to_db(mbfile, list_name, store):
         cnt_read = cnt_read + 1
         #print cnt_read
         TOTALCNT = TOTALCNT + 1
-        msg_id_hash = store.add_to_list(list_name, message)
+        try:
+            msg_id_hash = store.add_to_list(list_name, message)
+        except ValueError, e:
+            print "%s from %s about %s" % (e.args[0],
+                    e.args[1].get("From"), e.args[1].get("Subject"))
+            continue
         store.session.flush()
         cnt = cnt + 1
     store.session.commit()

@@ -85,6 +85,8 @@ class KittySAStore(object):
             The storage service is also allowed to raise this exception
             if it find, but disallows collisions.
         """
+        # Not sure this is useful: a message should always be in a list
+        raise NotImplementedError
 
     def add_to_list(self, list_name, message):
         """Add the message to a specific list of the store.
@@ -157,6 +159,8 @@ class KittySAStore(object):
             store.
         :raises LookupError: if there is no such message.
         """
+        # Not sure this is useful: a message should always be in a list
+        raise NotImplementedError
 
     def delete_message_from_list(self, list_name, message_id):
         """Remove the given message for a specific list from the store.

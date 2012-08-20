@@ -26,7 +26,8 @@ import dateutil.parser
 
 
 __all__ = ("get_message_id_hash", "parseaddr", "parsedate",
-           "header_to_unicode", "get_ref_and_thread_id",
+           "header_to_unicode", "payload_to_unicode",
+           "get_ref_and_thread_id",
            )
 
 
@@ -68,6 +69,31 @@ def header_to_unicode(header):
                 h_decoded.append(" ")
             h_decoded.append(decoded.decode(charset))
     return "".join(h_decoded)
+
+def payload_to_unicode(message):
+    # Turn non-ascii into Unicode, assuming UTF-8
+    payload = []
+    for part in message.walk():
+        if part.get_content_charset() is None:
+            for encoding in ["ascii", "utf-8", "iso-8859-15"]:
+                try:
+                    payload.append(unicode(part.get_payload().decode(encoding)))
+                except UnicodeDecodeError:
+                    continue
+                else:
+                    print encoding, payload
+                    break
+                # Try UTF-8
+                #part.set_charset("utf-8")
+                #try:
+                #    payload.append(part.get_payload().decode("utf-8"))
+                #except UnicodeDecodeError, e:
+                #    print e
+                #    print message.items()
+                #    print part.get_payload()
+                #    raise
+    #return message.get_payload()
+    return "".join(payload)
 
 def parsedate(datestring):
     if datestring is None:

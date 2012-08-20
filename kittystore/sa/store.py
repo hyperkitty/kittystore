@@ -19,7 +19,8 @@ import datetime
 
 from kittystore import MessageNotFound
 from kittystore.utils import get_message_id_hash, parseaddr, parsedate
-from kittystore.utils import get_ref_and_thread_id, header_to_unicode
+from kittystore.utils import header_to_unicode, payload_to_unicode
+from kittystore.utils import get_ref_and_thread_id
 from kittystore.sa.kittysamodel import get_class_object
 
 from zope.interface import implements
@@ -123,15 +124,7 @@ class KittySAStore(object):
 
         from_name, from_email = parseaddr(message['From'])
         from_name = header_to_unicode(from_name)
-
-        # Turn non-ascii into Unicode, assuming UTF-8
-        for part in message.walk():
-            if part.get_content_charset() is None:
-                try:
-                    unicode(part.get_payload())
-                except UnicodeDecodeError:
-                    # Try UTF-8
-                    part.set_charset("utf-8")
+        payload = payload_to_unicode(message)
 
         #category = 'Question' # TODO: enum + i18n ?
         #if ('agenda' in message.get('Subject', '').lower() or
@@ -143,7 +136,7 @@ class KittySAStore(object):
             sender=from_name,
             email=from_email,
             subject=header_to_unicode(message.get('Subject')),
-            content=message.get_payload(),
+            content=payload.encode("utf-8"),
             date=parsedate(message.get("Date")),
             message_id=msg_id,
             stable_url_id=msg_id_hash,

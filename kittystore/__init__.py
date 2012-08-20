@@ -15,7 +15,7 @@ See http://www.gnu.org/copyleft/gpl.html  for the full text of the
 license.
 """
 
-__all__ = ("get_store", )
+__all__ = ("get_store", "MessageNotFound", )
 
 
 def get_store(url, debug=False):
@@ -25,3 +25,6 @@ def get_store(url, debug=False):
     else:
         from kittystore.sa import KittySAStore
         return KittySAStore(url, debug)
+
+class MessageNotFound(Exception):
+    pass

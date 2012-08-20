@@ -43,6 +43,7 @@ def get_table(table, metadata, create=False):
     #   number" which was used to identify the email in pipermail, and
     #   eventually setup a proper redirection.
     # - use the msg_hash_id and the list_id as a primary key
+    # - add a content-type (html or text) (and an encoding field maybe? or store everything as UTF-8?)
     table = Table( table, metadata,
         Column('id', Integer, primary_key=True),
         Column('sender', String(100), nullable=False),

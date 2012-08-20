@@ -17,6 +17,7 @@ license.
 
 import datetime
 
+from kittystore import MessageNotFound
 from kittystore.utils import get_message_id_hash, parseaddr, parsedate
 from kittystore.utils import get_ref_and_thread_id
 from kittystore.sa.kittysamodel import get_class_object
@@ -149,7 +150,7 @@ class KittySAStore(object):
             references=ref,
             full=message.as_string(),
             )
-        mail.save(self.session)
+        self.session.add(mail)
         return msg_id_hash
 
     def delete_message(self, message_id):
@@ -171,6 +172,12 @@ class KittySAStore(object):
             store.
         :raises LookupError: if there is no such message.
         """
+        email = get_class_object(list_to_table_name(list_name), 'email',
+                                 self.metadata, create=False)
+        msg = self.get_message_by_id_from_list(list_name, message_id)
+        if msg is None:
+            raise MessageNotFound(list_name, message_id)
+        self.session.delete(msg)
 
     def get_list_size(self, list_name):
         """ Return the number of emails stored for a given mailing list.
@@ -190,6 +197,8 @@ class KittySAStore(object):
             search for.
         :returns: The message, or None if no matching message was found.
         """
+        # Not sure this is useful: a message should always be in a list
+        raise NotImplementedError
 
     def get_message_by_hash_from_list(self, list_name, message_id_hash):
         """Return the message with the matching X-Message-ID-Hash.
@@ -198,6 +207,13 @@ class KittySAStore(object):
             search for.
         :returns: The message, or None if no matching message was found.
         """
+        email = get_class_object(list_to_table_name(list_name), 'email',
+                                 self.metadata)
+        try:
+            return self.session.query(email).filter_by(
+                    stable_url_id=message_id_hash).one()
+        except NoResultFound:
+            return None
 
     def get_message_by_id(self, message_id):
         """Return the message with a matching Message-ID.
@@ -205,6 +221,8 @@ class KittySAStore(object):
         :param message_id: The Message-ID header contents to search for.
         :returns: The message, or None if no matching message was found.
         """
+        # Not sure this is useful: a message should always be in a list
+        raise NotImplementedError
 
     def get_message_by_id_from_list(self, list_name, message_id):
         """Return the message with a matching Message-ID.
@@ -216,13 +234,11 @@ class KittySAStore(object):
         """
         email = get_class_object(list_to_table_name(list_name), 'email',
                                  self.metadata)
-        mail = None
         try:
-            mail = self.session.query(email).filter_by(
+            return self.session.query(email).filter_by(
                     message_id=message_id).one()
         except NoResultFound:
-            pass
-        return mail
+            return None
 
     def search_list_for_content(self, list_name, keyword):
         """ Returns a list of email containing the specified keyword in
@@ -358,13 +374,11 @@ class KittySAStore(object):
         """
         email = get_class_object(list_to_table_name(list_name), 'email',
             self.metadata)
-        mail = None
         try:
-            mail = self.session.query(email).filter_by(
+            return self.session.query(email).filter_by(
                 thread_id=thread_id).order_by(email.date).all()
         except NoResultFound:
-            pass
-        return mail
+            return None
 
     def get_thread_length(self, list_name, thread_id):
         """ Return the number of email present in a thread. This thread

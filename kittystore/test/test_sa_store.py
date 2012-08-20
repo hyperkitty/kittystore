@@ -37,6 +37,8 @@ class TestSAStore(unittest.TestCase):
         email = get_class_object(list_to_table_name("example-list"), 'email',
             self.store.metadata)
         for msg in self.store.session.query(email).all():
-            print repr(msg.sender)
+            print repr(msg.sender), repr(msg.subject)
             self.failIf("=?" in msg.sender,
-                    "header not decoded: %s" % msg.sender)
+                    "From header not decoded: %s" % msg.sender)
+            self.failIf("=?" in msg.subject,
+                    "Subject header not decoded: %s" % msg.sender)

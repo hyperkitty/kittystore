@@ -26,7 +26,7 @@ import dateutil.parser
 
 
 __all__ = ("get_message_id_hash", "parseaddr", "parsedate",
-           "get_ref_and_thread_id",
+           "header_to_unicode", "get_ref_and_thread_id",
            )
 
 
@@ -55,14 +55,19 @@ def parseaddr(address):
     """
     address = address.replace(" at ", "@")
     from_name, from_email = email.utils.parseaddr(address)
-    from_decoded = []
-    for decoded, charset in decode_header(from_name):
-        if charset is None:
-            from_decoded.append(unicode(decoded))
-        else:
-            from_decoded.append(decoded.decode(charset))
-    from_name = "".join(from_decoded)
     return from_name, from_email
+
+def header_to_unicode(header):
+    h_decoded = []
+    for decoded, charset in decode_header(header):
+        if charset is None:
+            h_decoded.append(unicode(decoded))
+        else:
+            if h_decoded:
+                # not so sure why...
+                h_decoded.append(" ")
+            h_decoded.append(decoded.decode(charset))
+    return "".join(h_decoded)
 
 def parsedate(datestring):
     if datestring is None:

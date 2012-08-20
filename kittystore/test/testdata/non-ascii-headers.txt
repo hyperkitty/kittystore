@@ -69,7 +69,8 @@ Vit
 From bjorn at xn--rombobjrn-67a.se  Thu Jul 12 23:49:23 2012
 From: bjorn at xn--rombobjrn-67a.se (=?iso-8859-1?q?Bj=F6rn_Persson?=)
 Date: Fri, 13 Jul 2012 01:49:23 +0200
-Subject: [Fedora-packaging] Script-Tools, which location?
+Subject: [Fedora-fr-list] =?iso-8859-1?q?Compte-rendu_de_la_r=E9union_du_?=
+	=?iso-8859-1?q?1_novembre_2009?=
 In-Reply-To: <CACyNwR1VLMm019JTnju9gbXVq4=p2y+=NP8NuOh1XShtRVG+Nw@mail.gmail.com>
 References: <CACyNwR1VLMm019JTnju9gbXVq4=p2y+=NP8NuOh1XShtRVG+Nw@mail.gmail.com>
 Message-ID: <201207130149.23771.bjorn@xn--rombobjrn-67a.se>
@@ -122,7 +123,8 @@ URL: <http://lists.fedoraproject.org/pipermail/packaging/attachments/20120713/23
 From mmaslano at redhat.com  Wed Jul 18 07:41:37 2012
 From: mmaslano at redhat.com (=?UTF-8?B?TWFyY2VsYSBNYcWhbMOhxYhvdsOh?=)
 Date: Wed, 18 Jul 2012 09:41:37 +0200
-Subject: [Fedora-packaging] RPM macros
+Subject: =?UTF-8?Q?Re=3A_=5BFedora=2Dfr=2Dlist=5D_Compte=2Drendu_de_la_r=C3=A9union_du_?=
+	=?UTF-8?Q?1_novembre_2009?=
 In-Reply-To: <4FFC1228.3060409@redhat.com>
 References: <4FFC1228.3060409@redhat.com>
 Message-ID: <500668B1.8090904@redhat.com>

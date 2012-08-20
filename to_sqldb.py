@@ -13,6 +13,7 @@ from dateutil.parser import parse
 from dateutil import tz
 from kitchen.text.converters import to_bytes
 from hashlib import sha1
+from sqlalchemy.exc import OperationalError
 
 from kittystore import get_store
 
@@ -50,6 +51,11 @@ def to_db(mbfile, list_name, store):
             print "%s from %s about %s" % (e.args[0],
                     e.args[1].get("From"), e.args[1].get("Subject"))
             continue
+        except OperationalError, e:
+            print message["From"], message["Subject"], e
+            # Database is locked
+            time.sleep(1)
+            msg_id_hash = store.add_to_list(list_name, message)
         store.session.flush()
         cnt = cnt + 1
     store.session.commit()

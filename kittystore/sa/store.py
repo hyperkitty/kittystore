@@ -19,7 +19,7 @@ import datetime
 
 from kittystore import MessageNotFound
 from kittystore.utils import get_message_id_hash, parseaddr, parsedate
-from kittystore.utils import get_ref_and_thread_id
+from kittystore.utils import get_ref_and_thread_id, header_to_unicode
 from kittystore.sa.kittysamodel import get_class_object
 
 from zope.interface import implements
@@ -122,6 +122,7 @@ class KittySAStore(object):
             thread_id = msg_id_hash
 
         from_name, from_email = parseaddr(message['From'])
+        from_name = header_to_unicode(from_name)
 
         # Turn non-ascii into Unicode, assuming UTF-8
         for part in message.walk():
@@ -141,7 +142,7 @@ class KittySAStore(object):
         mail = email(
             sender=from_name,
             email=from_email,
-            subject=message.get('Subject'),
+            subject=header_to_unicode(message.get('Subject')),
             content=message.get_payload(),
             date=parsedate(message.get("Date")),
             message_id=msg_id,

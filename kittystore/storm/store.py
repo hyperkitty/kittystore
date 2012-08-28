@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """
-KittySAStore - an object mapper and interface to a SQL database
-           representation of emails for mailman 3.
-
-Copyright (C) 2012 Pierre-Yves Chibon
-Author: Pierre-Yves Chibon <pingou@pingoured.fr>
+Copyright (C) 2012 Aurélien Bompard <abompard@fedoraproject.org>
+Author: Aurélien Bompard <abompard@fedoraproject.org>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,64 +12,43 @@ See http://www.gnu.org/copyleft/gpl.html  for the full text of the
 license.
 """
 
+from __future__ import absolute_import
+
 import datetime
 
 from kittystore import MessageNotFound
 from kittystore.utils import get_message_id_hash, parseaddr, parsedate
 from kittystore.utils import header_to_unicode, payload_to_unicode
 from kittystore.utils import get_ref_and_thread_id
-from kittystore.sa.kittysamodel import get_class_object
 
 from zope.interface import implements
 from mailman.interfaces.messages import IMessageStore
+from storm.locals import *
 
-from sqlalchemy import create_engine, distinct, MetaData, and_, desc, or_
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.exc import NoResultFound
+from .model import List, Email
+
+#from kittystore.sa.kittysamodel import get_class_object
+#from sqlalchemy import create_engine, distinct, MetaData, and_, desc, or_
+#from sqlalchemy.ext.declarative import declarative_base
+#from sqlalchemy.orm import sessionmaker
+#from sqlalchemy.orm.exc import NoResultFound
 
 
-def list_to_table_name(list_name):
-    """ For a given fully qualified list name, return the table name.
-    What the method does is to transform the special characters from the
-    list name to underscore ('_') and append the 'KS_' prefix in front.
-    (KS stands for KittyStore).
-
-    Characters replaced: -.@
-
-    :arg list_name, the fully qualified list name to be transformed to
-    the table name.
+class StormStore(object):
     """
-    for char in ['-', '.', '@']:
-        list_name = list_name.replace(char, '_')
-    return 'HK_%s' % list_name
-
-
-class KittySAStore(object):
-    """
-    SQL-Alchemy powered interface to query emails from the database.
+    Storm-powered interface to query emails from the database.
     """
 
     implements(IMessageStore)
 
-    def __init__(self, url, debug=False):
+    def __init__(self, db, debug=False):
         """ Constructor.
         Create the session using the engine defined in the url.
 
-        :arg url, URL used to connect to the database. The URL contains
-        information with regards to the database engine, the host to connect
-        to, the user and password and the database name.
-          ie: <engine>://<user>:<password>@<host>/<dbname>
-          ie: mysql://mm3_user:mm3_password@localhost/mm3
-        :kwarg debug, a boolean to set the debug mode on or off.
+        :param db: the Storm store object
+        :param debug: a boolean to set the debug mode on or off.
         """
-        connect_args = {}
-        if url.startswith('sqlite://'):
-            connect_args["check_same_thread"] = False
-        self.engine = create_engine(url, echo=debug, connect_args=connect_args)
-        self.metadata = MetaData(self.engine)
-        session = sessionmaker(bind=self.engine)
-        self.session = session()
+        self.db = db
 
     def add(self, message):
         """Add the message to the store.
@@ -105,26 +81,37 @@ class KittySAStore(object):
             The storage service is also allowed to raise this exception
             if it find, but disallows collisions.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-                        MetaData(self.engine), create=True)
+        # Create the list if it does not exist
+        list_is_in_db = self.db.find(List,
+                List.name == unicode(list_name)).count()
+        if not list_is_in_db:
+            self.db.add(List(list_name))
         if not message.has_key("Message-Id"):
             raise ValueError("No 'Message-Id' header in email", message)
         msg_id = message['Message-Id'].strip("<>")
-        msg_id_hash = get_message_id_hash(msg_id)
-        if self.get_message_by_id_from_list(list_name, msg_id) is not None:
+        email = Email(list_name, msg_id)
+        if self.is_message_in_list(list_name, email.message_id):
             print ("Duplicate email from %s: %s" %
                    (message['From'], message.get('Subject', '""')))
-            return msg_id_hash
+            return email.hash_id
 
         # Find thread id
         ref, thread_id = get_ref_and_thread_id(message, list_name, self)
         if thread_id is None:
             # make up the thread_id if not found
-            thread_id = msg_id_hash
+            thread_id = email.hash_id
+        email.thread_id = thread_id
+        email.in_reply_to = ref
 
         from_name, from_email = parseaddr(message['From'])
         from_name = header_to_unicode(from_name)
+        email.sender_name = from_name
+        email.sender_email = unicode(from_email)
+        email.subject = header_to_unicode(message.get('Subject'))
         payload = payload_to_unicode(message)
+        email.content = payload
+        email.date = parsedate(message.get("Date"))
+        email.full = message.as_string()
 
         #category = 'Question' # TODO: enum + i18n ?
         #if ('agenda' in message.get('Subject', '').lower() or
@@ -132,20 +119,9 @@ class KittySAStore(object):
         #    # i18n!
         #    category = 'Agenda'
 
-        mail = email(
-            sender=from_name,
-            email=from_email,
-            subject=header_to_unicode(message.get('Subject')),
-            content=payload.encode("utf-8"),
-            date=parsedate(message.get("Date")),
-            message_id=msg_id,
-            stable_url_id=msg_id_hash,
-            thread_id=thread_id,
-            references=ref,
-            full=message.as_string(),
-            )
-        self.session.add(mail)
-        return msg_id_hash
+        self.db.add(email)
+        self.flush()
+        return email.hash_id
 
     def delete_message(self, message_id):
         """Remove the given message from the store.
@@ -166,12 +142,11 @@ class KittySAStore(object):
             store.
         :raises LookupError: if there is no such message.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-                                 self.metadata, create=False)
         msg = self.get_message_by_id_from_list(list_name, message_id)
         if msg is None:
             raise MessageNotFound(list_name, message_id)
-        self.session.delete(msg)
+        self.db.delete(msg)
+        self.flush()
 
     def get_list_size(self, list_name):
         """ Return the number of emails stored for a given mailing list.
@@ -179,9 +154,8 @@ class KittySAStore(object):
         :arg list_name, name of the mailing list in which this email
         should be searched.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-            self.metadata)
-        return self.session.query(email).count()
+        return self.db.find(Email,
+                Email.list_name == unicode(list_name)).count()
 
 
     def get_message_by_hash(self, message_id_hash):
@@ -201,13 +175,8 @@ class KittySAStore(object):
             search for.
         :returns: The message, or None if no matching message was found.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-                                 self.metadata)
-        try:
-            return self.session.query(email).filter_by(
-                    stable_url_id=message_id_hash).one()
-        except NoResultFound:
-            return None
+        return self.db.find(Email,
+                Email.hash_id == unicode(message_id_hash)).one()
 
     def get_message_by_id(self, message_id):
         """Return the message with a matching Message-ID.
@@ -226,13 +195,20 @@ class KittySAStore(object):
         :param message_id: The Message-ID header contents to search for.
         :returns: The message, or None if no matching message was found.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-                                 self.metadata)
-        try:
-            return self.session.query(email).filter_by(
-                    message_id=message_id).one()
-        except NoResultFound:
-            return None
+        msg = self.db.find(Email,
+                Email.message_id == unicode(message_id)).one()
+        return msg
+
+    def is_message_in_list(self, list_name, message_id):
+        """Return the number of messages with a matching Message-ID in the list.
+
+        :param list_name: The fully qualified list name to which the
+            message should be added.
+        :param message_id: The Message-ID header contents to search for.
+        :returns: The message, or None if no matching message was found.
+        """
+        return self.db.find(Email.message_id,
+                Email.message_id == unicode(message_id)).count()
 
     def search_list_for_content(self, list_name, keyword):
         """ Returns a list of email containing the specified keyword in
@@ -242,13 +218,10 @@ class KittySAStore(object):
         should be searched.
         :param keyword: keyword to search in the content of the emails.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-            self.metadata)
-        mails = self.session.query(email).filter(
-                email.content.ilike('%{0}%'.format(keyword))
-                ).order_by(email.date).all()
-        mails.reverse() # TODO: change the SQL order above
-        return mails
+        emails = self.db.find(Email,
+                Email.content.ilike(u'%{0}%'.format(keyword))
+                ).order_by(Desc(Email.date))
+        return emails
 
     def search_list_for_content_subject(self, list_name, keyword):
         """ Returns a list of email containing the specified keyword in
@@ -259,14 +232,11 @@ class KittySAStore(object):
         :param keyword: keyword to search in the content or subject of
             the emails.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-            self.metadata)
-        mails = self.session.query(email).filter(or_(
-                email.content.ilike('%{0}%'.format(keyword)),
-                email.subject.ilike('%{0}%'.format(keyword))
-                )).order_by(email.date).all()
-        mails.reverse() # TODO: change the SQL order above
-        return mails
+        emails = self.db.find(Email, Or(
+                    Email.content.ilike(u'%{0}%'.format(keyword)),
+                    Email.subject.ilike(u'%{0}%'.format(keyword)),
+                )).order_by(Desc(Email.date))
+        return emails
 
     def search_list_for_sender(self, list_name, keyword):
         """ Returns a list of email containing the specified keyword in
@@ -276,15 +246,11 @@ class KittySAStore(object):
             should be searched.
         :param keyword: keyword to search in the database.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-            self.metadata)
-        mails = self.session.query(email).filter(or_(
-                email.sender.ilike('%{0}%'.format(keyword)),
-                email.email.ilike('%{0}%'.format(keyword))
-                )).order_by(email.date).all()
-        mails.reverse() # TODO: change the SQL order above
-        return mails
-
+        emails = self.db.find(Email, Or(
+                    Email.sender_name.ilike(u'%{0}%'.format(keyword)),
+                    Email.sender_email.ilike(u'%{0}%'.format(keyword)),
+                )).order_by(Desc(Email.date))
+        return emails
 
     def search_list_for_subject(self, list_name, keyword):
         """ Returns a list of email containing the specified keyword in
@@ -294,13 +260,10 @@ class KittySAStore(object):
             should be searched.
         :param keyword: keyword to search in the subject of the emails.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-            self.metadata)
-        mails = self.session.query(email).filter(
-                email.subject.ilike('%{0}%'.format(keyword))
-                ).order_by(email.date).all()
-        mails.reverse() # TODO: change the SQL order above
-        return mails
+        emails = self.db.find(Email,
+                Email.subject.ilike(u'%{0}%'.format(keyword)),
+                ).order_by(Desc(Email.date))
+        return emails
 
     @property
     def messages(self):
@@ -310,10 +273,15 @@ class KittySAStore(object):
 
 
 
+    def get_list_names(self):
+        """Return the names of the archived lists.
 
+        :returns: A list containing the names of the archived mailing-lists.
+        """
+        return list(self.db.find(List.name).order_by(List.name))
 
     def get_archives(self, list_name, start, end):
-        """ Return all the thread started emails between two given dates.
+        """ Return all the thread-starting emails between two given dates.
 
         :arg list_name, name of the mailing list in which this email
         should be searched.
@@ -323,16 +291,13 @@ class KittySAStore(object):
         the interval to query.
         """
         # Beginning of thread == No 'References' header
-        email = get_class_object(list_to_table_name(list_name), 'email',
-            self.metadata)
-        mails = self.session.query(email).filter(
-            and_(
-                email.date >= start,
-                email.date <= end,
-                email.references == None)
-                ).order_by(email.date).all()
-        mails.reverse()
-        return mails
+        emails = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.in_reply_to == None,
+                    Email.date >= start,
+                    Email.date <= end,
+                )).order_by(Desc(Email.date))
+        return list(emails)
 
     def get_archives_length(self, list_name):
         """ Return a dictionnary of years, months for which there are
@@ -343,13 +308,16 @@ class KittySAStore(object):
         should be searched.
         """
         archives = {}
-        email = get_class_object(list_to_table_name(list_name), 'email',
-            self.metadata)
-        entry = self.session.query(email).order_by(
-                    email.date).limit(1).all()[0]
+        first = self.db.find(Email.date,
+                Email.list_name == unicode(list_name)
+                ).order_by(Email.date)[:1]
+        if not list(first):
+            return archives
+        else:
+            first = first.one()
         now = datetime.datetime.now()
-        year = entry.date.year
-        month = entry.date.month
+        year = first.year
+        month = first.month
         while year < now.year:
             archives[year] = range(1, 13)[(month -1):]
             year = year + 1
@@ -366,13 +334,11 @@ class KittySAStore(object):
         :arg thread_id, thread_id as used in the web-pages.
         Used here to uniquely identify the thread in the database.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-            self.metadata)
-        try:
-            return self.session.query(email).filter_by(
-                thread_id=thread_id).order_by(email.date).all()
-        except NoResultFound:
-            return None
+        emails = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.thread_id == unicode(thread_id),
+                )).order_by(Desc(Email.date))
+        return list(emails)
 
     def get_thread_length(self, list_name, thread_id):
         """ Return the number of email present in a thread. This thread
@@ -383,10 +349,10 @@ class KittySAStore(object):
         :arg thread_id, unique identifier of the thread as specified in
         the database.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-            self.metadata)
-        return self.session.query(email).filter_by(
-                    thread_id=thread_id).count()
+        return self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.thread_id == unicode(thread_id),
+                )).count()
 
     def get_thread_participants(self, list_name, thread_id):
         """ Return the list of participant in a thread. This thread
@@ -397,13 +363,14 @@ class KittySAStore(object):
         :arg thread_id, unique identifier of the thread as specified in
         the database.
         """
-        email = get_class_object(list_to_table_name(list_name), 'email',
-            self.metadata)
-        return self.session.query(distinct(email.sender)).filter(
-                email.thread_id == thread_id).all()
+        participants = self.db.find(Email.sender_name, And(
+                    Email.list_name == unicode(list_name),
+                    Email.thread_id == unicode(thread_id),
+                )).config(distinct=True)
+        return list(participants)
 
     def flush(self):
-        self.session.flush()
+        self.db.flush()
 
     def commit(self):
-        self.session.commit()
+        self.db.commit()

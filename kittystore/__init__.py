@@ -22,9 +22,13 @@ def get_store(url, debug=False):
     """Factory for a KittyStore subclass"""
     if url.startswith("mongo://"):
         raise NotImplementedError
+    #else:
+    #    from kittystore.sa import KittySAStore
+    #    return KittySAStore(url, debug)
     else:
-        from kittystore.sa import KittySAStore
-        return KittySAStore(url, debug)
+        from kittystore.storm import get_storm_store
+        return get_storm_store(url, debug)
+
 
 class MessageNotFound(Exception):
     pass

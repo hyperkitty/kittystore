@@ -81,7 +81,7 @@ def payload_to_unicode(message):
                 except UnicodeDecodeError:
                     continue
                 else:
-                    print encoding, payload
+                    #print encoding, payload
                     break
                 # Try UTF-8
                 #part.set_charset("utf-8")
@@ -125,6 +125,6 @@ def get_ref_and_thread_id(message, list_name, store):
         thread_id = None
     else:
         # re-use parent's thread-id
-        thread_id = ref_msg.thread_id
-    return ref_id, thread_id
+        thread_id = unicode(ref_msg.thread_id)
+    return unicode(ref_id), thread_id
 

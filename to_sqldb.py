@@ -56,9 +56,9 @@ def to_db(mbfile, list_name, store):
             # Database is locked
             time.sleep(1)
             msg_id_hash = store.add_to_list(list_name, message)
-        store.session.flush()
+        store.flush()
         cnt = cnt + 1
-    store.session.commit()
+    store.commit()
     print '  %s email read' % cnt_read
     print '  %s email added to the database' % cnt
 
@@ -77,5 +77,3 @@ python to_sqldb.py list_name mbox_file [mbox_file]'''
             if os.path.exists(mbfile):
                 to_db(mbfile, sys.argv[1], store)
                 print '  %s emails are stored into the database' % store.get_list_size(sys.argv[1])
-        store.session.close()
-

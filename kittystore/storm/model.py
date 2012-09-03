@@ -14,10 +14,12 @@ license.
 
 import datetime
 
+from zope.interface import implements
 from storm.locals import *
-from .hack_datetime import DateTime
+from mailman.interfaces.messages import IMessage
 
 from kittystore.utils import get_message_id_hash
+from .hack_datetime import DateTime
 
 
 __all__ = ("List", "Email",)
@@ -34,6 +36,7 @@ class List(object):
 
 class Email(object):
 
+    implements(IMessage)
     __storm_table__ = "email"
     __storm_primary__ = "list_name", "message_id"
 
@@ -45,12 +48,14 @@ class Email(object):
     content = Unicode()
     date = DateTime()
     in_reply_to = Unicode()
-    hash_id = Unicode()
+    message_id_hash = Unicode()
     thread_id = Unicode()
     full = RawStr()
     archived_date = DateTime(default_factory=datetime.datetime.now)
+    # path is required by IMessage, but it makes no sense here
+    path = None
 
     def __init__(self, list_name, message_id):
         self.list_name = unicode(list_name)
         self.message_id = unicode(message_id)
-        self.hash_id = unicode(get_message_id_hash(self.message_id))
+        self.message_id_hash = unicode(get_message_id_hash(self.message_id))

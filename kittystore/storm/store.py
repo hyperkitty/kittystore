@@ -27,12 +27,6 @@ from storm.locals import *
 
 from .model import List, Email
 
-#from kittystore.sa.kittysamodel import get_class_object
-#from sqlalchemy import create_engine, distinct, MetaData, and_, desc, or_
-#from sqlalchemy.ext.declarative import declarative_base
-#from sqlalchemy.orm import sessionmaker
-#from sqlalchemy.orm.exc import NoResultFound
-
 
 class StormStore(object):
     """
@@ -49,6 +43,8 @@ class StormStore(object):
         :param debug: a boolean to set the debug mode on or off.
         """
         self.db = db
+
+    # IMessageStore methods
 
     def add(self, message):
         """Add the message to the store.
@@ -93,13 +89,13 @@ class StormStore(object):
         if self.is_message_in_list(list_name, email.message_id):
             print ("Duplicate email from %s: %s" %
                    (message['From'], message.get('Subject', '""')))
-            return email.hash_id
+            return email.message_id_hash
 
         # Find thread id
         ref, thread_id = get_ref_and_thread_id(message, list_name, self)
         if thread_id is None:
             # make up the thread_id if not found
-            thread_id = email.hash_id
+            thread_id = email.message_id_hash
         email.thread_id = thread_id
         email.in_reply_to = ref
 
@@ -121,7 +117,7 @@ class StormStore(object):
 
         self.db.add(email)
         self.flush()
-        return email.hash_id
+        return email.message_id_hash
 
     def delete_message(self, message_id):
         """Remove the given message from the store.
@@ -176,7 +172,7 @@ class StormStore(object):
         :returns: The message, or None if no matching message was found.
         """
         return self.db.find(Email,
-                Email.hash_id == unicode(message_id_hash)).one()
+                Email.message_id_hash == unicode(message_id_hash)).one()
 
     def get_message_by_id(self, message_id):
         """Return the message with a matching Message-ID.
@@ -198,17 +194,6 @@ class StormStore(object):
         msg = self.db.find(Email,
                 Email.message_id == unicode(message_id)).one()
         return msg
-
-    def is_message_in_list(self, list_name, message_id):
-        """Return the number of messages with a matching Message-ID in the list.
-
-        :param list_name: The fully qualified list name to which the
-            message should be added.
-        :param message_id: The Message-ID header contents to search for.
-        :returns: The message, or None if no matching message was found.
-        """
-        return self.db.find(Email.message_id,
-                Email.message_id == unicode(message_id)).count()
 
     def search_list_for_content(self, list_name, keyword):
         """ Returns a list of email containing the specified keyword in
@@ -270,7 +255,18 @@ class StormStore(object):
         """An iterator over all messages in this message store."""
         raise NotImplementedError
 
+    # Other methods (not in IMessageStore)
 
+    def is_message_in_list(self, list_name, message_id):
+        """Return the number of messages with a matching Message-ID in the list.
+
+        :param list_name: The fully qualified list name to which the
+            message should be added.
+        :param message_id: The Message-ID header contents to search for.
+        :returns: The message, or None if no matching message was found.
+        """
+        return self.db.find(Email.message_id,
+                Email.message_id == unicode(message_id)).count()
 
 
     def get_list_names(self):

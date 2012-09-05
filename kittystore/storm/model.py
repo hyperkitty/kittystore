@@ -24,7 +24,15 @@ from .hack_datetime import DateTime
 
 __all__ = ("List", "Email",)
 
+
 class List(object):
+    """
+    An archived mailing-list.
+
+    Not strictly necessary yet since the list name is used in the email table,
+    but at some point we'll want to store more information on lists in the
+    database.
+    """
 
     __storm_table__ = "list"
 
@@ -35,6 +43,10 @@ class List(object):
 
 
 class Email(object):
+    """
+    An archived email, from a mailing-list. It is identified by both the list
+    name and the message id.
+    """
 
     implements(IMessage)
     __storm_table__ = "email"

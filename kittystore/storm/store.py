@@ -268,7 +268,6 @@ class StormStore(object):
         return self.db.find(Email.message_id,
                 Email.message_id == unicode(message_id)).count()
 
-
     def get_list_names(self):
         """Return the names of the archived lists.
 
@@ -276,15 +275,16 @@ class StormStore(object):
         """
         return list(self.db.find(List.name).order_by(List.name))
 
-    def get_archives(self, list_name, start, end):
+    def get_threads(self, list_name, start, end):
         """ Return all the thread-starting emails between two given dates.
 
-        :arg list_name, name of the mailing list in which this email
-        should be searched.
-        :arg start, a datetime object representing the starting date of
-        the interval to query.
-        :arg end, a datetime object representing the ending date of
-        the interval to query.
+        :param list_name: The name of the mailing list in which this email
+            should be searched.
+        :param start: A datetime object representing the starting date of
+            the interval to query.
+        :param end: A datetime object representing the ending date of
+            the interval to query.
+        :returns: The list of thread-starting messages.
         """
         # Beginning of thread == No 'References' header
         emails = self.db.find(Email, And(
@@ -295,40 +295,30 @@ class StormStore(object):
                 )).order_by(Desc(Email.date))
         return list(emails)
 
-    def get_archives_length(self, list_name):
-        """ Return a dictionnary of years, months for which there are
-        potentially archives available for a given list (based on the
-        oldest post on the list).
+    def get_start_date(self, list_name):
+        """ Get the date of the first archived email in a list.
 
-        :arg list_name, name of the mailing list in which this email
-        should be searched.
+        :param list_name: The fully qualified list name to search
+        :returns: The datetime of the first message, or None if no message have
+            been archived yet.
         """
-        archives = {}
-        first = self.db.find(Email.date,
+        date = self.db.find(Email.date,
                 Email.list_name == unicode(list_name)
                 ).order_by(Email.date)[:1]
-        if not list(first):
-            return archives
+        if date:
+            return date.one()
         else:
-            first = first.one()
-        now = datetime.datetime.now()
-        year = first.year
-        month = first.month
-        while year < now.year:
-            archives[year] = range(1, 13)[(month -1):]
-            year = year + 1
-            month = 1
-        archives[now.year] = range(1, 13)[:now.month]
-        return archives
+            return None
 
-    def get_thread(self, list_name, thread_id):
+    def get_messages_in_thread(self, list_name, thread_id):
         """ Return all the emails present in a thread. This thread
         is uniquely identified by its thread_id.
 
-        :arg list_name, name of the mailing list in which this email
-        should be searched.
-        :arg thread_id, thread_id as used in the web-pages.
-        Used here to uniquely identify the thread in the database.
+        :param list_name: The name of the mailing list in which this email
+            should be searched.
+        :param thread_id: The thread_id as used in the web-pages. Used here to
+            uniquely identify the thread in the database.
+        :returns: The list of messages in the thread.
         """
         emails = self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
@@ -340,10 +330,11 @@ class StormStore(object):
         """ Return the number of email present in a thread. This thread
         is uniquely identified by its thread_id.
 
-        :arg list_name, name of the mailing list in which this email
-        should be searched.
-        :arg thread_id, unique identifier of the thread as specified in
-        the database.
+        :param list_name: The name of the mailing list to query.
+        :param thread_id: The unique identifier of the thread as specified in
+            the database.
+        :returns: The number of messages in the thread.
+        :rtype: int
         """
         return self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
@@ -354,10 +345,10 @@ class StormStore(object):
         """ Return the list of participant in a thread. This thread
         is uniquely identified by its thread_id.
 
-        :arg list_name, name of the mailing list in which this email
-        should be searched.
-        :arg thread_id, unique identifier of the thread as specified in
-        the database.
+        :param list_name: The name of the mailing list to query.
+        :param thread_id: The unique identifier of the thread as specified in
+            the database.
+        :return: The list of message sender names in the thread.
         """
         participants = self.db.find(Email.sender_name, And(
                     Email.list_name == unicode(list_name),
@@ -366,7 +357,9 @@ class StormStore(object):
         return list(participants)
 
     def flush(self):
+        """Flush pending database operations."""
         self.db.flush()
 
     def commit(self):
+        """Commit transaction to the database."""
         self.db.commit()

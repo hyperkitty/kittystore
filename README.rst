@@ -2,6 +2,7 @@ KittyStore
 =========
 
 :Author: Pierre-Yves Chibon <pingou@pingoured.fr>
+:Author: Aurélien Bompard <abompard@fedoraproject.org>
 
 
 Provides an interface for different storage solution for mailman3

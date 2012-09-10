@@ -323,7 +323,7 @@ class StormStore(object):
         emails = self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
                     Email.thread_id == unicode(thread_id),
-                )).order_by(Desc(Email.date))
+                )).order_by(Email.date)
         return list(emails)
 
     def get_thread_length(self, list_name, thread_id):

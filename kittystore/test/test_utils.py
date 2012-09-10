@@ -19,6 +19,15 @@ class TestUtils(unittest.TestCase):
                 msg, "example-list", store)
         self.assertEqual(ref_id, "200704070053.46646.other.person@example.com")
 
+    def test_wrong_reply_to_format(self):
+        with open(get_test_file("wrong-in-reply-to-header.txt")) as email_file:
+            msg = email.message_from_file(email_file)
+        store = Mock()
+        store.get_message_by_id_from_list.return_value = None
+        ref_id, thread_id = kittystore.utils.get_ref_and_thread_id(
+                msg, "example-list", store)
+        self.assertEqual(ref_id, None)
+
     def test_non_ascii_payload(self):
         """utils.payload_to_unicode must handle non-ascii messages"""
         for enc in ["utf8", "iso8859"]:

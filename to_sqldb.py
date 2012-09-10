@@ -49,6 +49,8 @@ def to_db(mbfile, list_name, store):
         try:
             msg_id_hash = store.add_to_list(list_name, message)
         except ValueError, e:
+            if len(e.args) != 2:
+                raise # Regular ValueError exception
             print "%s from %s about %s" % (e.args[0],
                     e.args[1].get("From"), e.args[1].get("Subject"))
             continue

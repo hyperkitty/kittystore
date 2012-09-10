@@ -2,6 +2,8 @@
 
 import unittest
 import email
+import datetime
+import dateutil
 from mock import Mock
 
 import kittystore.utils
@@ -34,7 +36,7 @@ class TestUtils(unittest.TestCase):
             with open(get_test_file("payload-%s.txt" % enc)) as email_file:
                 msg = email.message_from_file(email_file)
             payload = kittystore.utils.payload_to_unicode(msg)
-            print enc, repr(payload)
+            #print enc, repr(payload)
             self.assertTrue(isinstance(payload, unicode))
             self.assertEqual(payload, u'This message contains non-ascii '
                     u'characters:\n\xe9 \xe8 \xe7 \xe0 \xee \xef \xeb \u20ac\n')
@@ -55,3 +57,28 @@ class TestUtils(unittest.TestCase):
             h_out = kittystore.utils.header_to_unicode(h_in)
             self.assertEqual(h_out, h_expected)
             self.assertTrue(isinstance(h_out, unicode))
+
+    def test_wrong_datestring(self):
+        datestring = "Fri, 5 Dec 2003 11:41 +0000 (GMT Standard Time)"
+        parsed = kittystore.utils.parsedate(datestring)
+        self.assertEqual(parsed, None)
+
+    def test_very_large_timezone(self):
+        """
+        Timezone displacements must not be greater than 14 hours
+        Or PostgreSQL won't accept them.
+        """
+        datestrings = ["Wed, 1 Nov 2006 23:50:26 +1800",
+                       "Wed, 1 Nov 2006 23:50:26 -1800"]
+        for datestring in datestrings:
+            parsed = kittystore.utils.parsedate(datestring)
+            self.assertEqual(parsed, dateutil.parser.parse(datestring))
+            self.assertTrue(parsed.utcoffset() <= datetime.timedelta(hours=13),
+                            "UTC offset %s for datetime %s is too large"
+                            % (parsed.utcoffset(), parsed))
+
+    def test_unknown_encoding(self):
+        """Unknown encodings should just replace unknown characters"""
+        header = "=?x-gbk?Q?Frank_B=A8=B9ttner?="
+        decoded = kittystore.utils.header_to_unicode(header)
+        self.assertEqual(decoded, u'Frank B\ufffd\ufffdttner')

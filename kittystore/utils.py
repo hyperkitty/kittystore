@@ -18,11 +18,11 @@ import email.utils
 import time
 import re
 from email.header import decode_header
-from datetime import datetime, tzinfo
+from datetime import datetime, tzinfo, timedelta
 from base64 import b32encode
 from hashlib import sha1
 
-import dateutil.parser
+import dateutil.parser, dateutil.tz
 
 
 __all__ = ("get_message_id_hash", "parseaddr", "parsedate",
@@ -67,7 +67,11 @@ def header_to_unicode(header):
             if h_decoded:
                 # not so sure why...
                 h_decoded.append(" ")
-            h_decoded.append(decoded.decode(charset))
+            try:
+                h_decoded.append(decoded.decode(charset))
+            except LookupError:
+                # Unknown encoding
+                h_decoded.append(decoded.decode("ascii", "replace"))
     return "".join(h_decoded)
 
 def payload_to_unicode(message):
@@ -98,7 +102,13 @@ def payload_to_unicode(message):
 def parsedate(datestring):
     if datestring is None:
         return None
-    return dateutil.parser.parse(datestring)
+    try:
+        parsed = dateutil.parser.parse(datestring)
+    except ValueError:
+        return None
+    if abs(parsed.utcoffset()) > timedelta(hours=13):
+        parsed = parsed.astimezone(dateutil.tz.tzutc())
+    return parsed
     #date_tuple = email.utils.parsedate_tz(datestring)
     #timestamp = email.utils.mktime_tz(date_tuple)
     #return datetime.fromtimestamp(timestamp)

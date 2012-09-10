@@ -107,6 +107,9 @@ class StormStore(object):
         payload = payload_to_unicode(message)
         email.content = payload
         email.date = parsedate(message.get("Date"))
+        if email.date is None:
+            # Absent or unparseable date
+            email.date = datetime.datetime.now()
         email.full = message.as_string()
 
         #category = 'Question' # TODO: enum + i18n ?

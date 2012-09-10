@@ -3,19 +3,37 @@
 import unittest
 import email
 import mailbox
+import datetime
 
-from kittystore.sa.store import KittySAStore, list_to_table_name
-from kittystore.sa.kittysamodel import get_class_object
-from sqlalchemy.exc import ProgrammingError
+from storm.exceptions import IntegrityError
+from kittystore.storm import get_storm_store
+from kittystore.storm.model import Email
 from kittystore.test import get_test_file
 
 class TestSAStore(unittest.TestCase):
 
     def setUp(self):
-        self.store = KittySAStore("sqlite:///:memory:")
+        self.store = get_storm_store("sqlite:")
 
-    def tearDown(self):
-        self.store.session.close()
+    #def tearDown(self):
+    #    self.store.close()
+
+    def test_no_message_id(self):
+        msg = email.message.Message()
+        self.assertRaises(ValueError, self.store.add_to_list, "example-list", msg)
+
+    def test_no_date(self):
+        msg = email.message.Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg.set_payload("Dummy message")
+        now = datetime.datetime.now()
+        try:
+            self.store.add_to_list("example-list", msg)
+        except IntegrityError, e:
+            self.fail(e)
+        stored_msg = self.store.db.find(Email).one()
+        self.assertTrue(stored_msg.date >= now)
 
     #def test_non_ascii_payload(self):
     #    """add_to_list must handle non-ascii messages"""

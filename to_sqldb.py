@@ -18,9 +18,9 @@ from sqlalchemy.exc import OperationalError
 from kittystore import get_store
 
 TOTALCNT = 0
-#DB_URL = 'postgres://mm3:mm3@localhost/mm3'
-#DB_URL = 'postgres://kittystore:kittystore@localhost/kittystore'
-DB_URL = 'sqlite:///' + os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "kittystore.sqlite"))
+#KITTYSTORE_URL = 'postgres://mm3:mm3@localhost/mm3'
+#KITTYSTORE_URL = 'postgres://kittystore:kittystore@localhost/kittystore'
+KITTYSTORE_URL = 'sqlite:///' + os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "kittystore.sqlite"))
 
 
 def convert_date(date_string):
@@ -74,7 +74,7 @@ python to_sqldb.py list_name mbox_file [mbox_file]'''
     else:
         print 'Adding to database list: %s' % sys.argv[1]
 
-        store = get_store(DB_URL, debug=False)
+        store = get_store(KITTYSTORE_URL, debug=False)
         for mbfile in sys.argv[2:]:
             print mbfile
             if os.path.exists(mbfile):

@@ -31,20 +31,23 @@ class ThreadSafeStorePool(object):
         try:
             return self._local.store
         except AttributeError:
-            self._local.store = self.create_store()
+            self._local.store = create_store(self.url, self.debug)
             return self._local.store
 
-    def create_store(self):
-        if self.debug:
-            storm.tracer.debug(True, stream=sys.stdout)
-        database = create_database(self.url)
-        store = Store(database)
-        dbtype = self.url.partition(":")[0]
-        dbschema = Schema(schema.CREATES[dbtype], [], [], schema)
-        dbschema.upgrade(store)
-        return StormStore(store, self.debug)
+
+def create_store(url, debug):
+    if debug:
+        storm.tracer.debug(True, stream=sys.stdout)
+    database = create_database(url)
+    store = Store(database)
+    dbtype = url.partition(":")[0]
+    dbschema = Schema(schema.CREATES[dbtype], [], [], schema)
+    dbschema.upgrade(store)
+    return StormStore(store, debug)
 
 
 def get_storm_store(url, debug=False):
-    store_pool = ThreadSafeStorePool(url, debug)
-    return store_pool.get()
+    # Thread safety is managed by the middleware
+    #store_pool = ThreadSafeStorePool(url, debug)
+    #return store_pool.get()
+    return create_store(url, debug)

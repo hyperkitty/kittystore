@@ -366,3 +366,10 @@ class StormStore(object):
     def commit(self):
         """Commit transaction to the database."""
         self.db.commit()
+
+    def close(self):
+        """Close the connection."""
+        self.db.close()
+
+    def rollback(self):
+        self.db.rollback()

@@ -78,10 +78,13 @@ def payload_to_unicode(message):
     # Turn non-ascii into Unicode, assuming UTF-8
     payload = []
     for part in message.walk():
+        if part.get_content_type() != "text/plain":
+            continue # TODO: handle HTML messages and attachments
+        part_payload = part.get_payload()
         if part.get_content_charset() is None:
             for encoding in ["ascii", "utf-8", "iso-8859-15"]:
                 try:
-                    payload.append(unicode(part.get_payload().decode(encoding)))
+                    part_payload = part_payload.decode(encoding)
                 except UnicodeDecodeError:
                     continue
                 else:
@@ -96,8 +99,8 @@ def payload_to_unicode(message):
                 #    print message.items()
                 #    print part.get_payload()
                 #    raise
-    #return message.get_payload()
-    return "".join(payload)
+        payload.append(unicode(part_payload))
+    return unicode("".join(payload))
 
 def parsedate(datestring):
     if datestring is None:

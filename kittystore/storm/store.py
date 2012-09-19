@@ -17,8 +17,9 @@ from __future__ import absolute_import
 import datetime
 
 from kittystore import MessageNotFound
-from kittystore.utils import get_message_id_hash, parseaddr, parsedate
+from kittystore.utils import parseaddr, parsedate
 from kittystore.utils import header_to_unicode, payload_to_unicode
+from kittystore.scrub import scrub_message
 from kittystore.utils import get_ref_and_thread_id
 
 from zope.interface import implements
@@ -104,7 +105,7 @@ class StormStore(object):
         email.sender_name = from_name
         email.sender_email = unicode(from_email)
         email.subject = header_to_unicode(message.get('Subject'))
-        payload = payload_to_unicode(message)
+        payload = payload_to_unicode(scrub_message(list_name, message))
         email.content = payload
         email.date = parsedate(message.get("Date"))
         if email.date is None:

@@ -60,6 +60,16 @@ CREATES = {
             "full" BYTEA NOT NULL,
             archived_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (list_name, message_id)
+        );""", """
+        CREATE TABLE "attachment" (
+            list_name VARCHAR(255) NOT NULL,
+            message_id VARCHAR(255) NOT NULL,
+            counter INTEGER NOT NULL,
+            content_type VARCHAR(255) NOT NULL,
+            name VARCHAR(255),
+            size INTEGER NOT NULL,
+            content BYTEA NOT NULL,
+            PRIMARY KEY (list_name, message_id, counter)
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" USING btree (list_name);',
         'CREATE UNIQUE INDEX "ix_email_message_id" ON "email" USING btree (message_id);',

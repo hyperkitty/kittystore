@@ -18,15 +18,16 @@ import datetime
 
 from kittystore import MessageNotFound
 from kittystore.utils import parseaddr, parsedate
-from kittystore.utils import header_to_unicode, payload_to_unicode
-from kittystore.scrub import scrub_message
+from kittystore.utils import header_to_unicode
+from kittystore.scrub import Scrubber
 from kittystore.utils import get_ref_and_thread_id
 
 from zope.interface import implements
 from mailman.interfaces.messages import IMessageStore
 from storm.locals import *
+from storm.expr import And, Or
 
-from .model import List, Email
+from .model import List, Email, Attachment
 
 
 class StormStore(object):
@@ -78,14 +79,15 @@ class StormStore(object):
             The storage service is also allowed to raise this exception
             if it find, but disallows collisions.
         """
+        list_name = unicode(list_name)
         # Create the list if it does not exist
         list_is_in_db = self.db.find(List,
-                List.name == unicode(list_name)).count()
+                List.name == list_name).count()
         if not list_is_in_db:
             self.db.add(List(list_name))
         if not message.has_key("Message-Id"):
             raise ValueError("No 'Message-Id' header in email", message)
-        msg_id = message['Message-Id'].strip("<>")
+        msg_id = unicode(message['Message-Id'].strip("<>"))
         email = Email(list_name, msg_id)
         if self.is_message_in_list(list_name, email.message_id):
             print ("Duplicate email from %s: %s" %
@@ -105,13 +107,13 @@ class StormStore(object):
         email.sender_name = from_name
         email.sender_email = unicode(from_email)
         email.subject = header_to_unicode(message.get('Subject'))
-        payload = payload_to_unicode(scrub_message(list_name, message))
-        email.content = payload
+        email.full = message.as_string() # Before scrubbing
+        scrubber = Scrubber(list_name, message, self)
+        email.content = scrubber.scrub()
         email.date = parsedate(message.get("Date"))
         if email.date is None:
             # Absent or unparseable date
             email.date = datetime.datetime.now()
-        email.full = message.as_string()
 
         #category = 'Question' # TODO: enum + i18n ?
         #if ('agenda' in message.get('Subject', '').lower() or
@@ -359,6 +361,37 @@ class StormStore(object):
                     Email.thread_id == unicode(thread_id),
                 )).config(distinct=True)
         return list(participants)
+
+    # Attachments
+
+    def add_attachment(self, mlist, msg_id, counter, name, content_type,
+                       content):
+        attachment = Attachment()
+        attachment.list_name = unicode(mlist)
+        attachment.message_id = unicode(msg_id)
+        attachment.counter = counter
+        attachment.name = unicode(name)
+        attachment.content_type = unicode(content_type)
+        attachment.content = content
+        attachment.size = len(content)
+        self.db.add(attachment)
+        self.flush()
+
+    def get_attachments(self, list_name, message_id):
+        """Return the message's attachments
+
+        :param list_name: The fully qualified list name to which the
+            message should be added.
+        :param message_id: The Message-ID header contents to search for.
+        :returns: A list of attachments
+        """
+        att = self.db.find(Attachment, And(
+                    Attachment.list_name == unicode(list_name),
+                    Attachment.message_id == unicode(message_id)
+                )).order_by(Attachment.counter)
+        return list(att)
+
+    # Generic database operations
 
     def flush(self):
         """Flush pending database operations."""

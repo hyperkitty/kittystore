@@ -22,7 +22,7 @@ from kittystore.utils import get_message_id_hash
 from .hack_datetime import DateTime
 
 
-__all__ = ("List", "Email",)
+__all__ = ("List", "Email", "Attachment")
 
 
 class List(object):
@@ -71,3 +71,17 @@ class Email(object):
         self.list_name = unicode(list_name)
         self.message_id = unicode(message_id)
         self.message_id_hash = unicode(get_message_id_hash(self.message_id))
+
+
+class Attachment(object):
+
+    __storm_table__ = "attachment"
+    __storm_primary__ = "list_name", "message_id", "counter"
+
+    list_name = Unicode()
+    message_id = Unicode()
+    counter = Int()
+    name = Unicode()
+    content_type = Unicode()
+    size = Int()
+    content = RawStr()

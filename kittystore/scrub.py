@@ -301,12 +301,15 @@ class Scrubber(object):
             except (UnicodeError, LookupError, ValueError,
                     AssertionError):
                 pass
-            replace_payload_by_text(self.msg, sep.join(text), charset)
+            text = sep.join(text)
+            del self.msg['content-type']
+            del self.msg['content-transfer-encoding']
+            self.msg.set_payload(text, charset)
             if format:
                 self.msg.set_param('Format', format)
             if delsp:
                 self.msg.set_param('DelSp', delsp)
-        return self.msg
+        return text.decode(charset)
 
 
     def save_attachment(self, part, counter, filter_html=True):
@@ -366,4 +369,6 @@ class Scrubber(object):
             # BAW: I'm sure we can eventually do better than this. :(
             decodedpayload = websafe(str(submsg))
         msg_id = self.msg['Message-Id'].strip("<>")
-        self.store.add_attachment(self.mlist, msg_id, counter, decodedpayload)
+        self.store.add_attachment(
+                self.mlist, msg_id, counter, filebase+ext,
+                ctype, decodedpayload)

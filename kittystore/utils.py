@@ -74,34 +74,6 @@ def header_to_unicode(header):
                 h_decoded.append(decoded.decode("ascii", "replace"))
     return "".join(h_decoded)
 
-def payload_to_unicode(message):
-    # Turn non-ascii into Unicode, assuming UTF-8
-    payload = []
-    for part in message.walk():
-        if part.get_content_type() != "text/plain":
-            continue # TODO: handle HTML messages and attachments
-        part_payload = part.get_payload()
-        if part.get_content_charset() is None:
-            for encoding in ["ascii", "utf-8", "iso-8859-15"]:
-                try:
-                    part_payload = part_payload.decode(encoding)
-                except UnicodeDecodeError:
-                    continue
-                else:
-                    #print encoding, payload
-                    break
-                # Try UTF-8
-                #part.set_charset("utf-8")
-                #try:
-                #    payload.append(part.get_payload().decode("utf-8"))
-                #except UnicodeDecodeError, e:
-                #    print e
-                #    print message.items()
-                #    print part.get_payload()
-                #    raise
-        payload.append(unicode(part_payload))
-    return unicode("".join(payload))
-
 def parsedate(datestring):
     if datestring is None:
         return None

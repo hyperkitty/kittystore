@@ -177,8 +177,10 @@ class StormStore(object):
             search for.
         :returns: The message, or None if no matching message was found.
         """
-        return self.db.find(Email,
-                Email.message_id_hash == unicode(message_id_hash)).one()
+        return self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.message_id_hash == unicode(message_id_hash)
+                )).one()
 
     def get_message_by_id(self, message_id):
         """Return the message with a matching Message-ID.
@@ -197,8 +199,10 @@ class StormStore(object):
         :param message_id: The Message-ID header contents to search for.
         :returns: The message, or None if no matching message was found.
         """
-        msg = self.db.find(Email,
-                Email.message_id == unicode(message_id)).one()
+        msg = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.message_id == unicode(message_id)
+                )).one()
         return msg
 
     def search_list_for_content(self, list_name, keyword):
@@ -209,9 +213,10 @@ class StormStore(object):
         should be searched.
         :param keyword: keyword to search in the content of the emails.
         """
-        emails = self.db.find(Email,
-                Email.content.ilike(u'%{0}%'.format(keyword))
-                ).order_by(Desc(Email.date))
+        emails = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.content.ilike(u'%{0}%'.format(keyword))
+                )).order_by(Desc(Email.date))
         return emails
 
     def search_list_for_content_subject(self, list_name, keyword):
@@ -223,10 +228,12 @@ class StormStore(object):
         :param keyword: keyword to search in the content or subject of
             the emails.
         """
-        emails = self.db.find(Email, Or(
-                    Email.content.ilike(u'%{0}%'.format(keyword)),
-                    Email.subject.ilike(u'%{0}%'.format(keyword)),
-                )).order_by(Desc(Email.date))
+        emails = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Or(
+                        Email.content.ilike(u'%{0}%'.format(keyword)),
+                        Email.subject.ilike(u'%{0}%'.format(keyword)),
+                ))).order_by(Desc(Email.date))
         return emails
 
     def search_list_for_sender(self, list_name, keyword):
@@ -237,10 +244,12 @@ class StormStore(object):
             should be searched.
         :param keyword: keyword to search in the database.
         """
-        emails = self.db.find(Email, Or(
-                    Email.sender_name.ilike(u'%{0}%'.format(keyword)),
-                    Email.sender_email.ilike(u'%{0}%'.format(keyword)),
-                )).order_by(Desc(Email.date))
+        emails = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Or(
+                        Email.sender_name.ilike(u'%{0}%'.format(keyword)),
+                        Email.sender_email.ilike(u'%{0}%'.format(keyword)),
+                ))).order_by(Desc(Email.date))
         return emails
 
     def search_list_for_subject(self, list_name, keyword):
@@ -251,9 +260,10 @@ class StormStore(object):
             should be searched.
         :param keyword: keyword to search in the subject of the emails.
         """
-        emails = self.db.find(Email,
-                Email.subject.ilike(u'%{0}%'.format(keyword)),
-                ).order_by(Desc(Email.date))
+        emails = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.subject.ilike(u'%{0}%'.format(keyword)),
+                )).order_by(Desc(Email.date))
         return emails
 
     @property
@@ -271,8 +281,10 @@ class StormStore(object):
         :param message_id: The Message-ID header contents to search for.
         :returns: The message, or None if no matching message was found.
         """
-        return self.db.find(Email.message_id,
-                Email.message_id == unicode(message_id)).count()
+        return self.db.find(Email.message_id, And(
+                    Email.list_name == unicode(list_name),
+                    Email.message_id == unicode(message_id)
+                )).count()
 
     def get_list_names(self):
         """Return the names of the archived lists.

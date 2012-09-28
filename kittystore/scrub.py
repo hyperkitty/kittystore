@@ -96,43 +96,15 @@ class Scrubber(object):
     def scrub(self):
         sanitize = 1 # TODO: implement other options
         outer = True
-        charset = None
-        #lcset = Utils.GetCharSet(self.mlist.preferred_language)
-        #lcset_out = Charset(lcset).output_charset or lcset
-        lcset = "utf-8"
         # Now walk over all subparts of this message and scrub out various types
-        format = delsp = None
         for part_num, part in enumerate(self.msg.walk()):
             ctype = part.get_content_type()
             # If the part is text/plain, we leave it alone
             if ctype == 'text/plain':
-                # We need to choose a charset for the scrubbed message, so we'll
-                # arbitrarily pick the charset of the first text/plain part in the
-                # message.
-                # MAS: Also get the RFC 3676 stuff from this part. This seems to
-                # work OK for scrub_nondigest.  It will also work as far as
-                # scrubbing messages for the archive is concerned, but pipermail
-                # doesn't pay any attention to the RFC 3676 parameters.  The plain
-                # format digest is going to be a disaster in any case as some of
-                # messages will be format="flowed" and some not.  ToDigest creates
-                # its own Content-Type: header for the plain digest which won't
-                # have RFC 3676 parameters. If the message Content-Type: headers
-                # are retained for display in the digest, the parameters will be
-                # there for information, but not for the MUA. This is the best we
-                # can do without having get_payload() process the parameters.
-                if charset is None:
-                    charset = part.get_content_charset(lcset)
-                    format = part.get_param('format')
-                    delsp = part.get_param('delsp')
                 # TK: if part is attached then check charset and scrub if none
                 if part.get('content-disposition') and \
                    not part.get_content_charset():
                     self.save_attachment(part, part_num)
-                    replace_payload_by_text(part, _("""\
-    An embedded and charset-unspecified text was scrubbed...
-    Name: %(filename)s
-    URL: %(url)s
-    """), lcset)
             elif ctype == 'text/html' and isinstance(sanitize, IntType):
 #            if sanitize == 0:
 #                if outer:
@@ -172,30 +144,14 @@ class Scrubber(object):
                     # will just get in the way.
                     del part['content-transfer-encoding']
                     self.save_attachment(part, part_num, filter_html=False)
-                    replace_payload_by_text(part, _("""\
-    An HTML attachment was scrubbed...
-    URL: %(url)s
-    """), lcset)
+                    part.set_payload('')
             elif ctype == 'message/rfc822':
                 # This part contains a submessage, so it too needs scrubbing
                 submsg = part.get_payload(0)
                 self.save_attachment(part, part_num)
-                subject = submsg.get('subject', _('no subject'))
-                subject = oneline(subject, lcset)
-                date = submsg.get('date', _('no date'))
-                who = submsg.get('from', _('unknown sender'))
-                size = len(str(submsg))
-                replace_payload_by_text(part, _("""\
-    An embedded message was scrubbed...
-    From: %(who)s
-    Subject: %(subject)s
-    Date: %(date)s
-    Size: %(size)s
-    URL: %(url)s
-    """), lcset)
+                part.set_payload('')
             # If the message isn't a multipart, then we'll strip it out as an
-            # attachment that would have to be separately downloaded.  Pipermail
-            # will transform the url into a hyperlink.
+            # attachment that would have to be separately downloaded.
             elif part.get_payload() and not part.is_multipart():
                 payload = part.get_payload(decode=True)
                 ctype = part.get_content_type()
@@ -209,31 +165,11 @@ class Scrubber(object):
                     continue
                 size = len(payload)
                 self.save_attachment(part, part_num)
-                desc = part.get('content-description', _('not available'))
-                desc = oneline(desc, lcset)
-                filename = part.get_filename(_('not available'))
-                filename = oneline(filename, lcset)
-                replace_payload_by_text(part, _("""\
-    A non-text attachment was scrubbed...
-    Name: %(filename)s
-    Type: %(ctype)s
-    Size: %(size)d bytes
-    Desc: %(desc)s
-    URL: %(url)s
-    """), lcset)
             outer = False
         # We still have to sanitize multipart messages to flat text because
         # Pipermail can't handle messages with list payloads.  This is a kludge;
         # def (n) clever hack ;).
         if self.msg.is_multipart():
-            # By default we take the charset of the first text/plain part in the
-            # message, but if there was none, we'll use the list's preferred
-            # language's charset.
-            if not charset or charset == 'us-ascii':
-                charset = lcset_out
-            else:
-                # normalize to the output charset if input/output are different
-                charset = Charset(charset).output_charset or charset
             # We now want to concatenate all the parts which have been scrubbed to
             # text/plain, into a single text/plain payload.  We need to make sure
             # all the characters in the concatenated string are in the same
@@ -272,7 +208,7 @@ class Scrubber(object):
                     partcharset = str(partcharset)
                 else:
                     partcharset = part.get_content_charset()
-                if partcharset and partcharset <> charset:
+                if partcharset:
                     try:
                         t = unicode(t, partcharset, 'replace')
                     except (UnicodeError, LookupError, ValueError,
@@ -280,36 +216,15 @@ class Scrubber(object):
                         # We can get here if partcharset is bogus in come way.
                         # Replace funny characters.  We use errors='replace'
                         t = unicode(t, 'ascii', 'replace')
-                    try:
-                        # Should use HTML-Escape, or try generalizing to UTF-8
-                        t = t.encode(charset, 'replace')
-                    except (UnicodeError, LookupError, ValueError,
-                            AssertionError):
-                        # if the message charset is bogus, use the list's.
-                        t = t.encode(lcset, 'replace')
                 # Separation is useful
-                if isinstance(t, StringType):
+                if isinstance(t, basestring):
                     if not t.endswith('\n'):
                         t += '\n'
                     text.append(t)
             # Now join the text and set the payload
             sep = _('-------------- next part --------------\n')
-            # The i18n separator is in the list's charset. Coerce it to the
-            # message charset.
-            try:
-                sep = sep.encode(charset, 'replace')
-            except (UnicodeError, LookupError, ValueError,
-                    AssertionError):
-                pass
             text = sep.join(text)
-            del self.msg['content-type']
-            del self.msg['content-transfer-encoding']
-            self.msg.set_payload(text, charset)
-            if format:
-                self.msg.set_param('Format', format)
-            if delsp:
-                self.msg.set_param('DelSp', delsp)
-        return text.decode(charset)
+        return text
 
 
     def save_attachment(self, part, counter, filter_html=True):

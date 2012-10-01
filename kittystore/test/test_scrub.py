@@ -25,13 +25,9 @@ class TestScrubber(unittest.TestCase):
                 'end:vcard\r\n\r\n')
         self.assertEqual(contents,
                 "This is a test message.\r\n\r\n"
-                "-------------- next part --------------\n"
-                "Skipped content of type %(partctype)s\n"
-                "-------------- next part --------------\n"
-                "-- \ndevel mailing list\ndevel@lists.fedoraproject.org\n"
+                "\n-- \ndevel mailing list\ndevel@lists.fedoraproject.org\n"
                 "https://admin.fedoraproject.org/mailman/listinfo/devel\n"
                 )
-        self.fail() # Fix the expected text above
 
     def test_attachment_2(self):
         with open(get_test_file("attachment-2.txt")) as email_file:
@@ -49,14 +45,10 @@ class TestScrubber(unittest.TestCase):
                 'z394AnmMnQCcC+6tWcqE1dPQmIdRbLXgKGVp\r\nEeUAn2OqtaXaXaQV7rx+'
                 'SmOldmSzcFw4\r\n=OEJv\r\n-----END PGP SIGNATURE-----\r\n')
         self.assertEqual(contents,
-                u"This is a test message\r\nNon-ascii chars: Hofm\xfchlgasse"
-                u"\r\n-------------- next part --------------\n"
-                u"Skipped content of type %(partctype)s\n"
-                u"-------------- next part --------------\n"
-                u"-- \ndevel mailing list\ndevel@lists.fedoraproject.org\n"
+                u"This is a test message\r\nNon-ascii chars: Hofm\xfchlgasse\r\n"
+                u"\n-- \ndevel mailing list\ndevel@lists.fedoraproject.org\n"
                 u"https://admin.fedoraproject.org/mailman/listinfo/devel\n"
                 )
-        self.fail() # Fix the expected text above
 
     def test_attachment_3(self):
         with open(get_test_file("attachment-3.txt")) as email_file:
@@ -70,19 +62,14 @@ class TestScrubber(unittest.TestCase):
         self.assertEqual(args_1[0][0:5], ("testlist@example.com",
                 "CACec3Lup8apbhUMcm_Ktn1dPxx4eWr2y1RV7ZSYhy0tzmjSrgQ@mail.gmail.com",
                 3, "attachment.html", "text/html"))
-        self.assertEqual(len(args_1[0][5]), 5812)
+        self.assertEqual(len(args_1[0][5]), 3134)
         # Image attachment
         self.assertEqual(args_2[0][0:5], ("testlist@example.com",
                 "CACec3Lup8apbhUMcm_Ktn1dPxx4eWr2y1RV7ZSYhy0tzmjSrgQ@mail.gmail.com",
                 4, "GeoffreyRoucourt.jpg", "image/jpeg"))
         self.assertEqual(len(args_2[0][5]), 282180)
         # Scrubbed content
-        self.assertEqual(contents,
-                u"This is a test message\r\n"
-                u"-------------- next part --------------\n"
-                u"Skipped content of type %(partctype)s\n"
-                )
-        self.fail() # Fix the expected text above
+        self.assertEqual(contents, u"This is a test message\r\n")
 
     def test_html_email_1(self):
         with open(get_test_file("html-email-1.txt")) as email_file:
@@ -96,11 +83,9 @@ class TestScrubber(unittest.TestCase):
         self.assertEqual(args[0:5], ("testlist@example.com",
                 "016001cd9b3b$b71efed0$255cfc70$@fr",
                 2, "attachment.html", "text/html"))
-        self.assertEqual(len(args[5]), 5093)
+        self.assertEqual(len(args[5]), 2723)
         # Scrubbed content
         self.assertEqual(contents,
                 u"This is a test message\r\n"
-                u"Non-ASCII chars: r\xe9ponse fran\xe7ais \n"
-                )
-        self.fail() # Fix the expected text above
+                u"Non-ASCII chars: r\xe9ponse fran\xe7ais \n")
 

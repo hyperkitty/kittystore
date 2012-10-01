@@ -128,21 +128,22 @@ class Scrubber(object):
 #"""), lcset)
 #            else:
                 if sanitize == 1:
-                    # HTML-escape it and store it as an attachment, but make it
-                    # look a /little/ bit prettier. :(
-                    payload = websafe(part.get_payload(decode=True))
-                    # For whitespace in the margin, change spaces into
-                    # non-breaking spaces, and tabs into 8 of those.  Then use a
-                    # mono-space font.  Still looks hideous to me, but then I'd
-                    # just as soon discard them.
-                    def doreplace(s):
-                        return s.expandtabs(8).replace(' ', '&nbsp;')
-                    lines = [doreplace(s) for s in payload.split('\n')]
-                    payload = '<tt>\n' + BR.join(lines) + '\n</tt>\n'
-                    part.set_payload(payload)
-                    # We're replacing the payload with the decoded payload so this
-                    # will just get in the way.
-                    del part['content-transfer-encoding']
+                    # Don't HTML-escape it, this is the frontend's job
+                    ## HTML-escape it and store it as an attachment, but make it
+                    ## look a /little/ bit prettier. :(
+                    #payload = websafe(part.get_payload(decode=True))
+                    ## For whitespace in the margin, change spaces into
+                    ## non-breaking spaces, and tabs into 8 of those.  Then use a
+                    ## mono-space font.  Still looks hideous to me, but then I'd
+                    ## just as soon discard them.
+                    #def doreplace(s):
+                    #    return s.expandtabs(8).replace(' ', '&nbsp;')
+                    #lines = [doreplace(s) for s in payload.split('\n')]
+                    #payload = '<tt>\n' + BR.join(lines) + '\n</tt>\n'
+                    #part.set_payload(payload)
+                    ## We're replacing the payload with the decoded payload so this
+                    ## will just get in the way.
+                    #del part['content-transfer-encoding']
                     self.save_attachment(part, part_num, filter_html=False)
                     part.set_payload('')
             elif ctype == 'message/rfc822':
@@ -188,7 +189,7 @@ class Scrubber(object):
                 partctype = part.get_content_type()
                 if partctype <> 'text/plain' and (partctype <> 'text/html' or
                                                   sanitize <> 2):
-                    text.append(_('Skipped content of type %(partctype)s\n'))
+                    #text.append(_('Skipped content of type %(partctype)s\n'))
                     continue
                 try:
                     t = part.get_payload(decode=True) or ''
@@ -222,8 +223,9 @@ class Scrubber(object):
                         t += '\n'
                     text.append(t)
             # Now join the text and set the payload
-            sep = _('-------------- next part --------------\n')
-            text = sep.join(text)
+            #sep = _('-------------- next part --------------\n')
+            #text = sep.join(text)
+            text = "\n".join(text)
         return text
 
 
@@ -281,8 +283,10 @@ class Scrubber(object):
         # TODO: bring back the HTML sanitizer feature
         if ctype == 'message/rfc822':
             submsg = part.get_payload()
-            # BAW: I'm sure we can eventually do better than this. :(
-            decodedpayload = websafe(str(submsg))
+            # Don't HTML-escape it, this is the frontend's job
+            ## BAW: I'm sure we can eventually do better than this. :(
+            #decodedpayload = websafe(str(submsg))
+            decodedpayload = str(submsg)
         msg_id = self.msg['Message-Id'].strip("<>")
         self.store.add_attachment(
                 self.mlist, msg_id, counter, filebase+ext,

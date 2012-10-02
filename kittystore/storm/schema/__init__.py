@@ -35,9 +35,8 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter)
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
-        'CREATE UNIQUE INDEX "ix_email_message_id" ON "email" (message_id);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
-        'CREATE UNIQUE INDEX "ix_email_message_id_hash" ON "email" (message_id_hash);',
+        'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" (list_name, message_id_hash);',
         'CREATE INDEX "ix_email_subject" ON "email" (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
         ],
@@ -74,9 +73,8 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter)
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" USING btree (list_name);',
-        'CREATE UNIQUE INDEX "ix_email_message_id" ON "email" USING btree (message_id);',
         'CREATE INDEX "ix_email_date" ON "email" USING btree (date);',
-        'CREATE UNIQUE INDEX "ix_email_message_id_hash" ON "email" USING btree (message_id_hash);',
+        'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" USING btree (list_name, message_id_hash);',
         'CREATE INDEX "ix_email_subject" ON "email" USING btree (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" USING btree (thread_id);',
         ],

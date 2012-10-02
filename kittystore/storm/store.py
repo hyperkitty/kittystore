@@ -377,13 +377,14 @@ class StormStore(object):
     # Attachments
 
     def add_attachment(self, mlist, msg_id, counter, name, content_type,
-                       content):
+                       encoding, content):
         attachment = Attachment()
         attachment.list_name = unicode(mlist)
         attachment.message_id = unicode(msg_id)
         attachment.counter = counter
         attachment.name = unicode(name)
         attachment.content_type = unicode(content_type)
+        attachment.encoding = unicode(encoding) if encoding is not None else None
         attachment.content = content
         attachment.size = len(content)
         self.db.add(attachment)
@@ -402,6 +403,21 @@ class StormStore(object):
                     Attachment.message_id == unicode(message_id)
                 )).order_by(Attachment.counter)
         return list(att)
+
+    def get_attachment_by_counter(self, list_name, message_id, counter):
+        """Return the message's attachment at 'counter' position.
+
+        :param list_name: The fully qualified list name to which the
+            message should be added.
+        :param message_id: The Message-ID header contents to search for.
+        :param counter: The position in the MIME-multipart email.
+        :returns: The corresponding attachment
+        """
+        return self.db.find(Attachment, And(
+                    Attachment.list_name == unicode(list_name),
+                    Attachment.message_id == unicode(message_id),
+                    Attachment.counter == counter
+                )).one()
 
     # Generic database operations
 

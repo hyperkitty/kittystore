@@ -68,23 +68,37 @@ def guess_extension(ctype, ext):
     return all and all[0]
 
 
-def replace_payload_by_text(msg, text, charset):
-    # TK: This is a common function in replacing the attachment and the main
-    # message by a text (scrubbing).
-    del msg['content-type']
-    del msg['content-transfer-encoding']
-    #if isinstance(charset, unicode):
-    #    # email 3.0.1 (python 2.4) doesn't like unicode
-    #    charset = charset.encode('us-ascii')
-    #msg.set_payload(text, charset)
-    msg.set_payload('TODO: display attachment here and remove message subpart')
-
+def get_charset(message, default="ascii", guess=False):
+    """
+    Get the message charset.
+    From: http://ginstrom.com/scribbles/2007/11/19/parsing-multilingual-email-with-python/
+    """
+    if message.get_content_charset():
+        return message.get_content_charset()
+    if message.get_charset():
+        return message.get_charset()
+    if not guess:
+        return default
+    # Try to guess the encoding (best effort mode)
+    text = message.get_payload(decode=True)
+    charset = default
+    for encoding in ["ascii", "utf-8", "iso-8859-15"]:
+        try:
+            text.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+        else:
+            #print encoding, payload
+            charset = encoding
+            break
+    return charset
 
 
 class Scrubber(object):
     """
     Scrubs a single message, extracts attachments, and store them in the
     database.
+    See also: http://ginstrom.com/scribbles/2007/11/19/parsing-multilingual-email-with-python/
     """
 
     def __init__(self, mlist, msg, store):
@@ -101,9 +115,8 @@ class Scrubber(object):
             ctype = part.get_content_type()
             # If the part is text/plain, we leave it alone
             if ctype == 'text/plain':
-                # TK: if part is attached then check charset and scrub if none
-                if part.get('content-disposition') and \
-                   not part.get_content_charset():
+                if part.get('content-disposition') == "attachment":
+                    # part is attached
                     self.save_attachment(part, part_num)
             elif ctype == 'text/html' and isinstance(sanitize, IntType):
 #            if sanitize == 0:
@@ -200,23 +213,14 @@ class Scrubber(object):
                 # null body. See bug 1430236.
                 except (binascii.Error, TypeError):
                     t = part.get_payload() or ''
-                # TK: get_content_charset() returns 'iso-2022-jp' for internally
-                # crafted (scrubbed) 'euc-jp' text part. So, first try
-                # get_charset(), then get_content_charset() for the parts
-                # which are already embeded in the incoming message.
-                partcharset = part.get_charset()
-                if partcharset:
-                    partcharset = str(partcharset)
-                else:
-                    partcharset = part.get_content_charset()
-                if partcharset:
-                    try:
-                        t = unicode(t, partcharset, 'replace')
-                    except (UnicodeError, LookupError, ValueError,
-                            AssertionError):
-                        # We can get here if partcharset is bogus in come way.
-                        # Replace funny characters.  We use errors='replace'
-                        t = unicode(t, 'ascii', 'replace')
+                partcharset = get_charset(part, guess=True)
+                try:
+                    t = unicode(t, partcharset, 'replace')
+                except (UnicodeError, LookupError, ValueError,
+                        AssertionError):
+                    # We can get here if partcharset is bogus in come way.
+                    # Replace funny characters.  We use errors='replace'
+                    t = unicode(t, 'ascii', 'replace')
                 # Separation is useful
                 if isinstance(t, basestring):
                     if not t.endswith('\n'):
@@ -228,19 +232,7 @@ class Scrubber(object):
             text = "\n".join(text)
         else:
             text = self.msg.get_payload(decode=True)
-            charset = self.msg.get_content_charset()
-            if charset is None:
-                # Try to guess the encoding (best effort mode)
-                for encoding in ["ascii", "utf-8", "iso-8859-15"]:
-                    try:
-                        text.decode(encoding)
-                    except UnicodeDecodeError:
-                        continue
-                    else:
-                        #print encoding, payload
-                        charset = encoding
-                        break
-            text = text.decode(charset or "ascii", "replace")
+            text = text.decode(get_charset(self.msg, guess=True), "replace")
         return text
 
 
@@ -252,10 +244,9 @@ class Scrubber(object):
         # e.g. image/jpg (should be image/jpeg).  For now we just store such
         # things as application/octet-streams since that seems the safest.
         ctype = part.get_content_type()
+        charset = get_charset(part, default=None, guess=False)
         # i18n file name is encoded
-        #lcset = Utils.GetCharSet(self.mlist.preferred_language)
-        lcset = "utf-8"
-        filename = oneline(part.get_filename(''), lcset)
+        filename = oneline(part.get_filename(''), charset or "ascii")
         filename, fnext = os.path.splitext(filename)
         # For safety, we should confirm this is valid ext for content-type
         # but we can use fnext if we introduce fnext filtering
@@ -305,4 +296,4 @@ class Scrubber(object):
         msg_id = self.msg['Message-Id'].strip("<>")
         self.store.add_attachment(
                 self.mlist, msg_id, counter, filebase+ext,
-                ctype, decodedpayload)
+                ctype, charset, decodedpayload)

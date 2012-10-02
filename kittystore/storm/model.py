@@ -83,5 +83,6 @@ class Attachment(object):
     counter = Int()
     name = Unicode()
     content_type = Unicode()
+    encoding = Unicode()
     size = Int()
     content = RawStr()

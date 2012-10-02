@@ -60,18 +60,23 @@ def parseaddr(address):
         from_name = from_email
     return from_name, from_email
 
+
 def header_to_unicode(header):
+    """
+    See also: http://ginstrom.com/scribbles/2007/11/19/parsing-multilingual-email-with-python/
+    """
     h_decoded = []
-    for decoded, charset in decode_header(header):
+    for text, charset in decode_header(header):
         if charset is None:
-            h_decoded.append(unicode(decoded))
+            h_decoded.append(unicode(text))
         else:
             try:
-                h_decoded.append(decoded.decode(charset))
+                h_decoded.append(text.decode(charset))
             except LookupError:
                 # Unknown encoding
-                h_decoded.append(decoded.decode("ascii", "replace"))
-    return " ".join(h_decoded)
+                h_decoded.append(text.decode("ascii", "replace"))
+    return u" ".join(h_decoded)
+
 
 def parsedate(datestring):
     if datestring is None:

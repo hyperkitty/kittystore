@@ -27,7 +27,7 @@ from cStringIO import StringIO
 from types import IntType, StringType
 from mimetypes import guess_all_extensions
 
-from email.Utils import parsedate
+from email.Utils import parsedate, unquote
 from email.Parser import HeaderParser
 from email.Generator import Generator
 from email.Charset import Charset
@@ -294,7 +294,7 @@ class Scrubber(object):
             ## BAW: I'm sure we can eventually do better than this. :(
             #decodedpayload = websafe(str(submsg))
             decodedpayload = str(submsg)
-        msg_id = self.msg['Message-Id'].strip("<>")
+        msg_id = unquote(self.msg['Message-Id'])
         self.store.add_attachment(
                 self.mlist, msg_id, counter, filebase+ext,
                 ctype, charset, decodedpayload)

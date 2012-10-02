@@ -15,6 +15,7 @@ license.
 from __future__ import absolute_import
 
 import datetime
+from email.utils import unquote
 
 from kittystore import MessageNotFound
 from kittystore.utils import parseaddr, parsedate
@@ -87,7 +88,7 @@ class StormStore(object):
             self.db.add(List(list_name))
         if not message.has_key("Message-Id"):
             raise ValueError("No 'Message-Id' header in email", message)
-        msg_id = unicode(message['Message-Id'].strip("<>"))
+        msg_id = unicode(unquote(message['Message-Id']))
         email = Email(list_name, msg_id)
         if self.is_message_in_list(list_name, email.message_id):
             print ("Duplicate email from %s: %s" %

@@ -45,7 +45,7 @@ def get_message_id_hash(msg_id):
     'JJIGKPKB6CVDX6B2CUG4IHAJRIQIOUTP'
 
     """
-    msg_id = msg_id.strip("<>")
+    msg_id = email.utils.unquote(msg_id)
     return b32encode(sha1(msg_id).digest())
 
 

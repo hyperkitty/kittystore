@@ -66,6 +66,11 @@ class TestUtils(unittest.TestCase):
                             "UTC offset %s for datetime %s is too large"
                             % (parsed.utcoffset(), parsed))
 
+    def test_datestring_no_timezone(self):
+        datestring = "Sun, 12 Dec 2004 19:11:28"
+        parsed = kittystore.utils.parsedate(datestring)
+        self.assertEqual(parsed, datetime.datetime(2004, 12, 12, 19, 11, 28))
+
     def test_unknown_encoding(self):
         """Unknown encodings should just replace unknown characters"""
         header = "=?x-gbk?Q?Frank_B=A8=B9ttner?="

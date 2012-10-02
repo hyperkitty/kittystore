@@ -85,7 +85,8 @@ def parsedate(datestring):
         parsed = dateutil.parser.parse(datestring)
     except ValueError:
         return None
-    if abs(parsed.utcoffset()) > timedelta(hours=13):
+    if parsed.utcoffset() is not None and \
+            abs(parsed.utcoffset()) > timedelta(hours=13):
         parsed = parsed.astimezone(dateutil.tz.tzutc())
     return parsed
     #date_tuple = email.utils.parsedate_tz(datestring)

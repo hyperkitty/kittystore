@@ -226,6 +226,21 @@ class Scrubber(object):
             #sep = _('-------------- next part --------------\n')
             #text = sep.join(text)
             text = "\n".join(text)
+        else:
+            text = self.msg.get_payload(decode=True)
+            charset = self.msg.get_content_charset()
+            if charset is None:
+                # Try to guess the encoding (best effort mode)
+                for encoding in ["ascii", "utf-8", "iso-8859-15"]:
+                    try:
+                        text.decode(encoding)
+                    except UnicodeDecodeError:
+                        continue
+                    else:
+                        #print encoding, payload
+                        charset = encoding
+                        break
+            text = text.decode(charset or "ascii", "replace")
         return text
 
 

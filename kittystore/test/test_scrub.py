@@ -89,3 +89,15 @@ class TestScrubber(unittest.TestCase):
                 u"This is a test message\r\n"
                 u"Non-ASCII chars: r\xe9ponse fran\xe7ais \n")
 
+    def test_non_ascii_payload(self):
+        """Scrubber must handle non-ascii messages"""
+        for enc in ["utf8", "iso8859"]:
+            with open(get_test_file("payload-%s.txt" % enc)) as email_file:
+                msg = email.message_from_file(email_file)
+            store = Mock()
+            scrubber = Scrubber("testlist@example.com", msg, store)
+            contents = scrubber.scrub()
+            self.assertTrue(isinstance(contents, unicode))
+            self.assertEqual(contents, u'This message contains non-ascii '
+                    u'characters:\n\xe9 \xe8 \xe7 \xe0 \xee \xef \xeb \u20ac\n')
+

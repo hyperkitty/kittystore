@@ -42,7 +42,7 @@ def get_message_id_hash(msg_id):
     details. Example:
 
     >>> get_message_id_hash('<87myycy5eh.fsf@uwakimon.sk.tsukuba.ac.jp>')
-    'AGDWSNXXKCWEILKKNYTBOHRDQGOX3Y35'
+    'JJIGKPKB6CVDX6B2CUG4IHAJRIQIOUTP'
 
     """
     msg_id = msg_id.strip("<>")
@@ -66,15 +66,12 @@ def header_to_unicode(header):
         if charset is None:
             h_decoded.append(unicode(decoded))
         else:
-            if h_decoded:
-                # not so sure why...
-                h_decoded.append(" ")
             try:
                 h_decoded.append(decoded.decode(charset))
             except LookupError:
                 # Unknown encoding
                 h_decoded.append(decoded.decode("ascii", "replace"))
-    return "".join(h_decoded)
+    return " ".join(h_decoded)
 
 def parsedate(datestring):
     if datestring is None:

@@ -19,7 +19,8 @@ import datetime
 
 from kittystore import MessageNotFound
 from kittystore.utils import get_message_id_hash, parseaddr, parsedate
-from kittystore.utils import header_to_unicode, payload_to_unicode
+from kittystore.utils import header_to_unicode
+from kittystore.scrub import Scrubber
 from kittystore.utils import get_ref_and_thread_id
 from kittystore.sa.kittysamodel import get_class_object
 
@@ -124,7 +125,9 @@ class KittySAStore(object):
 
         from_name, from_email = parseaddr(message['From'])
         from_name = header_to_unicode(from_name)
-        payload = payload_to_unicode(message)
+        full = message.as_string()
+        scrubber = Scrubber(list_name, message, self)
+        payload = scrubber.scrub() # modifies the message in-place
 
         #category = 'Question' # TODO: enum + i18n ?
         #if ('agenda' in message.get('Subject', '').lower() or
@@ -142,7 +145,7 @@ class KittySAStore(object):
             stable_url_id=msg_id_hash,
             thread_id=thread_id,
             references=ref,
-            full=message.as_string(),
+            full=full,
             )
         self.session.add(mail)
         return msg_id_hash

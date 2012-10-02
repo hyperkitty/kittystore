@@ -109,7 +109,7 @@ class StormStore(object):
         email.subject = header_to_unicode(message.get('Subject'))
         email.full = message.as_string() # Before scrubbing
         scrubber = Scrubber(list_name, message, self)
-        email.content = scrubber.scrub()
+        email.content = scrubber.scrub() # warning: modifies the msg in-place
         email.date = parsedate(message.get("Date"))
         if email.date is None:
             # Absent or unparseable date

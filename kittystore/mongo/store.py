@@ -16,7 +16,11 @@ license.
 """
 
 
-import pymongo
+__test__ = {}
+try:
+    import pymongo
+except ImportError:
+    pass
 import re
 from datetime import datetime
 

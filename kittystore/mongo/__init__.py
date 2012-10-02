@@ -1,1 +1,1 @@
-__test__ = False
+__test__ = {}

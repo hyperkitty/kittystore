@@ -115,7 +115,8 @@ class Scrubber(object):
             ctype = part.get_content_type()
             # If the part is text/plain, we leave it alone
             if ctype == 'text/plain':
-                if part.get('content-disposition') == "attachment":
+                disposition = part.get('content-disposition')
+                if disposition and disposition.strip().startswith("attachment"):
                     # part is attached
                     self.save_attachment(part, part_num)
             elif ctype == 'text/html' and isinstance(sanitize, IntType):
@@ -246,7 +247,7 @@ class Scrubber(object):
         ctype = part.get_content_type()
         charset = get_charset(part, default=None, guess=False)
         # i18n file name is encoded
-        filename = oneline(part.get_filename(''), charset or "ascii")
+        filename = oneline(part.get_filename(''), in_unicode=True)
         filename, fnext = os.path.splitext(filename)
         # For safety, we should confirm this is valid ext for content-type
         # but we can use fnext if we introduce fnext filtering
@@ -279,7 +280,7 @@ class Scrubber(object):
             # Strip off leading dots
             filename = dre.sub('', filename)
             # Allow only alphanumerics, dash, underscore, and dot
-            filename = sre.sub('', filename)
+            #filename = sre.sub('', filename)
             # If the filename's extension doesn't match the type we guessed,
             # which one should we go with?  For now, let's go with the one we
             # guessed so attachments can't lie about their type.  Also, if the

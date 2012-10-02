@@ -101,3 +101,24 @@ class TestScrubber(unittest.TestCase):
             self.assertEqual(contents, u'This message contains non-ascii '
                     u'characters:\n\xe9 \xe8 \xe7 \xe0 \xee \xef \xeb \u20ac\n')
 
+    def test_attachment_4(self):
+        with open(get_test_file("attachment-4.txt")) as email_file:
+            msg = email.message_from_file(email_file)
+        store = Mock()
+        scrubber = Scrubber("testlist@example.com", msg, store)
+        contents = scrubber.scrub()
+        self.assertEqual(store.add_attachment.call_count, 2)
+        args_1, args_2 = store.add_attachment.call_args_list
+        # HTML part
+        self.assertEqual(args_1[0][0:6], ("testlist@example.com",
+                "CAHmoxtXXb3un1C=ZvYNtz-eYghm-GH925gDVHyjhvL2YEsZ-Yw@mail.gmail.com",
+                3, "attachment.html", "text/html", "iso-8859-1"))
+        self.assertEqual(len(args_1[0][6]), 114)
+        # Image attachment
+        self.assertEqual(args_2[0][0:6], ("testlist@example.com",
+                "CAHmoxtXXb3un1C=ZvYNtz-eYghm-GH925gDVHyjhvL2YEsZ-Yw@mail.gmail.com",
+                4, u"todo-déjeuner.txt", "text/plain", "utf-8"))
+        self.assertEqual(len(args_2[0][6]), 112)
+        # Scrubbed content
+        self.assertEqual(contents, u"This is a test message\r\n")
+

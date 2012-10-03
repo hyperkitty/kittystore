@@ -248,7 +248,12 @@ class Scrubber(object):
         ctype = part.get_content_type()
         charset = get_charset(part, default=None, guess=False)
         # i18n file name is encoded
-        filename = oneline(part.get_filename(''), in_unicode=True)
+        try:
+            filename = oneline(part.get_filename(''), in_unicode=True)
+        except TypeError:
+            # Workaround for https://bugs.launchpad.net/mailman/+bug/1060951
+            # (accented filenames)
+            filename = "attachment.bin"
         filename, fnext = os.path.splitext(filename)
         # For safety, we should confirm this is valid ext for content-type
         # but we can use fnext if we introduce fnext filtering
@@ -281,7 +286,9 @@ class Scrubber(object):
             # Strip off leading dots
             filename = dre.sub('', filename)
             # Allow only alphanumerics, dash, underscore, and dot
-            #filename = sre.sub('', filename)
+            # i18n filenames are not supported yet,
+            # see https://bugs.launchpad.net/bugs/1060951
+            filename = sre.sub('', filename)
             # If the filename's extension doesn't match the type we guessed,
             # which one should we go with?  For now, let's go with the one we
             # guessed so attachments can't lie about their type.  Also, if the

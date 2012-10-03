@@ -6,6 +6,8 @@ import datetime
 import dateutil
 from mock import Mock
 
+from mailman.email.message import Message
+
 import kittystore.utils
 from kittystore.test import get_test_file
 
@@ -14,7 +16,7 @@ class TestUtils(unittest.TestCase):
 
     def test_ref_parsing(self):
         with open(get_test_file("strange-in-reply-to-header.txt")) as email_file:
-            msg = email.message_from_file(email_file)
+            msg = email.message_from_file(email_file, _class=Message)
         store = Mock()
         store.get_message_by_id_from_list.return_value = None
         ref_id, thread_id = kittystore.utils.get_ref_and_thread_id(
@@ -23,7 +25,7 @@ class TestUtils(unittest.TestCase):
 
     def test_wrong_reply_to_format(self):
         with open(get_test_file("wrong-in-reply-to-header.txt")) as email_file:
-            msg = email.message_from_file(email_file)
+            msg = email.message_from_file(email_file, _class=Message)
         store = Mock()
         store.get_message_by_id_from_list.return_value = None
         ref_id, thread_id = kittystore.utils.get_ref_and_thread_id(

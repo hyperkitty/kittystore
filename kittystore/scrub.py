@@ -119,6 +119,7 @@ class Scrubber(object):
                 if disposition and disposition.strip().startswith("attachment"):
                     # part is attached
                     self.save_attachment(part, part_num)
+                    part.set_payload('')
             elif ctype == 'text/html' and isinstance(sanitize, IntType):
 #            if sanitize == 0:
 #                if outer:

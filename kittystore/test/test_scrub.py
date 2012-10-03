@@ -120,5 +120,7 @@ class TestScrubber(unittest.TestCase):
                 4, u"todo-déjeuner.txt", "text/plain", "utf-8"))
         self.assertEqual(len(args_2[0][6]), 112)
         # Scrubbed content
-        self.assertEqual(contents, u"This is a test message\r\n")
+        self.assertEqual(contents, u'This is a test, HTML message with '
+                u'accented letters : \xe9 \xe8 \xe7 \xe0.\r\nAnd an '
+                u'attachment with an accented filename\r\n')
 

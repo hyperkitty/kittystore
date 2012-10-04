@@ -86,3 +86,13 @@ class Attachment(object):
     encoding = Unicode()
     size = Int()
     content = RawStr()
+
+
+# References
+
+Email.attachments = ReferenceSet(
+        (Email.list_name,
+         Email.message_id),
+        (Attachment.list_name,
+         Attachment.message_id),
+        )

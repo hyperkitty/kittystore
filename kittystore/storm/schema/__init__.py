@@ -6,6 +6,7 @@ CREATES = {
     "sqlite": [ """
         CREATE TABLE "list" (
             name VARCHAR(255) NOT NULL,
+            display_name TEXT,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE "email" (
@@ -44,6 +45,7 @@ CREATES = {
     "postgres": [ """
         CREATE TABLE "list" (
             name VARCHAR(255) NOT NULL,
+            display_name TEXT,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE "email" (

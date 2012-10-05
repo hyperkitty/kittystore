@@ -37,6 +37,7 @@ class List(object):
     __storm_table__ = "list"
 
     name = Unicode(primary=True)
+    display_name = Unicode()
 
     def __init__(self, name):
         self.name = unicode(name)

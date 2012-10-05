@@ -65,7 +65,7 @@ class StormStore(object):
         # Not sure this is useful: a message should always be in a list
         raise NotImplementedError
 
-    def add_to_list(self, list_name, message):
+    def add_to_list(self, mlist, message):
         """Add the message to a specific list of the store.
 
         :param list_name: The fully qualified list name to which the
@@ -80,12 +80,14 @@ class StormStore(object):
             The storage service is also allowed to raise this exception
             if it find, but disallows collisions.
         """
-        list_name = unicode(list_name)
+        list_name = unicode(mlist.fqdn_listname)
         # Create the list if it does not exist
         list_is_in_db = self.db.find(List,
                 List.name == list_name).count()
         if not list_is_in_db:
-            self.db.add(List(list_name))
+            l = List(list_name)
+            l.display_name = mlist.display_name
+            self.db.add(l)
         if not message.has_key("Message-Id"):
             raise ValueError("No 'Message-Id' header in email", message)
         msg_id = unicode(unquote(message['Message-Id']))
@@ -374,6 +376,14 @@ class StormStore(object):
                     Email.thread_id == unicode(thread_id),
                 )).config(distinct=True)
         return list(participants)
+
+    def get_list(self, list_name):
+        """ Return the list object for a mailing list name.
+
+        :arg list_name, name of the mailing list to retrieve.
+        """
+        return self.db.find(List, List.name == unicode(list_name)).one()
+
 
     # Attachments
 

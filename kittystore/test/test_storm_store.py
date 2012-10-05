@@ -10,6 +10,12 @@ from kittystore.storm import get_storm_store
 from kittystore.storm.model import Email
 from kittystore.test import get_test_file
 
+
+class FakeList(object):
+    def __init__(self, name):
+        self.fqdn_listname = name
+
+
 class TestSAStore(unittest.TestCase):
 
     def setUp(self):
@@ -20,7 +26,8 @@ class TestSAStore(unittest.TestCase):
 
     def test_no_message_id(self):
         msg = email.message.Message()
-        self.assertRaises(ValueError, self.store.add_to_list, "example-list", msg)
+        self.assertRaises(ValueError, self.store.add_to_list,
+                          FakeList("example-list"), msg)
 
     def test_no_date(self):
         msg = email.message.Message()
@@ -29,7 +36,7 @@ class TestSAStore(unittest.TestCase):
         msg.set_payload("Dummy message")
         now = datetime.datetime.now()
         try:
-            self.store.add_to_list("example-list", msg)
+            self.store.add_to_list(FakeList("example-list"), msg)
         except IntegrityError, e:
             self.fail(e)
         stored_msg = self.store.db.find(Email).one()

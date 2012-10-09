@@ -377,6 +377,39 @@ class StormStore(object):
                 )).config(distinct=True)
         return list(participants)
 
+    def get_thread_neighbors(self, list_name, thread_id):
+        """ Return the previous and the next threads of the specified thread,
+        in date order. The returned objects are the emails starting the
+        threads.
+
+        :param list_name: The name of the mailing list to query.
+        :param thread_id: The unique identifier of the thread as specified in
+            the database.
+        :returns: A couple formed of the older thread and the newer thread, in
+            this order.
+        :rtype: tuple
+        """
+        current_email = self.get_message_by_hash_from_list(list_name, thread_id)
+        next_email = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.in_reply_to == None,
+                    Email.date > current_email.date,
+                )).order_by(Email.date)
+        try:
+            next_email = next_email[0]
+        except IndexError:
+            next_email = None
+        prev_email = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.in_reply_to == None,
+                    Email.date < current_email.date,
+                )).order_by(Desc(Email.date))
+        try:
+            prev_email = prev_email[0]
+        except IndexError:
+            prev_email = None
+        return (prev_email, next_email)
+
     def get_list(self, list_name):
         """ Return the list object for a mailing list name.
 

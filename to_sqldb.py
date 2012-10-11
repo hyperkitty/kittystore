@@ -27,7 +27,7 @@ PREFIX_RE = re.compile("^\[([\w\s_-]+)\] ")
 
 class DummyMailingList(object):
     def __init__(self, address):
-        self.fqdn_listname = address
+        self.fqdn_listname = unicode(address)
         self.display_name = None
 
 
@@ -59,7 +59,7 @@ def to_db(mbfile, list_name, store):
         if cnt_read == 1:
             subject_prefix = PREFIX_RE.search(message["subject"])
             if subject_prefix:
-                mlist.display_name = subject_prefix.group(1)
+                mlist.display_name = unicode(subject_prefix.group(1))
         try:
             msg_id_hash = store.add_to_list(mlist, message)
         except ValueError, e:

@@ -68,8 +68,8 @@ class StormStore(object):
     def add_to_list(self, mlist, message):
         """Add the message to a specific list of the store.
 
-        :param list_name: The fully qualified list name to which the
-            message should be added.
+        :param mlist: The mailing-list object, implementing
+            mailman.interfaces.mailinglist.IMailingList.
         :param message: An email.message.Message instance containing at
             least a unique Message-ID header.  The message will be given
             an X-Message-ID-Hash header, overriding any existing such

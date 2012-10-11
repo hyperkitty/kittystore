@@ -23,6 +23,14 @@ TOTALCNT = 0
 KITTYSTORE_URL = 'sqlite:///' + os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "kittystore.sqlite"))
 
 
+PREFIX_RE = re.compile("^\[([\w\s_-]+)\] ")
+
+class DummyMailingList(object):
+    def __init__(self, address):
+        self.fqdn_listname = address
+        self.display_name = None
+
+
 def convert_date(date_string):
     """ Convert the string of the date to a datetime object. """
     #print date_string
@@ -42,12 +50,18 @@ def to_db(mbfile, list_name, store):
     global TOTALCNT
     cnt = 0
     cnt_read = 0
+    mlist = DummyMailingList(list_name)
     for message in mailbox.mbox(mbfile):
         cnt_read = cnt_read + 1
         #print cnt_read
         TOTALCNT = TOTALCNT + 1
+        # Try to find the mailing-list subject prefix in the first email
+        if cnt_read == 1:
+            subject_prefix = PREFIX_RE.search(message["subject"])
+            if subject_prefix:
+                mlist.display_name = subject_prefix.group(1)
         try:
-            msg_id_hash = store.add_to_list(list_name, message)
+            msg_id_hash = store.add_to_list(mlist, message)
         except ValueError, e:
             if len(e.args) != 2:
                 raise # Regular ValueError exception
@@ -58,7 +72,7 @@ def to_db(mbfile, list_name, store):
             print message["From"], message["Subject"], e
             # Database is locked
             time.sleep(1)
-            msg_id_hash = store.add_to_list(list_name, message)
+            msg_id_hash = store.add_to_list(mlist, message)
         store.flush()
         cnt = cnt + 1
     store.commit()

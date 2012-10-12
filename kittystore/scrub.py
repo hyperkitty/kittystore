@@ -19,27 +19,12 @@
 
 import os
 import re
-import time
-import errno
 import binascii
-import tempfile
-from cStringIO import StringIO
-from types import IntType, StringType
+from types import IntType
 from mimetypes import guess_all_extensions
 
-from email.Utils import parsedate, unquote
-from email.Parser import HeaderParser
-from email.Generator import Generator
+from email.Utils import unquote
 from email.Charset import Charset
-
-#from Mailman import mm_cfg
-#from Mailman import Utils
-#from Mailman import LockFile
-#from Mailman import Message
-#from Mailman.Errors import DiscardMessage
-#from Mailman.i18n import _
-#from Mailman.Logging.Syslog import syslog
-#from Mailman.Utils import sha_new
 
 from mailman.utilities.string import websafe, oneline
 # TODO: don't do translations here, the system locale has no meaning to the

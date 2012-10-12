@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=R0904,C0103
+# R0904: Too many public methods (X/20)
+# C0103: Invalid name "xX" (should match [a-z_][a-z0-9_]{2,30}$)
 
 import unittest
 import email

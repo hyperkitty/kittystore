@@ -23,8 +23,8 @@ import binascii
 from types import IntType
 from mimetypes import guess_all_extensions
 
-from email.Utils import unquote
-from email.Charset import Charset
+from email.utils import unquote
+from email.charset import Charset
 
 from mailman.utilities.string import websafe, oneline
 # TODO: don't do translations here, the system locale has no meaning to the

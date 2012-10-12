@@ -21,11 +21,18 @@ from mailman.interfaces.messages import IMessage
 from kittystore.utils import get_message_id_hash
 from .hack_datetime import DateTime
 
+# pylint: disable-msg=R0902,R0913,R0903
+# R0902: Too many instance attributes (X/7)
+# R0913: Too many arguments (X/5)
+# R0903: Too few public methods (X/2)
+
 
 __all__ = ("List", "Email", "Attachment")
 
 
 class List(object):
+    # The 'List' name is part of storm's locals
+    # pylint: disable-msg=E0102
     """
     An archived mailing-list.
 

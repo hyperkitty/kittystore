@@ -66,6 +66,8 @@ class DateTimeVariableHack(DateTime.variable_class):
 
 
 class DateTime(DateTime):
+    # Overwrite DateTime in Storm's locals
+    # pylint: disable-msg=E0102
     variable_class = DateTimeVariableHack
 
 

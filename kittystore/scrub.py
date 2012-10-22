@@ -47,10 +47,10 @@ def guess_extension(ctype, ext):
     # and .wiz are all mapped to application/msword.  This sucks for finding
     # the best reverse mapping.  If the extension is one of the giving
     # mappings, we'll trust that, otherwise we'll just guess. :/
-    all = guess_all_extensions(ctype, strict=False)
-    if ext in all:
+    all_exts = guess_all_extensions(ctype, strict=False)
+    if ext in all_exts:
         return ext
-    return all and all[0]
+    return all_exts and all_exts[0]
 
 
 def get_charset(message, default="ascii", guess=False):
@@ -148,7 +148,6 @@ class Scrubber(object):
                     part.set_payload('')
             elif ctype == 'message/rfc822':
                 # This part contains a submessage, so it too needs scrubbing
-                submsg = part.get_payload(0)
                 self.save_attachment(part, part_num)
                 part.set_payload('')
             # If the message isn't a multipart, then we'll strip it out as an
@@ -164,7 +163,6 @@ class Scrubber(object):
                 # ignore the part.
                 if payload is None:
                     continue
-                size = len(payload)
                 self.save_attachment(part, part_num)
             outer = False
         # We still have to sanitize multipart messages to flat text because

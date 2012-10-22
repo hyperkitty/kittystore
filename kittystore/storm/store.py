@@ -296,6 +296,30 @@ class StormStore(object):
         """
         return list(self.db.find(List.name).order_by(List.name))
 
+    def get_messages(self, list_name, start, end, threads=False):
+        """ Return all emails between two given dates, optionnaly selecting
+        only the thread-starting ones.
+
+        :param list_name: The name of the mailing list in which these emails
+            should be searched.
+        :param start: A datetime object representing the starting date of
+            the interval to query.
+        :param end: A datetime object representing the ending date of
+            the interval to query.
+        :returns: The list of messages.
+        """
+        conditions = [
+                Email.list_name == unicode(list_name),
+                Email.date >= start,
+                Email.date < end,
+                ]
+        if threads:
+            # Beginning of thread == No 'References' header
+            conditions.append(Email.in_reply_to == None)
+        emails = self.db.find(Email, And(*conditions)
+                ).order_by(Desc(Email.date))
+        return list(emails)
+
     def get_threads(self, list_name, start, end):
         """ Return all the thread-starting emails between two given dates.
 
@@ -307,14 +331,7 @@ class StormStore(object):
             the interval to query.
         :returns: The list of thread-starting messages.
         """
-        # Beginning of thread == No 'References' header
-        emails = self.db.find(Email, And(
-                    Email.list_name == unicode(list_name),
-                    Email.in_reply_to == None,
-                    Email.date >= start,
-                    Email.date <= end,
-                )).order_by(Desc(Email.date))
-        return list(emails)
+        return self.get_messages(list_name, start, end, threads=True)
 
     def get_start_date(self, list_name):
         """ Get the date of the first archived email in a list.
@@ -416,6 +433,19 @@ class StormStore(object):
         :arg list_name, name of the mailing list to retrieve.
         """
         return self.db.find(List, List.name == unicode(list_name)).one()
+
+    def get_message_by_number(self, list_name, num):
+        """ Return the n-th email for the specified list.
+
+        :param list_name: The name of the mailing list in which this email
+            should be searched.
+        :param num: The email number in order received.
+        :returns: The email message.
+        """
+        result = self.db.find(Email, Email.list_name == unicode(list_name)
+                    ).order_by(Email.archived_date
+                    )[num:num+1].one()
+        return result
 
 
     # Attachments

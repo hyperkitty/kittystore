@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import time
+import urllib
 from base64 import b32encode
 from dateutil.parser import parse
 from dateutil import tz
@@ -25,6 +26,40 @@ KITTYSTORE_URL = 'sqlite:///' + os.path.abspath(os.path.join(os.path.dirname(__f
 
 PREFIX_RE = re.compile("^\[([\w\s_-]+)\] ")
 
+ATTACHMENT_RE = re.compile(r"""
+--------------[ ]next[ ]part[ ]--------------\n
+A[ ]non-text[ ]attachment[ ]was[ ]scrubbed\.\.\.\n
+Name:[ ]([^\n]+)\n
+Type:[ ]([^\n]+)\n
+Size:[ ]\d+[ ]bytes\n
+Desc:[ ].+?\n
+Url[ ]:[ ]([^\s]+)\s*\n
+""", re.X | re.S)
+
+EMBEDDED_MSG_RE = re.compile(r"""
+--------------[ ]next[ ]part[ ]--------------\n
+An[ ]embedded[ ]message[ ]was[ ]scrubbed\.\.\.\n
+From:[ ].+?\n
+Subject:[ ](.+?)\n
+Date:[ ][^\n]+\n
+Size:[ ]\d+\n
+Url:[ ]([^\s]+)\s*\n
+""", re.X | re.S)
+
+HTML_ATTACH_RE = re.compile(r"""
+--------------[ ]next[ ]part[ ]--------------\n
+An[ ]HTML[ ]attachment[ ]was[ ]scrubbed\.\.\.\n
+URL:[ ]([^\s]+)\s*\n
+""", re.X)
+
+TEXT_NO_CHARSET_RE = re.compile(r"""
+--------------[ ]next[ ]part[ ]--------------\n
+An[ ]embedded[ ]and[ ]charset-unspecified[ ]text[ ]was[ ]scrubbed\.\.\.\n
+Name:[ ]([^\n]+)\n
+Url:[ ]([^\s]+)\s*\n
+""", re.X | re.S)
+
+
 class DummyMailingList(object):
     def __init__(self, address):
         self.fqdn_listname = unicode(address)
@@ -38,6 +73,44 @@ def convert_date(date_string):
     dt = parse(date_string)
     return dt.astimezone(tz.tzutc())
 
+
+def extract_attachments(store, mlist, message):
+    """Parse message to search for attachments"""
+    has_attach = False
+    message_text = message.as_string()
+    if "-------------- next part --------------" in message_text:
+        has_attach = True
+    # Regular attachments
+    attachments = ATTACHMENT_RE.findall(message_text)
+    for counter, att in enumerate(attachments):
+        download_attachment(store, mlist, message["Message-Id"], counter,
+                            att[0], att[1], att[2])
+    # Embedded messages
+    embedded = EMBEDDED_MSG_RE.findall(message_text)
+    for counter, att in enumerate(embedded):
+        download_attachment(store, mlist, message["Message-Id"], counter,
+                            att[0], 'message/rfc822', att[1])
+    # HTML attachments
+    html_attachments = HTML_ATTACH_RE.findall(message_text)
+    for counter, att in enumerate(html_attachments):
+        download_attachment(store, mlist, message["Message-Id"], counter,
+                            os.path.basename(att), 'text/html', att)
+    # Text without charset
+    text_no_charset = TEXT_NO_CHARSET_RE.findall(message_text)
+    for counter, att in enumerate(text_no_charset):
+        download_attachment(store, mlist, message["Message-Id"], counter,
+                            att[0], 'text/plain', att[1])
+    ## Other, probably inline text/plain
+    #if has_attach and not (attachments or embedded
+    #                       or html_attachments or text_no_charset):
+    #    print message_text
+
+
+def download_attachment(store, mlist, message_id, counter, name, content_type, url):
+    #print "Downloading attachment from", url
+    content = urllib.urlopen(url).read()
+    store.add_attachment(mlist, message_id, counter, name, content_type,
+                         None, content)
 
 def to_db(mbfile, list_name, store):
     """ Upload all the emails in a mbox file into the database using
@@ -73,6 +146,9 @@ def to_db(mbfile, list_name, store):
             # Database is locked
             time.sleep(1)
             msg_id_hash = store.add_to_list(mlist, message)
+        # Parse message to search for attachments
+        extract_attachments(store, mlist, message)
+
         store.flush()
         cnt = cnt + 1
     store.commit()

@@ -17,9 +17,6 @@ Source:  https://github.com/pypingou/kittystore
 Dependencies:
 -------------
 - SQLAlchemy
-- bson
-- pymongo  (for mongodb)
-
 
 
 License:
@@ -33,8 +30,8 @@ Load the database:
 ------------------
 
 - Retrieve the archives using the get_mbox.py script
-- Configure the to_sqldb.py or to_mongo.py script (adjust user/password/database name/host/port)
-- Load the archives by calling the to_sqldb.py or to_mongo.py script
+- Configure the to_sqldb.py script (adjust user/password/database name/host/port)
+- Load the archives by calling the to_sqldb.py script
 (this might be memory intensive, so you may want to do 2 or 3 years per run and split
 the runs)
 

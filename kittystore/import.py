@@ -35,11 +35,11 @@ from dateutil.parser import parse
 from dateutil import tz
 from kitchen.text.converters import to_bytes
 from hashlib import sha1
-from sqlalchemy.exc import OperationalError
+from optparse import OptionParser
 
 from kittystore import get_store
 
-TOTALCNT = 0
+
 #KITTYSTORE_URL = 'postgres://mm3:mm3@localhost/mm3'
 #KITTYSTORE_URL = 'postgres://kittystore:kittystore@localhost/kittystore'
 KITTYSTORE_URL = 'sqlite:///' + os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "kittystore.sqlite"))
@@ -81,12 +81,6 @@ Url:[ ]([^\s]+)\s*\n
 """, re.X | re.S)
 
 
-class DummyMailingList(object):
-    def __init__(self, address):
-        self.fqdn_listname = unicode(address)
-        self.display_name = None
-
-
 def convert_date(date_string):
     """ Convert the string of the date to a datetime object. """
     #print date_string
@@ -95,99 +89,125 @@ def convert_date(date_string):
     return dt.astimezone(tz.tzutc())
 
 
-def extract_attachments(store, mlist, message):
-    """Parse message to search for attachments"""
-    has_attach = False
-    message_text = message.as_string()
-    if "-------------- next part --------------" in message_text:
-        has_attach = True
-    # Regular attachments
-    attachments = ATTACHMENT_RE.findall(message_text)
-    for counter, att in enumerate(attachments):
-        download_attachment(store, mlist, message["Message-Id"], counter,
-                            att[0], att[1], att[2])
-    # Embedded messages
-    embedded = EMBEDDED_MSG_RE.findall(message_text)
-    for counter, att in enumerate(embedded):
-        download_attachment(store, mlist, message["Message-Id"], counter,
-                            att[0], 'message/rfc822', att[1])
-    # HTML attachments
-    html_attachments = HTML_ATTACH_RE.findall(message_text)
-    for counter, att in enumerate(html_attachments):
-        download_attachment(store, mlist, message["Message-Id"], counter,
-                            os.path.basename(att), 'text/html', att)
-    # Text without charset
-    text_no_charset = TEXT_NO_CHARSET_RE.findall(message_text)
-    for counter, att in enumerate(text_no_charset):
-        download_attachment(store, mlist, message["Message-Id"], counter,
-                            att[0], 'text/plain', att[1])
-    ## Other, probably inline text/plain
-    #if has_attach and not (attachments or embedded
-    #                       or html_attachments or text_no_charset):
-    #    print message_text
+class DummyMailingList(object):
+    def __init__(self, address):
+        self.fqdn_listname = unicode(address)
+        self.display_name = None
 
 
-def download_attachment(store, mlist, message_id, counter, name, content_type, url):
-    #print "Downloading attachment from", url
-    content = urllib.urlopen(url).read()
-    store.add_attachment(mlist, message_id, counter, name, content_type,
-                         None, content)
-
-def to_db(mbfile, list_name, store):
-    """ Upload all the emails in a mbox file into the database using
-    kittystore API.
-
-    :arg mbfile, a mailbox file from which the emails are extracted and
-    upload to the database.
-    :arg list_name, the fully qualified list name.
+class DbImporter(object):
     """
-    global TOTALCNT
-    cnt = 0
-    cnt_read = 0
-    mlist = DummyMailingList(list_name)
-    for message in mailbox.mbox(mbfile):
-        cnt_read = cnt_read + 1
-        #print cnt_read
-        TOTALCNT = TOTALCNT + 1
-        # Try to find the mailing-list subject prefix in the first email
-        if cnt_read == 1:
-            subject_prefix = PREFIX_RE.search(message["subject"])
-            if subject_prefix:
-                mlist.display_name = unicode(subject_prefix.group(1))
-        try:
-            msg_id_hash = store.add_to_list(mlist, message)
-        except ValueError, e:
-            if len(e.args) != 2:
-                raise # Regular ValueError exception
-            print "%s from %s about %s" % (e.args[0],
-                    e.args[1].get("From"), e.args[1].get("Subject"))
-            continue
-        except OperationalError, e:
-            print message["From"], message["Subject"], e
-            # Database is locked
-            time.sleep(1)
-            msg_id_hash = store.add_to_list(mlist, message)
-        # Parse message to search for attachments
-        extract_attachments(store, mlist, message)
+    Import email messages into the KittyStore database using its API.
+    """
 
-        store.flush()
-        cnt = cnt + 1
-    store.commit()
-    print '  %s email read' % cnt_read
-    print '  %s email added to the database' % cnt
+    def __init__(self, mlist, store):
+        self.mlist = mlist
+        self.store = store
+        self.total_imported = 0
+
+    def from_mbox(self, mbfile):
+        """ Upload all the emails in a mbox file into the database using
+        kittystore API.
+
+        :arg mbfile, a mailbox file from which the emails are extracted and
+        upload to the database.
+        :arg list_name, the fully qualified list name.
+        """
+        cnt_imported = 0
+        cnt_read = 0
+        for message in mailbox.mbox(mbfile):
+            cnt_read = cnt_read + 1
+            self.total_imported += 1
+            # Try to find the mailing-list subject prefix in the first email
+            if cnt_read == 1:
+                subject_prefix = PREFIX_RE.search(message["subject"])
+                if subject_prefix:
+                    self.mlist.display_name = unicode(subject_prefix.group(1))
+            try:
+                msg_id_hash = self.store.add_to_list(self.mlist, message)
+            except ValueError, e:
+                if len(e.args) != 2:
+                    raise # Regular ValueError exception
+                print "%s from %s about %s" % (e.args[0],
+                        e.args[1].get("From"), e.args[1].get("Subject"))
+                continue
+            # Parse message to search for attachments
+            self.extract_attachments(message)
+
+            self.store.flush()
+            cnt_imported += 1
+        self.store.commit()
+        print '  %s email read' % cnt_read
+        print '  %s email added to the database' % cnt_imported
+
+    def extract_attachments(self, message):
+        """Parse message to search for attachments"""
+        has_attach = False
+        message_text = message.as_string()
+        if "-------------- next part --------------" in message_text:
+            has_attach = True
+        # Regular attachments
+        attachments = ATTACHMENT_RE.findall(message_text)
+        for counter, att in enumerate(attachments):
+            self.download_attachment(message["Message-Id"], counter,
+                                     att[0], att[1], att[2])
+        # Embedded messages
+        embedded = EMBEDDED_MSG_RE.findall(message_text)
+        for counter, att in enumerate(embedded):
+            self.download_attachment(message["Message-Id"], counter,
+                                     att[0], 'message/rfc822', att[1])
+        # HTML attachments
+        html_attachments = HTML_ATTACH_RE.findall(message_text)
+        for counter, att in enumerate(html_attachments):
+            self.download_attachment(message["Message-Id"], counter,
+                                     os.path.basename(att), 'text/html', att)
+        # Text without charset
+        text_no_charset = TEXT_NO_CHARSET_RE.findall(message_text)
+        for counter, att in enumerate(text_no_charset):
+            self.download_attachment(message["Message-Id"], counter,
+                                     att[0], 'text/plain', att[1])
+        ## Other, probably inline text/plain
+        #if has_attach and not (attachments or embedded
+        #                       or html_attachments or text_no_charset):
+        #    print message_text
+
+    def download_attachment(self, message_id, counter, name, ctype, url):
+        #print "Downloading attachment from", url
+        content = urllib.urlopen(url).read()
+        self.store.add_attachment(self.mlist, message_id, counter, name,
+                                  ctype, None, content)
+
+
+def parse_args():
+    usage = "%prog -l list_name mbox_file [mbox_file ...]"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-l", "--list-name", help="the fully-qualified list "
+            "name (including the '@' symbol and the domain name")
+    parser.add_option("-v", "--verbose", help="show more output")
+    parser.add_option("-D", "--duplicates", help="do not skip duplicate emails "
+            "(same Message-ID header), import them with a different Message-ID")
+    opts, args = parser.parse_args()
+    if opts.list_name is None:
+        parser.error("the list name must be given on the command-line.")
+    if not args:
+        parser.error("no mbox file selected.")
+    if "@" not in opts.list_name:
+        parser.error("the list name must be fully-qualified, including "
+                     "the '@' symbol and the domain name.")
+    for mbfile in args:
+        if not os.path.exists(mbfile):
+            parser.error("No such mbox file: %s" % mbfile)
+    return opts, args
 
 
 def main():
-    if len(sys.argv) < 2 or '-h' in sys.argv or '--help' in sys.argv:
-        print '''USAGE:
-python to_sqldb.py list_name mbox_file [mbox_file]'''
-    else:
-        print 'Adding to database list: %s' % sys.argv[1]
-
-        store = get_store(KITTYSTORE_URL, debug=False)
-        for mbfile in sys.argv[2:]:
-            print mbfile
-            if os.path.exists(mbfile):
-                to_db(mbfile, sys.argv[1], store)
-                print '  %s emails are stored into the database' % store.get_list_size(sys.argv[1])
-
+    opts, args = parse_args()
+    print 'Importing messages from %s to database...' % opts.list_name
+    store = get_store(KITTYSTORE_URL, debug=False)
+    mlist = DummyMailingList(opts.list_name)
+    importer = DbImporter(mlist, store)
+    for mbfile in args:
+        print "Importing from mbox file %s" % mbfile
+        importer.from_mbox(mbfile)
+        print '  %s emails are stored into the database' \
+              % store.get_list_size(opts.list_name)

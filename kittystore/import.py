@@ -1,6 +1,6 @@
-#!/usr/bin/python -tt
-
-# Import the content of a mbox file into SQL
+"""
+Import the content of a mbox file into the database.
+"""
 
 import datetime
 import mailbox
@@ -156,8 +156,7 @@ def to_db(mbfile, list_name, store):
     print '  %s email added to the database' % cnt
 
 
-if __name__ == '__main__':
-    #sys.argv.extend(['devel', 'lists/devel-2012-03-March.txt'])
+def main():
     if len(sys.argv) < 2 or '-h' in sys.argv or '--help' in sys.argv:
         print '''USAGE:
 python to_sqldb.py list_name mbox_file [mbox_file]'''
@@ -170,3 +169,4 @@ python to_sqldb.py list_name mbox_file [mbox_file]'''
             if os.path.exists(mbfile):
                 to_db(mbfile, sys.argv[1], store)
                 print '  %s emails are stored into the database' % store.get_list_size(sys.argv[1])
+

@@ -22,4 +22,9 @@ setup(
         'python-dateutil < 2.0' # 2.0+ is for Python 3
         'mock',
         ],
+     entry_points={
+        'console_scripts': [
+            'kittystore-import = kittystore.import:main',
+            ],
+        },
     )

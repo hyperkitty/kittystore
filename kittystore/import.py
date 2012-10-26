@@ -36,13 +36,15 @@ from dateutil import tz
 from kitchen.text.converters import to_bytes
 from hashlib import sha1
 from optparse import OptionParser
+from random import randint
+from email.utils import unquote
 
 from kittystore import get_store
 
 
 #KITTYSTORE_URL = 'postgres://mm3:mm3@localhost/mm3'
 #KITTYSTORE_URL = 'postgres://kittystore:kittystore@localhost/kittystore'
-KITTYSTORE_URL = 'sqlite:///' + os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "kittystore.sqlite"))
+KITTYSTORE_URL = 'sqlite:///' + os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "kittystore.sqlite"))
 
 
 PREFIX_RE = re.compile("^\[([\w\s_-]+)\] ")
@@ -100,10 +102,11 @@ class DbImporter(object):
     Import email messages into the KittyStore database using its API.
     """
 
-    def __init__(self, mlist, store):
+    def __init__(self, mlist, store, force_import=False):
         self.mlist = mlist
         self.store = store
         self.total_imported = 0
+        self.force_import = force_import
 
     def from_mbox(self, mbfile):
         """ Upload all the emails in a mbox file into the database using
@@ -123,6 +126,14 @@ class DbImporter(object):
                 subject_prefix = PREFIX_RE.search(message["subject"])
                 if subject_prefix:
                     self.mlist.display_name = unicode(subject_prefix.group(1))
+            if self.force_import:
+                while self.store.is_message_in_list(
+                            self.mlist.fqdn_listname, unquote(message["Message-Id"])):
+                    print "Found duplicate, changing message id from", message["Message-Id"], "to",
+                    message.replace_header("Message-Id",
+                            "<%s-%s>" % (unquote(message["Message-Id"]),
+                                         str(randint(0, 100))))
+                    print message["Message-Id"]
             try:
                 msg_id_hash = self.store.add_to_list(self.mlist, message)
             except ValueError, e:
@@ -183,9 +194,13 @@ def parse_args():
     parser = OptionParser(usage=usage)
     parser.add_option("-l", "--list-name", help="the fully-qualified list "
             "name (including the '@' symbol and the domain name")
-    parser.add_option("-v", "--verbose", help="show more output")
-    parser.add_option("-D", "--duplicates", help="do not skip duplicate emails "
-            "(same Message-ID header), import them with a different Message-ID")
+    parser.add_option("-v", "--verbose", action="store_true",
+            help="show more output")
+    parser.add_option("-d", "--debug", action="store_true",
+            help="show a whole lot more of output")
+    parser.add_option("-D", "--duplicates", action="store_true",
+            help="do not skip duplicate emails (same Message-ID header), "
+                 "import them with a different Message-ID")
     opts, args = parser.parse_args()
     if opts.list_name is None:
         parser.error("the list name must be given on the command-line.")
@@ -203,9 +218,9 @@ def parse_args():
 def main():
     opts, args = parse_args()
     print 'Importing messages from %s to database...' % opts.list_name
-    store = get_store(KITTYSTORE_URL, debug=False)
+    store = get_store(KITTYSTORE_URL, debug=opts.debug)
     mlist = DummyMailingList(opts.list_name)
-    importer = DbImporter(mlist, store)
+    importer = DbImporter(mlist, store, force_import=opts.duplicates)
     for mbfile in args:
         print "Importing from mbox file %s" % mbfile
         importer.from_mbox(mbfile)

@@ -24,12 +24,8 @@ from types import IntType
 from mimetypes import guess_all_extensions
 
 from email.utils import unquote
-from email.charset import Charset
 
-from mailman.utilities.string import websafe, oneline
-# TODO: don't do translations here, the system locale has no meaning to the
-# web user
-from mailman.core.i18n import _
+from mailman.utilities.string import oneline
 
 # Path characters for common platforms
 pre = re.compile(r'[/\\:]')
@@ -94,7 +90,7 @@ class Scrubber(object):
 
     def scrub(self):
         sanitize = 1 # TODO: implement other options
-        outer = True
+        #outer = True
         # Now walk over all subparts of this message and scrub out various types
         for part_num, part in enumerate(self.msg.walk()):
             ctype = part.get_content_type()
@@ -164,7 +160,7 @@ class Scrubber(object):
                 if payload is None:
                     continue
                 self.save_attachment(part, part_num)
-            outer = False
+            #outer = False
         # We still have to sanitize multipart messages to flat text because
         # Pipermail can't handle messages with list payloads.  This is a kludge;
         # def (n) clever hack ;).

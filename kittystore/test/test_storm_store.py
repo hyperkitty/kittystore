@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=R0904
+# pylint: disable=R0904,C0103
+# - Too many public methods
+# - Invalid name XXX (should match YYY)
 
 import unittest
 import email
-import mailbox
 import datetime
 
 from storm.exceptions import IntegrityError
 from kittystore.storm import get_storm_store
 from kittystore.storm.model import Email
-from kittystore.test import get_test_file
 
 
 class FakeList(object):
+    # pylint: disable=R0903
+    # (Too few public methods)
     def __init__(self, name):
         self.fqdn_listname = name
 

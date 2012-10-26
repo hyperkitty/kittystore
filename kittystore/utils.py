@@ -24,10 +24,9 @@ Author: Aurelien Bompard <abompard@fedoraproject.org>
 """
 
 import email.utils
-import time
 import re
 from email.header import decode_header
-from datetime import datetime, tzinfo, timedelta
+from datetime import timedelta
 from base64 import b32encode
 from hashlib import sha1 # pylint: disable-msg=E0611
 

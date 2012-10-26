@@ -3,6 +3,7 @@
 # hack around a bug in storm: support for timezones is missing
 # https://bugs.launchpad.net/storm/+bug/280708
 #
+# pylint: disable=C,W,R
 
 import datetime
 import re

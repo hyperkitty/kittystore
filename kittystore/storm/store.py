@@ -25,7 +25,7 @@ from kittystore.utils import get_ref_and_thread_id
 
 from zope.interface import implements
 from mailman.interfaces.messages import IMessageStore
-from storm.locals import *
+from storm.locals import Desc
 from storm.expr import And, Or
 
 from .model import List, Email, Attachment
@@ -46,6 +46,7 @@ class StormStore(object):
         :param debug: a boolean to set the debug mode on or off.
         """
         self.db = db
+        self.debug = debug
 
     # IMessageStore methods
 

@@ -15,7 +15,7 @@ license.
 import datetime
 
 from zope.interface import implements
-from storm.locals import *
+from storm.locals import Unicode, RawStr, Int, ReferenceSet
 from mailman.interfaces.messages import IMessage
 
 from kittystore.utils import get_message_id_hash

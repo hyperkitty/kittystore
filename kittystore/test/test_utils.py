@@ -20,8 +20,8 @@ class TestUtils(unittest.TestCase):
             msg = email.message_from_file(email_file, _class=Message)
         store = Mock()
         store.get_message_by_id_from_list.return_value = None
-        ref_id, thread_id = kittystore.utils.get_ref_and_thread_id(
-                msg, "example-list", store)
+        ref_id = kittystore.utils.get_ref_and_thread_id(
+                msg, "example-list", store)[0]
         self.assertEqual(ref_id, "200704070053.46646.other.person@example.com")
 
     def test_wrong_reply_to_format(self):
@@ -29,8 +29,8 @@ class TestUtils(unittest.TestCase):
             msg = email.message_from_file(email_file, _class=Message)
         store = Mock()
         store.get_message_by_id_from_list.return_value = None
-        ref_id, thread_id = kittystore.utils.get_ref_and_thread_id(
-                msg, "example-list", store)
+        ref_id = kittystore.utils.get_ref_and_thread_id(
+                msg, "example-list", store)[0]
         self.assertEqual(ref_id, None)
 
     def test_non_ascii_headers(self):

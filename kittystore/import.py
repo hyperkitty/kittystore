@@ -23,18 +23,12 @@ Import the content of a mbox file into the database.
 Author: Aurelien Bompard <abompard@fedoraproject.org>
 """
 
-import datetime
 import mailbox
 import os
 import re
-import sys
-import time
 import urllib
-from base64 import b32encode
 from dateutil.parser import parse
 from dateutil import tz
-from kitchen.text.converters import to_bytes
-from hashlib import sha1
 from optparse import OptionParser
 from random import randint
 from email.utils import unquote
@@ -92,6 +86,8 @@ def convert_date(date_string):
 
 
 class DummyMailingList(object):
+    # pylint: disable=R0903
+    # (Too few public methods)
     def __init__(self, address):
         self.fqdn_listname = unicode(address)
         self.display_name = None
@@ -135,7 +131,7 @@ class DbImporter(object):
                                          str(randint(0, 100))))
                     print message["Message-Id"]
             try:
-                msg_id_hash = self.store.add_to_list(self.mlist, message)
+                self.store.add_to_list(self.mlist, message)
             except ValueError, e:
                 if len(e.args) != 2:
                     raise # Regular ValueError exception
@@ -153,10 +149,10 @@ class DbImporter(object):
 
     def extract_attachments(self, message):
         """Parse message to search for attachments"""
-        has_attach = False
         message_text = message.as_string()
-        if "-------------- next part --------------" in message_text:
-            has_attach = True
+        #has_attach = False
+        #if "-------------- next part --------------" in message_text:
+        #    has_attach = True
         # Regular attachments
         attachments = ATTACHMENT_RE.findall(message_text)
         for counter, att in enumerate(attachments):

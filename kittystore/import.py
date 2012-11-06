@@ -98,11 +98,12 @@ class DbImporter(object):
     Import email messages into the KittyStore database using its API.
     """
 
-    def __init__(self, mlist, store, force_import=False):
+    def __init__(self, mlist, store, opts):
         self.mlist = mlist
         self.store = store
         self.total_imported = 0
-        self.force_import = force_import
+        self.force_import = opts.duplicates
+        self.no_download = opts.no_download
 
     def from_mbox(self, mbfile):
         """ Upload all the emails in a mbox file into the database using
@@ -180,7 +181,10 @@ class DbImporter(object):
 
     def download_attachment(self, message_id, counter, name, ctype, url):
         #print "Downloading attachment from", url
-        content = urllib.urlopen(url).read()
+        if self.no_download:
+            content = ""
+        else:
+            content = urllib.urlopen(url).read()
         self.store.add_attachment(self.mlist, message_id, counter, name,
                                   ctype, None, content)
 
@@ -194,6 +198,8 @@ def parse_args():
             help="show more output")
     parser.add_option("-d", "--debug", action="store_true",
             help="show a whole lot more of output")
+    parser.add_option("--no-download", action="store_true",
+            help="don't download attachments")
     parser.add_option("-D", "--duplicates", action="store_true",
             help="do not skip duplicate emails (same Message-ID header), "
                  "import them with a different Message-ID")
@@ -216,7 +222,7 @@ def main():
     print 'Importing messages from %s to database...' % opts.list_name
     store = get_store(KITTYSTORE_URL, debug=opts.debug)
     mlist = DummyMailingList(opts.list_name)
-    importer = DbImporter(mlist, store, force_import=opts.duplicates)
+    importer = DbImporter(mlist, store, opts)
     for mbfile in args:
         print "Importing from mbox file %s" % mbfile
         importer.from_mbox(mbfile)

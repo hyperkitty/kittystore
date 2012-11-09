@@ -36,11 +36,6 @@ from email.utils import unquote
 from kittystore import get_store
 
 
-#KITTYSTORE_URL = 'postgres://mm3:mm3@localhost/mm3'
-#KITTYSTORE_URL = 'postgres://kittystore:kittystore@localhost/kittystore'
-KITTYSTORE_URL = 'sqlite:///' + os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "kittystore.sqlite"))
-
-
 PREFIX_RE = re.compile("^\[([\w\s_-]+)\] ")
 
 ATTACHMENT_RE = re.compile(r"""
@@ -50,7 +45,7 @@ Name:[ ]([^\n]+)\n
 Type:[ ]([^\n]+)\n
 Size:[ ]\d+[ ]bytes\n
 Desc:[ ].+?\n
-Url[ ]:[ ]([^\s]+)\s*\n
+U(?:rl|RL)[ ]?:[ ]([^\s]+)\s*\n
 """, re.X | re.S)
 
 EMBEDDED_MSG_RE = re.compile(r"""
@@ -60,7 +55,7 @@ From:[ ].+?\n
 Subject:[ ](.+?)\n
 Date:[ ][^\n]+\n
 Size:[ ]\d+\n
-Url:[ ]([^\s]+)\s*\n
+U(?:rl|RL)[ ]?:[ ]([^\s]+)\s*\n
 """, re.X | re.S)
 
 HTML_ATTACH_RE = re.compile(r"""
@@ -73,8 +68,10 @@ TEXT_NO_CHARSET_RE = re.compile(r"""
 --------------[ ]next[ ]part[ ]--------------\n
 An[ ]embedded[ ]and[ ]charset-unspecified[ ]text[ ]was[ ]scrubbed\.\.\.\n
 Name:[ ]([^\n]+)\n
-Url:[ ]([^\s]+)\s*\n
+U(?:rl|RL)[ ]?:[ ]([^\s]+)\s*\n
 """, re.X | re.S)
+
+TEXTWRAP_RE = re.compile("\n\s*")
 
 
 def convert_date(date_string):
@@ -104,6 +101,7 @@ class DbImporter(object):
         self.total_imported = 0
         self.force_import = opts.duplicates
         self.no_download = opts.no_download
+        self.verbose = opts.verbose
 
     def from_mbox(self, mbfile):
         """ Upload all the emails in a mbox file into the database using
@@ -118,6 +116,9 @@ class DbImporter(object):
         for message in mailbox.mbox(mbfile):
             cnt_read = cnt_read + 1
             self.total_imported += 1
+            # Un-wrap the subject line if necessary
+            message.replace_header("subject",
+                    TEXTWRAP_RE.sub(" ", message["subject"]))
             # Try to find the mailing-list subject prefix in the first email
             if cnt_read == 1:
                 subject_prefix = PREFIX_RE.search(message["subject"])
@@ -125,12 +126,14 @@ class DbImporter(object):
                     self.mlist.display_name = unicode(subject_prefix.group(1))
             if self.force_import:
                 while self.store.is_message_in_list(
-                            self.mlist.fqdn_listname, unquote(message["Message-Id"])):
-                    print "Found duplicate, changing message id from", message["Message-Id"], "to",
+                            self.mlist.fqdn_listname,
+                            unquote(message["Message-Id"])):
+                    oldmsgid = message["Message-Id"]
                     message.replace_header("Message-Id",
                             "<%s-%s>" % (unquote(message["Message-Id"]),
                                          str(randint(0, 100))))
-                    print message["Message-Id"]
+                    print("Found duplicate, changing message id from %s to %s"
+                          % (oldmsgid, message["Message-Id"]))
             try:
                 self.store.add_to_list(self.mlist, message)
             except ValueError, e:
@@ -145,33 +148,40 @@ class DbImporter(object):
             self.store.flush()
             cnt_imported += 1
         self.store.commit()
-        print '  %s email read' % cnt_read
-        print '  %s email added to the database' % cnt_imported
+        if self.verbose:
+            print '  %s email read' % cnt_read
+            print '  %s email added to the database' % cnt_imported
 
     def extract_attachments(self, message):
         """Parse message to search for attachments"""
         message_text = message.as_string()
+        counter = 0
         #has_attach = False
         #if "-------------- next part --------------" in message_text:
         #    has_attach = True
         # Regular attachments
         attachments = ATTACHMENT_RE.findall(message_text)
-        for counter, att in enumerate(attachments):
+        for att in attachments:
+            counter += 1
             self.download_attachment(message["Message-Id"], counter,
                                      att[0], att[1], att[2])
         # Embedded messages
         embedded = EMBEDDED_MSG_RE.findall(message_text)
-        for counter, att in enumerate(embedded):
+        for att in embedded:
+            counter += 1
             self.download_attachment(message["Message-Id"], counter,
                                      att[0], 'message/rfc822', att[1])
         # HTML attachments
         html_attachments = HTML_ATTACH_RE.findall(message_text)
-        for counter, att in enumerate(html_attachments):
+        for att in html_attachments:
+            counter += 1
+            url = att.strip("<>")
             self.download_attachment(message["Message-Id"], counter,
-                                     os.path.basename(att), 'text/html', att)
+                                     os.path.basename(url), 'text/html', url)
         # Text without charset
         text_no_charset = TEXT_NO_CHARSET_RE.findall(message_text)
-        for counter, att in enumerate(text_no_charset):
+        for att in text_no_charset:
+            counter += 1
             self.download_attachment(message["Message-Id"], counter,
                                      att[0], 'text/plain', att[1])
         ## Other, probably inline text/plain
@@ -180,18 +190,24 @@ class DbImporter(object):
         #    print message_text
 
     def download_attachment(self, message_id, counter, name, ctype, url):
-        #print "Downloading attachment from", url
+        url = url.strip(" <>")
+        message_id = message_id.strip(" <>")
         if self.no_download:
+            if self.verbose:
+                print "NOT downloading attachment from %s" % url
             content = ""
         else:
+            if self.verbose:
+                print "Downloading attachment from %s" % url
             content = urllib.urlopen(url).read()
-        self.store.add_attachment(self.mlist, message_id, counter, name,
-                                  ctype, None, content)
+        self.store.add_attachment(self.mlist.fqdn_listname, message_id,
+                                  counter, name, ctype, None, content)
 
 
 def parse_args():
-    usage = "%prog -l list_name mbox_file [mbox_file ...]"
+    usage = "%prog -s store_url -l list_name mbox_file [mbox_file ...]"
     parser = OptionParser(usage=usage)
+    parser.add_option("-s", "--store", help="the URL to the store database")
     parser.add_option("-l", "--list-name", help="the fully-qualified list "
             "name (including the '@' symbol and the domain name")
     parser.add_option("-v", "--verbose", action="store_true",
@@ -204,6 +220,9 @@ def parse_args():
             help="do not skip duplicate emails (same Message-ID header), "
                  "import them with a different Message-ID")
     opts, args = parser.parse_args()
+    if opts.store is None:
+        parser.error("the store URL is missing (eg: "
+                     "sqlite:///kittystore.sqlite)")
     if opts.list_name is None:
         parser.error("the list name must be given on the command-line.")
     if not args:
@@ -220,11 +239,12 @@ def parse_args():
 def main():
     opts, args = parse_args()
     print 'Importing messages from %s to database...' % opts.list_name
-    store = get_store(KITTYSTORE_URL, debug=opts.debug)
+    store = get_store(opts.store, debug=opts.debug)
     mlist = DummyMailingList(opts.list_name)
     importer = DbImporter(mlist, store, opts)
     for mbfile in args:
         print "Importing from mbox file %s" % mbfile
         importer.from_mbox(mbfile)
-        print '  %s emails are stored into the database' \
-              % store.get_list_size(opts.list_name)
+        if opts.verbose:
+            print '  %s emails are stored into the database' \
+                  % store.get_list_size(opts.list_name)

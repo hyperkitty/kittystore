@@ -12,7 +12,8 @@ setup(
     description="A storage engine for GNU Mailman v3 archives",
     long_description=open('README.rst').read(),
     url="https://fedorahosted.org/hyperkitty/",
-    packages=find_packages(exclude=["*.test", "test", "*.test.*"]),
+    #packages=find_packages(exclude=["*.test", "test", "*.test.*"]),
+    packages=find_packages(),
     include_package_data=True,
     install_requires=[
         'mailman',

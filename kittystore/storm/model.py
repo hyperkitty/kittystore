@@ -15,7 +15,8 @@ license.
 import datetime
 
 from zope.interface import implements
-from storm.locals import Unicode, RawStr, Int, ReferenceSet
+from storm.locals import Unicode, RawStr, Int, ReferenceSet, Reference
+from storm.expr import Desc
 from mailman.interfaces.messages import IMessage
 
 from kittystore.utils import get_message_id_hash
@@ -94,6 +95,71 @@ class Attachment(object):
     encoding = Unicode()
     size = Int()
     content = RawStr()
+    # reference to the email
+    email = Reference((list_name, message_id),
+                      (Email.list_name, Email.message_id))
+
+
+class Thread(object):
+    """
+    A thread of archived email, from a mailing-list. It is identified by both
+    the list name and the thread id.
+    """
+
+    __storm_table__ = "thread"
+    __storm_primary__ = "list_name", "thread_id"
+
+    list_name = Unicode()
+    thread_id = Unicode()
+    date_active = DateTime()
+    emails = ReferenceSet(
+                (list_name, thread_id),
+                (Email.list_name, Email.thread_id),
+                order_by=Email.date
+             )
+    _starting_email = None
+
+    def __init__(self, list_name, thread_id, date_active=None):
+        self.list_name = unicode(list_name)
+        self.thread_id = unicode(thread_id)
+        self.date_active = date_active
+
+    @property
+    def starting_email(self):
+        """Return (and cache) the email starting this thread"""
+        if self._starting_email is None:
+            self._starting_email = self.emails.find(Email.in_reply_to == None).one()
+            if self._starting_email is None:
+                # probably a partial import, we don't have the real first email
+                self._starting_email = self.emails.order_by(Email.date).first()
+        return self._starting_email
+
+    @property
+    def last_email(self):
+        return self.emails.order_by(Desc(Email.date)).first()
+
+    @property
+    def participants(self):
+        """Set of email senders in this thread"""
+        p = []
+        for sender in self.emails.find().config(distinct=True
+                        ).values(Email.sender_name):
+            p.append(sender)
+        return p
+
+    @property
+    def email_ids(self):
+        return list(self.emails.find().values(Email.message_id))
+
+    def __len__(self):
+        return self.emails.count()
+
+    def __storm_pre_flush__(self):
+        """Auto-set the active date from the last email in thread"""
+        if self.date_active is not None:
+            return
+        self.date_active = list(self.emails.order_by(Desc(Email.date)
+                                ).config(limit=1).values(Email.date))[0]
 
 
 # References
@@ -103,4 +169,7 @@ Email.attachments = ReferenceSet(
          Email.message_id),
         (Attachment.list_name,
          Attachment.message_id),
+        order_by=Attachment.counter
         )
+Email.thread = Reference((Email.list_name, Email.thread_id),
+                         (Thread.list_name, Thread.thread_id))

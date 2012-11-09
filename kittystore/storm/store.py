@@ -28,7 +28,7 @@ from mailman.interfaces.messages import IMessageStore
 from storm.locals import Desc
 from storm.expr import And, Or
 
-from .model import List, Email, Attachment
+from .model import List, Email, Attachment, Thread
 
 
 class StormStore(object):
@@ -99,8 +99,10 @@ class StormStore(object):
             return email.message_id_hash
 
         # Find thread id
+        new_thread = False
         ref, thread_id = get_ref_and_thread_id(message, list_name, self)
         if thread_id is None:
+            new_thread = True
             # make up the thread_id if not found
             thread_id = email.message_id_hash
         email.thread_id = thread_id
@@ -108,8 +110,8 @@ class StormStore(object):
 
         from_name, from_email = parseaddr(message['From'])
         from_name = header_to_unicode(from_name)
-        email.sender_name = from_name
-        email.sender_email = unicode(from_email)
+        email.sender_name = from_name.strip()
+        email.sender_email = unicode(from_email).strip()
         email.subject = header_to_unicode(message.get('Subject'))
         email.full = message.as_string() # Before scrubbing
         scrubber = Scrubber(list_name, message, self)
@@ -124,6 +126,16 @@ class StormStore(object):
         #        'reminder' in message.get('Subject', '').lower()):
         #    # i18n!
         #    category = 'Agenda'
+
+        if new_thread:
+            thread = Thread(list_name, thread_id, email.date)
+        else:
+            thread = self.db.find(Thread, And(
+                            Thread.list_name == list_name,
+                            Thread.thread_id == thread_id,
+                            )).one()
+        thread.date_active = email.date
+        self.db.add(thread)
 
         self.db.add(email)
         self.flush()
@@ -152,6 +164,13 @@ class StormStore(object):
         if msg is None:
             raise MessageNotFound(list_name, message_id)
         self.db.delete(msg)
+        # Remove the thread if necessary
+        thread = self.db.find(Thread, And(
+                        Thread.list_name == msg.list_name,
+                        Thread.thread_id == msg.thread_id,
+                        )).one()
+        if len(thread.emails) == 0:
+            self.db.delete(thread)
         self.flush()
 
     def get_list_size(self, list_name):
@@ -297,9 +316,8 @@ class StormStore(object):
         """
         return list(self.db.find(List.name).order_by(List.name))
 
-    def get_messages(self, list_name, start, end, threads=False):
-        """ Return all emails between two given dates, optionnaly selecting
-        only the thread-starting ones.
+    def get_messages(self, list_name, start, end):
+        """ Return all emails between two given dates.
 
         :param list_name: The name of the mailing list in which these emails
             should be searched.
@@ -309,20 +327,29 @@ class StormStore(object):
             the interval to query.
         :returns: The list of messages.
         """
-        conditions = [
-                Email.list_name == unicode(list_name),
-                Email.date >= start,
-                Email.date < end,
-                ]
-        if threads:
-            # Beginning of thread == No 'References' header
-            conditions.append(Email.in_reply_to == None)
-        emails = self.db.find(Email, And(*conditions)
-                ).order_by(Desc(Email.date))
+        emails = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.date >= start,
+                    Email.date < end,
+                )).order_by(Desc(Email.date))
         return list(emails)
 
+    def get_thread(self, list_name, thread_id):
+        """ Return the specified thread.
+
+        :param list_name: The name of the mailing list in which this email
+            should be searched.
+        :param thread_id: The thread_id as used in the web-pages. Used here to
+            uniquely identify the thread in the database.
+        :returns: The thread object.
+        """
+        return self.db.find(Thread, And(
+                    Thread.list_name == unicode(list_name),
+                    Thread.thread_id == unicode(thread_id)
+                    )).one()
+
     def get_threads(self, list_name, start, end):
-        """ Return all the thread-starting emails between two given dates.
+        """ Return all the threads active between two given dates.
 
         :param list_name: The name of the mailing list in which this email
             should be searched.
@@ -332,7 +359,12 @@ class StormStore(object):
             the interval to query.
         :returns: The list of thread-starting messages.
         """
-        return self.get_messages(list_name, start, end, threads=True)
+        threads = self.db.find(Thread, And(
+                    Thread.list_name == unicode(list_name),
+                    Thread.date_active >= start,
+                    Thread.date_active < end,
+                )).order_by(Desc(Thread.date_active))
+        return list(threads)
 
     def get_start_date(self, list_name):
         """ Get the date of the first archived email in a list.
@@ -348,52 +380,6 @@ class StormStore(object):
             return date.one()
         else:
             return None
-
-    def get_messages_in_thread(self, list_name, thread_id):
-        """ Return all the emails present in a thread. This thread
-        is uniquely identified by its thread_id.
-
-        :param list_name: The name of the mailing list in which this email
-            should be searched.
-        :param thread_id: The thread_id as used in the web-pages. Used here to
-            uniquely identify the thread in the database.
-        :returns: The list of messages in the thread.
-        """
-        emails = self.db.find(Email, And(
-                    Email.list_name == unicode(list_name),
-                    Email.thread_id == unicode(thread_id),
-                )).order_by(Email.date)
-        return list(emails)
-
-    def get_thread_length(self, list_name, thread_id):
-        """ Return the number of email present in a thread. This thread
-        is uniquely identified by its thread_id.
-
-        :param list_name: The name of the mailing list to query.
-        :param thread_id: The unique identifier of the thread as specified in
-            the database.
-        :returns: The number of messages in the thread.
-        :rtype: int
-        """
-        return self.db.find(Email, And(
-                    Email.list_name == unicode(list_name),
-                    Email.thread_id == unicode(thread_id),
-                )).count()
-
-    def get_thread_participants(self, list_name, thread_id):
-        """ Return the list of participant in a thread. This thread
-        is uniquely identified by its thread_id.
-
-        :param list_name: The name of the mailing list to query.
-        :param thread_id: The unique identifier of the thread as specified in
-            the database.
-        :return: The list of message sender names in the thread.
-        """
-        participants = self.db.find(Email.sender_name, And(
-                    Email.list_name == unicode(list_name),
-                    Email.thread_id == unicode(thread_id),
-                )).config(distinct=True)
-        return list(participants)
 
     def get_thread_neighbors(self, list_name, thread_id):
         """ Return the previous and the next threads of the specified thread,

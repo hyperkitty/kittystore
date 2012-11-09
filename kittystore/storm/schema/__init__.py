@@ -9,6 +9,12 @@ CREATES = {
             display_name TEXT,
             PRIMARY KEY (name)
         );""", """
+        CREATE TABLE "thread" (
+            list_name VARCHAR(255) NOT NULL,
+            thread_id VARCHAR(255) NOT NULL,
+            date_active DATETIME NOT NULL,
+            PRIMARY KEY (list_name, thread_id)
+        );""", """
         CREATE TABLE "email" (
             list_name VARCHAR(255) NOT NULL,
             message_id VARCHAR(255) NOT NULL,
@@ -22,7 +28,9 @@ CREATES = {
             thread_id VARCHAR(255) NOT NULL,
             "full" BLOB NOT NULL,
             archived_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (list_name, message_id)
+            PRIMARY KEY (list_name, message_id),
+            FOREIGN KEY (list_name, thread_id)
+                REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
         );""", """
         CREATE TABLE "attachment" (
             list_name VARCHAR(255) NOT NULL,
@@ -33,13 +41,16 @@ CREATES = {
             name VARCHAR(255),
             size INTEGER NOT NULL,
             content BLOB NOT NULL,
-            PRIMARY KEY (list_name, message_id, counter)
+            PRIMARY KEY (list_name, message_id, counter),
+            FOREIGN KEY (list_name, message_id)
+                REFERENCES email(list_name, message_id) ON DELETE CASCADE
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
         'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" (list_name, message_id_hash);',
         'CREATE INDEX "ix_email_subject" ON "email" (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
+        'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
         ],
 
     "postgres": [ """
@@ -47,6 +58,12 @@ CREATES = {
             name VARCHAR(255) NOT NULL,
             display_name TEXT,
             PRIMARY KEY (name)
+        );""", """
+        CREATE TABLE "thread" (
+            list_name VARCHAR(255) NOT NULL,
+            thread_id VARCHAR(255) NOT NULL,
+            date_active TIMESTAMP WITH TIME ZONE NOT NULL,
+            PRIMARY KEY (list_name, thread_id)
         );""", """
         CREATE TABLE "email" (
             list_name VARCHAR(255) NOT NULL,
@@ -61,7 +78,9 @@ CREATES = {
             thread_id VARCHAR(255) NOT NULL,
             "full" BYTEA NOT NULL,
             archived_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (list_name, message_id)
+            PRIMARY KEY (list_name, message_id),
+            FOREIGN KEY (list_name, thread_id)
+                REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
         );""", """
         CREATE TABLE "attachment" (
             list_name VARCHAR(255) NOT NULL,
@@ -72,13 +91,16 @@ CREATES = {
             name VARCHAR(255),
             size INTEGER NOT NULL,
             content BYTEA NOT NULL,
-            PRIMARY KEY (list_name, message_id, counter)
+            PRIMARY KEY (list_name, message_id, counter),
+            FOREIGN KEY (list_name, message_id)
+                REFERENCES email(list_name, message_id) ON DELETE CASCADE
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" USING btree (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" USING btree (date);',
         'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" USING btree (list_name, message_id_hash);',
         'CREATE INDEX "ix_email_subject" ON "email" USING btree (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" USING btree (thread_id);',
+        'CREATE INDEX "ix_thread_date_active" ON "thread" USING btree (date_active);',
         ],
 
 }

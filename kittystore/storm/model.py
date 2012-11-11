@@ -143,13 +143,13 @@ class Thread(object):
         """Set of email senders in this thread"""
         p = []
         for sender in self.emails.find().config(distinct=True
-                        ).values(Email.sender_name):
+                        ).order_by().values(Email.sender_name):
             p.append(sender)
         return p
 
     @property
     def email_ids(self):
-        return list(self.emails.find().values(Email.message_id))
+        return list(self.emails.find().order_by().values(Email.message_id))
 
     def __len__(self):
         return self.emails.count()

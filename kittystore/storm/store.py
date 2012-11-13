@@ -439,6 +439,13 @@ class StormStore(object):
 
     def add_attachment(self, mlist, msg_id, counter, name, content_type,
                        encoding, content):
+        existing = self.db.find(Attachment.message_id, And(
+                    Attachment.list_name == unicode(mlist),
+                    Attachment.message_id == unicode(msg_id),
+                    Attachment.counter == counter,
+                )).count()
+        if existing:
+            return
         attachment = Attachment()
         attachment.list_name = unicode(mlist)
         attachment.message_id = unicode(msg_id)

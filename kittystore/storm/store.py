@@ -17,16 +17,17 @@ from __future__ import absolute_import
 import datetime
 from email.utils import unquote
 
+from zope.interface import implements
+from mailman.interfaces.messages import IMessageStore
+from storm.locals import Desc
+from storm.expr import And, Or
+from dateutil.tz import tzutc
+
 from kittystore import MessageNotFound
 from kittystore.utils import parseaddr, parsedate
 from kittystore.utils import header_to_unicode
 from kittystore.scrub import Scrubber
 from kittystore.utils import get_ref_and_thread_id
-
-from zope.interface import implements
-from mailman.interfaces.messages import IMessageStore
-from storm.locals import Desc
-from storm.expr import And, Or
 
 from .model import List, Email, Attachment, Thread
 
@@ -116,10 +117,18 @@ class StormStore(object):
         email.full = message.as_string() # Before scrubbing
         scrubber = Scrubber(list_name, message, self)
         email.content = scrubber.scrub() # warning: modifies the msg in-place
-        email.date = parsedate(message.get("Date"))
-        if email.date is None:
+        msg_date = parsedate(message.get("Date"))
+        if msg_date is None:
             # Absent or unparseable date
             email.date = datetime.datetime.now()
+        email.date = msg_date.astimezone(tzutc()).replace(tzinfo=None)
+        utcoffset = msg_date.utcoffset()
+        if utcoffset is None:
+            email.timezone = 0
+        else:
+            # in minutes
+            email.timezone = ( (utcoffset.days * 24 * 60 * 60)
+                               + utcoffset.seconds) / 60
 
         #category = 'Question' # TODO: enum + i18n ?
         #if ('agenda' in message.get('Subject', '').lower() or

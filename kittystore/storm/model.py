@@ -68,6 +68,7 @@ class Email(object):
     subject = Unicode()
     content = Unicode()
     date = DateTime()
+    timezone = Int()
     in_reply_to = Unicode()
     message_id_hash = Unicode()
     thread_id = Unicode()

@@ -28,6 +28,7 @@ SQL = {
         );""",
         'CREATE INDEX "ix_thread_date_active" ON "thread" USING btree (date_active);',
         ],
+    "mysql": [],
     }
 
 

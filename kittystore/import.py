@@ -117,8 +117,9 @@ class DbImporter(object):
             cnt_read = cnt_read + 1
             self.total_imported += 1
             # Un-wrap the subject line if necessary
-            message.replace_header("subject",
-                    TEXTWRAP_RE.sub(" ", message["subject"]))
+            if message["subject"]:
+                message.replace_header("subject",
+                        TEXTWRAP_RE.sub(" ", message["subject"]))
             # Try to find the mailing-list subject prefix in the first email
             if cnt_read == 1:
                 subject_prefix = PREFIX_RE.search(message["subject"])

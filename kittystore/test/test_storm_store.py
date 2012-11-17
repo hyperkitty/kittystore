@@ -8,8 +8,12 @@ import email
 import datetime
 
 from storm.exceptions import IntegrityError
+from mailman.email.message import Message
+
 from kittystore.storm import get_storm_store
-from kittystore.storm.model import Email
+from kittystore.storm.model import Email, Attachment
+
+from kittystore.test import get_test_file
 
 
 class FakeList(object):
@@ -17,23 +21,24 @@ class FakeList(object):
     # (Too few public methods)
     def __init__(self, name):
         self.fqdn_listname = name
+        self.display_name = None
 
 
-class TestSAStore(unittest.TestCase):
+class TestStormStore(unittest.TestCase):
 
     def setUp(self):
         self.store = get_storm_store("sqlite:")
 
-    #def tearDown(self):
-    #    self.store.close()
+    def tearDown(self):
+        self.store.close()
 
     def test_no_message_id(self):
-        msg = email.message.Message()
+        msg = Message()
         self.assertRaises(ValueError, self.store.add_to_list,
                           FakeList("example-list"), msg)
 
     def test_no_date(self):
-        msg = email.message.Message()
+        msg = Message()
         msg["From"] = "dummy@example.com"
         msg["Message-ID"] = "<dummy>"
         msg.set_payload("Dummy message")
@@ -44,6 +49,37 @@ class TestSAStore(unittest.TestCase):
             self.fail(e)
         stored_msg = self.store.db.find(Email).one()
         self.assertTrue(stored_msg.date >= now)
+
+    def test_date_naive(self):
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg["Date"] = "Fri, 02 Nov 2012 16:07:54"
+        msg.set_payload("Dummy message")
+        try:
+            self.store.add_to_list(FakeList("example-list"), msg)
+        except IntegrityError, e:
+            self.fail(e)
+        stored_msg = self.store.db.find(Email).one()
+        expected = datetime.datetime(2012, 11, 2, 16, 7, 54)
+        self.assertEqual(stored_msg.date, expected)
+
+    def test_attachment_insert_order(self):
+        """Attachments must not be inserted in the DB before the email"""
+        # Re-activate foreign key support in sqlite
+        self.store.db._connection._raw_connection.isolation_level = 'IMMEDIATE'
+        self.store.db.execute("PRAGMA foreign_keys = ON")
+        self.store.db._connection._raw_connection.execute("PRAGMA foreign_keys = ON")
+        #print "*"*10, list(self.store.db.execute("PRAGMA foreign_keys"))
+        #self.store = get_storm_store("postgres://kittystore:kittystore@localhost/kittystore_test")
+        with open(get_test_file("attachment-1.txt")) as email_file:
+            msg = email.message_from_file(email_file, _class=Message)
+        try:
+            self.store.add_to_list(FakeList("example-list"), msg)
+        except IntegrityError, e:
+            self.fail(e)
+        self.assertEqual(self.store.db.find(Email).count(), 1)
+        self.assertEqual(self.store.db.find(Attachment).count(), 1)
 
     #def test_non_ascii_payload(self):
     #    """add_to_list must handle non-ascii messages"""

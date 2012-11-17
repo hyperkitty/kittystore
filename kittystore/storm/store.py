@@ -115,8 +115,6 @@ class StormStore(object):
         email.sender_email = unicode(from_email).strip()
         email.subject = header_to_unicode(message.get('Subject'))
         email.full = message.as_string() # Before scrubbing
-        scrubber = Scrubber(list_name, message, self)
-        email.content = scrubber.scrub() # warning: modifies the msg in-place
         msg_date = parsedate(message.get("Date"))
         if msg_date is None:
             # Absent or unparseable date
@@ -131,6 +129,10 @@ class StormStore(object):
             # in minutes
             email.timezone = ( (utcoffset.days * 24 * 60 * 60)
                                + utcoffset.seconds) / 60
+
+        scrubber = Scrubber(list_name, message)
+        # warning: scrubbing modifies the msg in-place
+        email.content, attachments = scrubber.scrub()
 
         #category = 'Question' # TODO: enum + i18n ?
         #if ('agenda' in message.get('Subject', '').lower() or
@@ -150,6 +152,8 @@ class StormStore(object):
 
         self.db.add(email)
         self.flush()
+        for attachment in attachments:
+            self.add_attachment(list_name, msg_id, *attachment)
         return email.message_id_hash
 
     def delete_message(self, message_id):

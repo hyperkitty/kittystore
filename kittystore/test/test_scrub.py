@@ -18,15 +18,13 @@ class TestScrubber(unittest.TestCase):
     def test_attachment_1(self):
         with open(get_test_file("attachment-1.txt")) as email_file:
             msg = email.message_from_file(email_file, _class=Message)
-        store = Mock()
-        scrubber = Scrubber("testlist@example.com", msg, store)
-        contents = scrubber.scrub()
-        self.assertEqual(store.add_attachment.call_count, 1)
-        store.add_attachment.assert_called_with(
-                'testlist@example.com', '505E5185.5040208@libero.it', 2,
-                'puntogil.vcf', 'text/x-vcard', "utf-8",
+        scrubber = Scrubber("testlist@example.com", msg)
+        contents, attachments = scrubber.scrub()
+        self.assertEqual(len(attachments), 1)
+        self.assertEqual(attachments[0], (
+                2, 'puntogil.vcf', 'text/x-vcard', "utf-8",
                 'begin:vcard\r\nfn:gil\r\nn:;gil\r\nversion:2.1\r\n'
-                'end:vcard\r\n\r\n')
+                'end:vcard\r\n\r\n'))
         self.assertEqual(contents,
                 "This is a test message.\r\n\r\n"
                 "\n-- \ndevel mailing list\ndevel@lists.fedoraproject.org\n"
@@ -36,18 +34,16 @@ class TestScrubber(unittest.TestCase):
     def test_attachment_2(self):
         with open(get_test_file("attachment-2.txt")) as email_file:
             msg = email.message_from_file(email_file, _class=Message)
-        store = Mock()
-        scrubber = Scrubber("testlist@example.com", msg, store)
-        contents = scrubber.scrub()
-        self.assertEqual(store.add_attachment.call_count, 1)
-        store.add_attachment.assert_called_with(
-                'testlist@example.com', '50619B7A.2030404@thelounge.net', 3,
-                'signature.asc', 'application/pgp-signature', None,
+        scrubber = Scrubber("testlist@example.com", msg)
+        contents, attachments = scrubber.scrub()
+        self.assertEqual(len(attachments), 1)
+        self.assertEqual(attachments[0], (
+                3, 'signature.asc', 'application/pgp-signature', None,
                 '-----BEGIN PGP SIGNATURE-----\r\nVersion: GnuPG v1.4.12 '
                 '(GNU/Linux)\r\nComment: Using GnuPG with Mozilla - '
                 'http://www.enigmail.net/\r\n\r\niEYEARECAAYFAlBhm3oACgkQhmBj'
                 'z394AnmMnQCcC+6tWcqE1dPQmIdRbLXgKGVp\r\nEeUAn2OqtaXaXaQV7rx+'
-                'SmOldmSzcFw4\r\n=OEJv\r\n-----END PGP SIGNATURE-----\r\n')
+                'SmOldmSzcFw4\r\n=OEJv\r\n-----END PGP SIGNATURE-----\r\n'))
         self.assertEqual(contents,
                 u"This is a test message\r\nNon-ascii chars: Hofm\xfchlgasse\r\n"
                 u"\n-- \ndevel mailing list\ndevel@lists.fedoraproject.org\n"
@@ -57,37 +53,30 @@ class TestScrubber(unittest.TestCase):
     def test_attachment_3(self):
         with open(get_test_file("attachment-3.txt")) as email_file:
             msg = email.message_from_file(email_file, _class=Message)
-        store = Mock()
-        scrubber = Scrubber("testlist@example.com", msg, store)
-        contents = scrubber.scrub()
-        self.assertEqual(store.add_attachment.call_count, 2)
-        args_1, args_2 = store.add_attachment.call_args_list
+        scrubber = Scrubber("testlist@example.com", msg)
+        contents, attachments = scrubber.scrub()
+        self.assertEqual(len(attachments), 2)
         # HTML part
-        self.assertEqual(args_1[0][0:6], ("testlist@example.com",
-                "CACec3Lup8apbhUMcm_Ktn1dPxx4eWr2y1RV7ZSYhy0tzmjSrgQ@mail.gmail.com",
-                3, "attachment.html", "text/html", "iso-8859-1"))
-        self.assertEqual(len(args_1[0][6]), 3134)
+        self.assertEqual(attachments[0][0:4],
+                (3, "attachment.html", "text/html", "iso-8859-1"))
+        self.assertEqual(len(attachments[0][4]), 3134)
         # Image attachment
-        self.assertEqual(args_2[0][0:6], ("testlist@example.com",
-                "CACec3Lup8apbhUMcm_Ktn1dPxx4eWr2y1RV7ZSYhy0tzmjSrgQ@mail.gmail.com",
-                4, "GeoffreyRoucourt.jpg", "image/jpeg", None))
-        self.assertEqual(len(args_2[0][6]), 282180)
+        self.assertEqual(attachments[1][0:4],
+                (4, "GeoffreyRoucourt.jpg", "image/jpeg", None))
+        self.assertEqual(len(attachments[1][4]), 282180)
         # Scrubbed content
         self.assertEqual(contents, u"This is a test message\r\n")
 
     def test_html_email_1(self):
         with open(get_test_file("html-email-1.txt")) as email_file:
             msg = email.message_from_file(email_file, _class=Message)
-        store = Mock()
-        scrubber = Scrubber("testlist@example.com", msg, store)
-        contents = scrubber.scrub()
-        self.assertEqual(store.add_attachment.call_count, 1)
-        args = store.add_attachment.call_args[0]
+        scrubber = Scrubber("testlist@example.com", msg)
+        contents, attachments = scrubber.scrub()
+        self.assertEqual(len(attachments), 1)
         # HTML part
-        self.assertEqual(args[0:6], ("testlist@example.com",
-                "016001cd9b3b$b71efed0$255cfc70$@fr",
-                2, "attachment.html", "text/html", "iso-8859-1"))
-        self.assertEqual(len(args[6]), 2723)
+        self.assertEqual(attachments[0][0:4],
+                (2, "attachment.html", "text/html", "iso-8859-1"))
+        self.assertEqual(len(attachments[0][4]), 2723)
         # Scrubbed content
         self.assertEqual(contents,
                 u"This is a test message\r\n"
@@ -98,9 +87,8 @@ class TestScrubber(unittest.TestCase):
         for enc in ["utf8", "iso8859"]:
             with open(get_test_file("payload-%s.txt" % enc)) as email_file:
                 msg = email.message_from_file(email_file, _class=Message)
-            store = Mock()
-            scrubber = Scrubber("testlist@example.com", msg, store)
-            contents = scrubber.scrub()
+            scrubber = Scrubber("testlist@example.com", msg)
+            contents, attachments = scrubber.scrub()
             self.assertTrue(isinstance(contents, unicode))
             self.assertEqual(contents, u'This message contains non-ascii '
                     u'characters:\n\xe9 \xe8 \xe7 \xe0 \xee \xef \xeb \u20ac\n')
@@ -108,22 +96,18 @@ class TestScrubber(unittest.TestCase):
     def test_attachment_4(self):
         with open(get_test_file("attachment-4.txt")) as email_file:
             msg = email.message_from_file(email_file, _class=Message)
-        store = Mock()
-        scrubber = Scrubber("testlist@example.com", msg, store)
-        contents = scrubber.scrub()
-        self.assertEqual(store.add_attachment.call_count, 2)
-        args_1, args_2 = store.add_attachment.call_args_list
+        scrubber = Scrubber("testlist@example.com", msg)
+        contents, attachments = scrubber.scrub()
+        self.assertEqual(len(attachments), 2)
         # HTML part
-        self.assertEqual(args_1[0][0:6], ("testlist@example.com",
-                "CAHmoxtXXb3un1C=ZvYNtz-eYghm-GH925gDVHyjhvL2YEsZ-Yw@mail.gmail.com",
-                3, "attachment.html", "text/html", "iso-8859-1"))
-        self.assertEqual(len(args_1[0][6]), 114)
+        self.assertEqual(attachments[0][0:4],
+                (3, "attachment.html", "text/html", "iso-8859-1"))
+        self.assertEqual(len(attachments[0][4]), 114)
         # text attachment
-        self.assertEqual(args_2[0][0:6], ("testlist@example.com",
-                "CAHmoxtXXb3un1C=ZvYNtz-eYghm-GH925gDVHyjhvL2YEsZ-Yw@mail.gmail.com",
-                #4, u"todo-déjeuner.txt", "text/plain", "utf-8"))
-                4, u"todo-djeuner.txt", "text/plain", "utf-8"))
-        self.assertEqual(len(args_2[0][6]), 112)
+        self.assertEqual(attachments[1][0:4],
+                #(4, u"todo-déjeuner.txt", "text/plain", "utf-8"))
+                (4, u"todo-djeuner.txt", "text/plain", "utf-8"))
+        self.assertEqual(len(attachments[1][4]), 112)
         # Scrubbed content
         self.assertEqual(contents, u'This is a test, HTML message with '
                 u'accented letters : \xe9 \xe8 \xe7 \xe0.\r\nAnd an '
@@ -132,17 +116,14 @@ class TestScrubber(unittest.TestCase):
     def test_attachment_5(self):
         with open(get_test_file("attachment-5.txt")) as email_file:
             msg = email.message_from_file(email_file, _class=Message)
-        store = Mock()
-        scrubber = Scrubber("testlist@example.com", msg, store)
-        contents = scrubber.scrub()
-        self.assertEqual(store.add_attachment.call_count, 1)
-        args = store.add_attachment.call_args_list[0][0]
+        scrubber = Scrubber("testlist@example.com", msg)
+        contents, attachments = scrubber.scrub()
+        self.assertEqual(len(attachments), 1)
         # text attachment
-        self.assertEqual(args[0:6],
-                ("testlist@example.com", "506C3344.7020501@free.fr",
-                #2, u"todo-déjeuner.txt", "text/plain", "utf-8"))
-                2, u"attachment.bin", "text/plain", "utf-8"))
-        self.assertEqual(len(args[6]), 112)
+        self.assertEqual(attachments[0][0:4],
+                #(2, u"todo-déjeuner.txt", "text/plain", "utf-8"))
+                (2, u"attachment.bin", "text/plain", "utf-8"))
+        self.assertEqual(len(attachments[0][4]), 112)
         # Scrubbed content
         self.assertEqual(contents, u'This is a test, HTML message with '
                 u'accented letters : \xe9 \xe8 \xe7 \xe0.\r\nAnd an '

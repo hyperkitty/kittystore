@@ -39,8 +39,8 @@ def create_store(url, debug):
     if debug:
         storm.tracer.debug(True, stream=sys.stdout)
     database = create_database(url)
-    store = Store(database)
     dbtype = url.partition(":")[0]
+    store = Store(database)
     dbschema = Schema(schema.CREATES[dbtype], [], [], schema)
     dbschema.upgrade(store)
     return StormStore(store, debug)

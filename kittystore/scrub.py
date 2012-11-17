@@ -77,18 +77,18 @@ def get_charset(message, default="ascii", guess=False):
 
 class Scrubber(object):
     """
-    Scrubs a single message, extracts attachments, and store them in the
-    database.
+    Scrubs a single message, extracts attachments, and return the text and the
+    attachments.
     See also: http://ginstrom.com/scribbles/2007/11/19/parsing-multilingual-email-with-python/
     """
 
-    def __init__(self, mlist, msg, store):
+    def __init__(self, mlist, msg):
         self.mlist = mlist
         self.msg = msg
-        self.store = store
 
 
     def scrub(self):
+        attachments = []
         sanitize = 1 # TODO: implement other options
         #outer = True
         # Now walk over all subparts of this message and scrub out various types
@@ -99,7 +99,7 @@ class Scrubber(object):
                 disposition = part.get('content-disposition')
                 if disposition and disposition.strip().startswith("attachment"):
                     # part is attached
-                    self.save_attachment(part, part_num)
+                    attachments.append(self.parse_attachment(part, part_num))
                     part.set_payload('')
             elif ctype == 'text/html' and isinstance(sanitize, IntType):
 #            if sanitize == 0:
@@ -117,7 +117,7 @@ class Scrubber(object):
 #                # Pull it out as an attachment but leave it unescaped.  This
 #                # is dangerous, but perhaps useful for heavily moderated
 #                # lists.
-#                self.save_attachment(part, part_num, filter_html=False)
+#                attachments.append(self.parse_attachment(part, part_num, filter_html=False))
 #                replace_payload_by_text(part, _("""\
 #An HTML attachment was scrubbed...
 #URL: %(url)s
@@ -140,11 +140,11 @@ class Scrubber(object):
                     ## We're replacing the payload with the decoded payload so this
                     ## will just get in the way.
                     #del part['content-transfer-encoding']
-                    self.save_attachment(part, part_num, filter_html=False)
+                    attachments.append(self.parse_attachment(part, part_num, filter_html=False))
                     part.set_payload('')
             elif ctype == 'message/rfc822':
                 # This part contains a submessage, so it too needs scrubbing
-                self.save_attachment(part, part_num)
+                attachments.append(self.parse_attachment(part, part_num))
                 part.set_payload('')
             # If the message isn't a multipart, then we'll strip it out as an
             # attachment that would have to be separately downloaded.
@@ -159,7 +159,7 @@ class Scrubber(object):
                 # ignore the part.
                 if payload is None:
                     continue
-                self.save_attachment(part, part_num)
+                attachments.append(self.parse_attachment(part, part_num))
             #outer = False
         # We still have to sanitize multipart messages to flat text because
         # Pipermail can't handle messages with list payloads.  This is a kludge;
@@ -214,10 +214,10 @@ class Scrubber(object):
         else:
             text = self.msg.get_payload(decode=True)
             text = text.decode(get_charset(self.msg, guess=True), "replace")
-        return text
+        return (text, attachments)
 
 
-    def save_attachment(self, part, counter, filter_html=True):
+    def parse_attachment(self, part, counter, filter_html=True):
         # Store name, content-type and size
         # Figure out the attachment type and get the decoded data
         decodedpayload = part.get_payload(decode=True)
@@ -281,7 +281,4 @@ class Scrubber(object):
             ## BAW: I'm sure we can eventually do better than this. :(
             #decodedpayload = websafe(str(submsg))
             decodedpayload = str(submsg)
-        msg_id = unquote(self.msg['Message-Id'])
-        self.store.add_attachment(
-                self.mlist, msg_id, counter, filebase+ext,
-                ctype, charset, decodedpayload)
+        return (counter, filebase+ext, ctype, charset, decodedpayload)

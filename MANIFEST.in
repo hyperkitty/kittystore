@@ -1,0 +1,2 @@
+include AUTHORS.txt COPYING.txt pylintrc distribute_setup.py
+include get_mbox.py

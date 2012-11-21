@@ -1,12 +1,14 @@
 KittyStore
-=========
+==========
 
 :Author: Pierre-Yves Chibon <pingou@pingoured.fr>
 :Author: Aurélien Bompard <abompard@fedoraproject.org>
 
 
-Provides an interface for different storage solution for mailman3
-and expose and API to access the information.
+KittyStore is the archiving library for `HyperKitty`_, the Mailman 3 archiver. It provides an interface to different storage systems. Currenty only the `Storm ORM`_ system is supported.
+
+.. _HyperKitty: https://fedorahosted.org/hyperkitty
+.. _Storm ORM: http://storm.canonical.com
 
 
 Get this project:

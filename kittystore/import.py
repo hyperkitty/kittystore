@@ -90,6 +90,9 @@ class DummyMailingList(object):
         self.display_name = None
 
 
+class DownloadError(Exception): pass
+
+
 class DbImporter(object):
     """
     Import email messages into the KittyStore database using its API.
@@ -135,6 +138,14 @@ class DbImporter(object):
                                          str(randint(0, 100))))
                     print("Found duplicate, changing message id from %s to %s"
                           % (oldmsgid, message["Message-Id"]))
+            # Parse message to search for attachments
+            try:
+                attachments = self.extract_attachments(message)
+            except DownloadError, e:
+                print ("Could not download one of the attachments! "
+                       "Skipping this message. Error: %s" % e.args[0])
+                continue
+            # Now insert the message
             try:
                 self.store.add_to_list(self.mlist, message)
             except ValueError, e:
@@ -143,8 +154,12 @@ class DbImporter(object):
                 print "%s from %s about %s" % (e.args[0],
                         e.args[1].get("From"), e.args[1].get("Subject"))
                 continue
-            # Parse message to search for attachments
-            self.extract_attachments(message)
+            # And insert the attachments
+            for att, counter in enumerate(attachments):
+                self.store.add_attachment(
+                        self.mlist.fqdn_listname,
+                        message["Message-Id"].strip(" <>"),
+                        index, att[0], att[1], None, att[2])
 
             self.store.flush()
             cnt_imported += 1
@@ -155,44 +170,40 @@ class DbImporter(object):
 
     def extract_attachments(self, message):
         """Parse message to search for attachments"""
+        all_attachments = []
         message_text = message.as_string()
-        counter = 0
         #has_attach = False
         #if "-------------- next part --------------" in message_text:
         #    has_attach = True
         # Regular attachments
         attachments = ATTACHMENT_RE.findall(message_text)
         for att in attachments:
-            counter += 1
-            self.download_attachment(message["Message-Id"], counter,
-                                     att[0], att[1], att[2])
+            all_attachments.append( (att[0], att[1],
+                    self.download_attachment(att[2])) )
         # Embedded messages
         embedded = EMBEDDED_MSG_RE.findall(message_text)
         for att in embedded:
-            counter += 1
-            self.download_attachment(message["Message-Id"], counter,
-                                     att[0], 'message/rfc822', att[1])
+            all_attachments.append( (att[0], 'message/rfc822',
+                    self.download_attachment(att[1])) )
         # HTML attachments
         html_attachments = HTML_ATTACH_RE.findall(message_text)
         for att in html_attachments:
-            counter += 1
             url = att.strip("<>")
-            self.download_attachment(message["Message-Id"], counter,
-                                     os.path.basename(url), 'text/html', url)
+            all_attachments.append( (os.path.basename(url), 'text/html',
+                    self.download_attachment(url)) )
         # Text without charset
         text_no_charset = TEXT_NO_CHARSET_RE.findall(message_text)
         for att in text_no_charset:
-            counter += 1
-            self.download_attachment(message["Message-Id"], counter,
-                                     att[0], 'text/plain', att[1])
+            all_attachments.append( (att[0], 'text/plain',
+                    self.download_attachment(att[1])) )
         ## Other, probably inline text/plain
         #if has_attach and not (attachments or embedded
         #                       or html_attachments or text_no_charset):
         #    print message_text
+        return all_attachments
 
-    def download_attachment(self, message_id, counter, name, ctype, url):
+    def download_attachment(self, url):
         url = url.strip(" <>")
-        message_id = message_id.strip(" <>")
         if self.no_download:
             if self.verbose:
                 print "NOT downloading attachment from %s" % url
@@ -200,9 +211,11 @@ class DbImporter(object):
         else:
             if self.verbose:
                 print "Downloading attachment from %s" % url
-            content = urllib.urlopen(url).read()
-        self.store.add_attachment(self.mlist.fqdn_listname, message_id,
-                                  counter, name, ctype, None, content)
+            try:
+                content = urllib.urlopen(url).read()
+            except IOError, e:
+                raise DownloadError(e)
+        return content
 
 
 def parse_args():

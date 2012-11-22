@@ -1,2 +1,2 @@
-include AUTHORS.txt COPYING.txt pylintrc distribute_setup.py
+include AUTHORS.txt COPYING.txt pylintrc distribute_setup.py requirements.txt
 include get_mbox.py

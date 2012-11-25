@@ -126,18 +126,34 @@ class Thread(object):
         self.date_active = date_active
 
     @property
+    def _starting_email_req(self):
+        """ Returns the request to get the starting email.
+        If there are no results with in_reply_to IS NULL, then it's
+        probably a partial import and we don't have the real first email.
+        In this case, use the date.
+        """
+        return self.emails.order_by(Email.in_reply_to != None, Email.date)
+
+    @property
     def starting_email(self):
         """Return (and cache) the email starting this thread"""
         if self._starting_email is None:
-            self._starting_email = self.emails.find(Email.in_reply_to == None).one()
-            if self._starting_email is None:
-                # probably a partial import, we don't have the real first email
-                self._starting_email = self.emails.order_by(Email.date).first()
+            self._starting_email = self._starting_email_req.first()
         return self._starting_email
 
     @property
     def last_email(self):
         return self.emails.order_by(Desc(Email.date)).first()
+
+    @property
+    def subject(self):
+        """Return the subject of this thread"""
+        if self._starting_email is not None:
+            return self.starting_email.subject
+        else:
+            # Don't get the whole message if it's not cached yet (useful for
+            # HyperKitty's thread view).
+            return self._starting_email_req.values(Email.subject).next()
 
     @property
     def participants(self):

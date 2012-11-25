@@ -13,15 +13,7 @@ from mailman.email.message import Message
 from kittystore.storm import get_storm_store
 from kittystore.storm.model import Email, Attachment
 
-from kittystore.test import get_test_file
-
-
-class FakeList(object):
-    # pylint: disable=R0903
-    # (Too few public methods)
-    def __init__(self, name):
-        self.fqdn_listname = name
-        self.display_name = None
+from kittystore.test import get_test_file, FakeList
 
 
 class TestStormStore(unittest.TestCase):

@@ -155,11 +155,11 @@ class DbImporter(object):
                         e.args[1].get("From"), e.args[1].get("Subject"))
                 continue
             # And insert the attachments
-            for att, counter in enumerate(attachments):
+            for counter, att in enumerate(attachments):
                 self.store.add_attachment(
                         self.mlist.fqdn_listname,
                         message["Message-Id"].strip(" <>"),
-                        index, att[0], att[1], None, att[2])
+                        counter, att[0], att[1], None, att[2])
 
             self.store.flush()
             cnt_imported += 1

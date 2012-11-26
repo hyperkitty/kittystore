@@ -27,11 +27,18 @@ CREATES = {
             in_reply_to VARCHAR(255), -- How about replies from another list ?
             message_id_hash VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
-            "full" BLOB NOT NULL,
             archived_date DATETIME DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (list_name, message_id),
             FOREIGN KEY (list_name, thread_id)
                 REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE "email_full" (
+            list_name VARCHAR(255) NOT NULL,
+            message_id VARCHAR(255) NOT NULL,
+            "full" BLOB NOT NULL,
+            PRIMARY KEY (list_name, message_id),
+            FOREIGN KEY (list_name, message_id)
+                REFERENCES email(list_name, message_id) ON DELETE CASCADE
         );""", """
         CREATE TABLE "attachment" (
             list_name VARCHAR(255) NOT NULL,
@@ -78,11 +85,18 @@ CREATES = {
             in_reply_to VARCHAR(255), -- How about replies from another list ?
             message_id_hash VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
-            "full" BYTEA NOT NULL,
             archived_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (list_name, message_id),
             FOREIGN KEY (list_name, thread_id)
                 REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE "email_full" (
+            list_name VARCHAR(255) NOT NULL,
+            message_id VARCHAR(255) NOT NULL,
+            "full" BYTEA NOT NULL,
+            PRIMARY KEY (list_name, message_id),
+            FOREIGN KEY (list_name, message_id)
+                REFERENCES email(list_name, message_id) ON DELETE CASCADE
         );""", """
         CREATE TABLE "attachment" (
             list_name VARCHAR(255) NOT NULL,
@@ -129,11 +143,18 @@ CREATES = {
             in_reply_to VARCHAR(255), -- How about replies from another list ?
             message_id_hash VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
-            `full` BLOB NOT NULL,
             archived_date DATETIME,
             PRIMARY KEY (list_name, message_id),
             FOREIGN KEY (list_name, thread_id)
                 REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE `email_full` (
+            list_name VARCHAR(255) NOT NULL,
+            message_id VARCHAR(255) NOT NULL,
+            `full` BLOB NOT NULL,
+            PRIMARY KEY (list_name, message_id),
+            FOREIGN KEY (list_name, message_id)
+                REFERENCES email(list_name, message_id) ON DELETE CASCADE
         );""", """
         CREATE TABLE `attachment` (
             list_name VARCHAR(255) NOT NULL,

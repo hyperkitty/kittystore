@@ -2,11 +2,7 @@
 
 from __future__ import absolute_import
 
-#from storm.expr import And
-#from storm.locals import Desc
-
 from . import get_db_type
-#from kittystore.storm.model import Thread, Email
 
 
 SQL = {

@@ -43,6 +43,7 @@ setup(
     entry_points={
         'console_scripts': [
             'kittystore-import = kittystore.import:main',
+            'kittystore-updatedb = kittystore.scripts:updatedb',
             ],
         },
     )

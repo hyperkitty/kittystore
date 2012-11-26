@@ -16,6 +16,7 @@ import datetime
 
 from zope.interface import implements
 from storm.locals import Unicode, RawStr, Int, ReferenceSet, Reference
+from storm.locals import Storm
 from storm.expr import Desc
 from mailman.interfaces.messages import IMessage
 
@@ -31,7 +32,7 @@ from .hack_datetime import DateTime
 __all__ = ("List", "Email", "Attachment")
 
 
-class List(object):
+class List(Storm):
     # The 'List' name is part of storm's locals
     # pylint: disable-msg=E0102
     """
@@ -51,7 +52,7 @@ class List(object):
         self.name = unicode(name)
 
 
-class Email(object):
+class Email(Storm):
     """
     An archived email, from a mailing-list. It is identified by both the list
     name and the message id.
@@ -76,6 +77,16 @@ class Email(object):
     archived_date = DateTime(default_factory=datetime.datetime.now)
     # path is required by IMessage, but it makes no sense here
     path = None
+    # References
+    attachments = ReferenceSet(
+                    (list_name,
+                     message_id),
+                    ("Attachment.list_name",
+                     "Attachment.message_id"),
+                    order_by="Attachment.counter"
+                    )
+    thread = Reference((list_name, thread_id),
+                       ("Thread.list_name", "Thread.thread_id"))
 
     def __init__(self, list_name, message_id):
         self.list_name = unicode(list_name)
@@ -83,7 +94,7 @@ class Email(object):
         self.message_id_hash = unicode(get_message_id_hash(self.message_id))
 
 
-class Attachment(object):
+class Attachment(Storm):
 
     __storm_table__ = "attachment"
     __storm_primary__ = "list_name", "message_id", "counter"
@@ -101,7 +112,7 @@ class Attachment(object):
                       (Email.list_name, Email.message_id))
 
 
-class Thread(object):
+class Thread(Storm):
     """
     A thread of archived email, from a mailing-list. It is identified by both
     the list name and the thread id.
@@ -177,16 +188,3 @@ class Thread(object):
             return
         self.date_active = list(self.emails.order_by(Desc(Email.date)
                                 ).config(limit=1).values(Email.date))[0]
-
-
-# References
-
-Email.attachments = ReferenceSet(
-        (Email.list_name,
-         Email.message_id),
-        (Attachment.list_name,
-         Attachment.message_id),
-        order_by=Attachment.counter
-        )
-Email.thread = Reference((Email.list_name, Email.thread_id),
-                         (Thread.list_name, Thread.thread_id))

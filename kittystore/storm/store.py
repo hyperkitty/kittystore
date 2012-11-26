@@ -29,7 +29,7 @@ from kittystore.utils import header_to_unicode
 from kittystore.scrub import Scrubber
 from kittystore.utils import get_ref_and_thread_id
 
-from .model import List, Email, Attachment, Thread
+from .model import List, Email, Attachment, Thread, EmailFull
 
 
 class StormStore(object):
@@ -99,6 +99,8 @@ class StormStore(object):
                    (message['From'], message.get('Subject', '""')))
             return email.message_id_hash
 
+        # the message.as_string() call must be done before scrubbing
+        email_full = EmailFull(list_name, msg_id, message.as_string())
         # Find thread id
         new_thread = False
         ref, thread_id = get_ref_and_thread_id(message, list_name, self)
@@ -114,7 +116,6 @@ class StormStore(object):
         email.sender_name = from_name.strip()
         email.sender_email = unicode(from_email).strip()
         email.subject = header_to_unicode(message.get('Subject'))
-        email.full = message.as_string() # Before scrubbing
         msg_date = parsedate(message.get("Date"))
         if msg_date is None:
             # Absent or unparseable date
@@ -151,6 +152,7 @@ class StormStore(object):
         self.db.add(thread)
 
         self.db.add(email)
+        self.db.add(email_full)
         self.flush()
         for attachment in attachments:
             self.add_attachment(list_name, msg_id, *attachment)

@@ -15,7 +15,7 @@ license.
 import datetime
 
 from zope.interface import implements
-from storm.locals import Unicode, RawStr, Int, ReferenceSet, Reference
+from storm.locals import Unicode, RawStr, Int, ReferenceSet, Reference, Proxy
 from storm.locals import Storm
 from storm.expr import Desc
 from mailman.interfaces.messages import IMessage
@@ -73,7 +73,6 @@ class Email(Storm):
     in_reply_to = Unicode()
     message_id_hash = Unicode()
     thread_id = Unicode()
-    full = RawStr()
     archived_date = DateTime(default_factory=datetime.datetime.now)
     # path is required by IMessage, but it makes no sense here
     path = None
@@ -87,11 +86,35 @@ class Email(Storm):
                     )
     thread = Reference((list_name, thread_id),
                        ("Thread.list_name", "Thread.thread_id"))
+    full_email = Reference((list_name, message_id),
+                     ("EmailFull.list_name", "EmailFull.message_id"))
+    full = Proxy(full_email, "EmailFull.full")
 
     def __init__(self, list_name, message_id):
         self.list_name = unicode(list_name)
         self.message_id = unicode(message_id)
         self.message_id_hash = unicode(get_message_id_hash(self.message_id))
+
+
+class EmailFull(Storm):
+    """
+    The full contents of an archived email, for storage and post-processing
+    reasons.
+    """
+    __storm_table__ = "email_full"
+    __storm_primary__ = "list_name", "message_id"
+
+    list_name = Unicode()
+    message_id = Unicode()
+    full = RawStr()
+    email = Reference((list_name, message_id),
+                     ("Email.list_name", "Email.message_id"))
+
+    def __init__(self, list_name, message_id, full=None):
+        self.list_name = unicode(list_name)
+        self.message_id = unicode(message_id)
+        if full is not None:
+            self.full = full
 
 
 class Attachment(Storm):

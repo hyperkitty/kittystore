@@ -44,6 +44,7 @@ setup(
         'console_scripts': [
             'kittystore-import = kittystore.import:main',
             'kittystore-updatedb = kittystore.scripts:updatedb',
+            'kittystore-download21 = kittystore.scripts:dl_archives',
             ],
         },
     )

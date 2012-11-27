@@ -15,7 +15,7 @@ The code is available from: https://github.com/pypingou/kittystore
 Populating the database
 =======================
 
-- Retrieve the archives using the ``get_mbox.py`` script
+- Retrieve the archives by calling ``kittystore-download21``,
 - Load the archives by calling ``kittystore-import``.
 
 This might be memory intensive, so you may want to do 2 or 3 years per run and

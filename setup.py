@@ -40,6 +40,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=filetolist("requirements.txt"),
+    test_suite = "kittystore.test",
     entry_points={
         'console_scripts': [
             'kittystore-import = kittystore.import:main',

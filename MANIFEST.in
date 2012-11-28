@@ -1,2 +1,2 @@
-include AUTHORS.txt COPYING.txt pylintrc distribute_setup.py requirements.txt
+include AUTHORS.txt COPYING.txt pylintrc distribute_setup.py requirements.txt kittystore.spec
 graft kittystore/test/testdata

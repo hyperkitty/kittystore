@@ -27,8 +27,8 @@ Requires:  mailman >= 3.0.0b2
 
 %description
 KittyStore is the archiving library for HyperKitty, the Mailman 3 archiver.
-It provides an interface to different storage systems. Currenty only the Storm
-ORM system is supported.
+It provides an interface to different storage systems. Currently only the
+Storm ORM system is supported.
 
 The code is available from:
 https://github.com/pypingou/kittystore

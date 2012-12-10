@@ -3,7 +3,7 @@ KittyStore
 ==========
 
 KittyStore is the archiving library for `HyperKitty`_, the Mailman 3 archiver.
-It provides an interface to different storage systems. Currenty only the
+It provides an interface to different storage systems. Currently only the
 `Storm ORM`_ system is supported.
 
 .. _HyperKitty: https://fedorahosted.org/hyperkitty

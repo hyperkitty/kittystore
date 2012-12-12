@@ -33,6 +33,41 @@ class TestUtils(unittest.TestCase):
                 msg, "example-list", store)[0]
         self.assertEqual(ref_id, None)
 
+    def test_single_reference(self):
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg["References"] = " <ref-1> "
+        msg.set_payload("Dummy message")
+        store = Mock()
+        ref_id = kittystore.utils.get_ref_and_thread_id(
+                msg, "example-list", store)[0]
+        self.assertEqual(ref_id, "ref-1")
+
+    def test_multiple_reference(self):
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg["References"] = " <ref-1> <ref-2> "
+        msg.set_payload("Dummy message")
+        store = Mock()
+        ref_id = kittystore.utils.get_ref_and_thread_id(
+                msg, "example-list", store)[0]
+        self.assertEqual(ref_id, "ref-1")
+
+    def test_empty_reference(self):
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg["References"] = " "
+        msg.set_payload("Dummy message")
+        store = Mock()
+        try:
+            kittystore.utils.get_ref_and_thread_id(
+                    msg, "example-list", store)
+        except IndexError, e:
+            self.fail("Empty 'References' tag should be handled")
+
     def test_non_ascii_headers(self):
         """utils.header_to_unicode must handle non-ascii headers"""
         testdata = [

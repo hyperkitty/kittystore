@@ -11,7 +11,7 @@ from storm.exceptions import IntegrityError
 from mailman.email.message import Message
 
 from kittystore.storm import get_storm_store
-from kittystore.storm.model import Email, Attachment
+from kittystore.storm.model import Email, Attachment, List
 
 from kittystore.test import get_test_file, FakeList
 
@@ -72,6 +72,22 @@ class TestStormStore(unittest.TestCase):
             self.fail(e)
         self.assertEqual(self.store.db.find(Email).count(), 1)
         self.assertEqual(self.store.db.find(Attachment).count(), 1)
+
+    def test_update_list(self):
+        """List records must be updated when changed in Mailman"""
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg.set_payload("Dummy message")
+        ml = FakeList("example-list")
+        ml.display_name = u"name 1"
+        self.store.add_to_list(ml, msg)
+        ml_db = self.store.db.find(List).one()
+        self.assertEqual(ml_db.display_name, "name 1")
+        ml.display_name = u"name 2"
+        self.store.add_to_list(ml, msg)
+        ml_db = self.store.db.find(List).one()
+        self.assertEqual(ml_db.display_name, "name 2")
 
     #def test_non_ascii_payload(self):
     #    """add_to_list must handle non-ascii messages"""

@@ -84,12 +84,11 @@ class StormStore(object):
         """
         list_name = unicode(mlist.fqdn_listname)
         # Create the list if it does not exist
-        list_is_in_db = self.db.find(List,
-                List.name == list_name).count()
-        if not list_is_in_db:
+        l = self.db.find(List, List.name == list_name).one()
+        if l is None:
             l = List(list_name)
-            l.display_name = mlist.display_name
             self.db.add(l)
+        l.display_name = mlist.display_name
         if not message.has_key("Message-Id"):
             raise ValueError("No 'Message-Id' header in email", message)
         msg_id = unicode(unquote(message['Message-Id']))

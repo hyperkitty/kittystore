@@ -35,7 +35,7 @@ import dateutil.parser, dateutil.tz
 
 __all__ = ("get_message_id_hash", "parseaddr", "parsedate",
            "header_to_unicode", "payload_to_unicode",
-           "get_ref_and_thread_id",
+           "get_ref", "get_ref_and_thread_id",
            )
 
 
@@ -101,15 +101,14 @@ def parsedate(datestring):
     #timestamp = email.utils.mktime_tz(date_tuple)
     #return datetime.fromtimestamp(timestamp)
 
-def get_ref_and_thread_id(message, list_name, store):
+
+def get_ref(message):
     """
-    Returns the thread ID and the message-id of the reference email for a given
-    message.
+    Returns the message-id of the reference email for a given message.
     """
     if (not message.has_key("References")
             and not message.has_key("In-Reply-To")):
-        return None, None
-    # It's a reply, use the thread_id from the parent email
+        return None
     ref_id = message.get("In-Reply-To")
     if ref_id is None or not ref_id.strip():
         ref_id = message.get("References")
@@ -120,8 +119,19 @@ def get_ref_and_thread_id(message, list_name, store):
         ref_id = IN_BRACKETS_RE.match(ref_id)
     if ref_id is None:
         # Can't parse the reference
-        return None, None
+        return None
     ref_id = ref_id.group(1)
+    return unicode(ref_id)
+
+
+def get_ref_and_thread_id(message, list_name, store):
+    """
+    Returns the thread ID and the message-id of the reference email for a given
+    message.
+    """
+    ref_id = get_ref(message)
+    if ref_id is None:
+        return None, None
     # It's a reply, use the thread_id from the parent email
     ref_msg = store.get_message_by_id_from_list(list_name, ref_id)
     if ref_msg is None:
@@ -129,5 +139,5 @@ def get_ref_and_thread_id(message, list_name, store):
     else:
         # re-use parent's thread-id
         thread_id = unicode(ref_msg.thread_id)
-    return unicode(ref_id), thread_id
+    return ref_id, thread_id
 

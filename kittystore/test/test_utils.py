@@ -18,19 +18,13 @@ class TestUtils(unittest.TestCase):
     def test_ref_parsing(self):
         with open(get_test_file("strange-in-reply-to-header.txt")) as email_file:
             msg = email.message_from_file(email_file, _class=Message)
-        store = Mock()
-        store.get_message_by_id_from_list.return_value = None
-        ref_id = kittystore.utils.get_ref_and_thread_id(
-                msg, "example-list", store)[0]
+        ref_id = kittystore.utils.get_ref(msg)
         self.assertEqual(ref_id, "200704070053.46646.other.person@example.com")
 
     def test_wrong_reply_to_format(self):
         with open(get_test_file("wrong-in-reply-to-header.txt")) as email_file:
             msg = email.message_from_file(email_file, _class=Message)
-        store = Mock()
-        store.get_message_by_id_from_list.return_value = None
-        ref_id = kittystore.utils.get_ref_and_thread_id(
-                msg, "example-list", store)[0]
+        ref_id = kittystore.utils.get_ref(msg)
         self.assertEqual(ref_id, None)
 
     def test_in_reply_to(self):
@@ -39,9 +33,7 @@ class TestUtils(unittest.TestCase):
         msg["Message-ID"] = "<dummy>"
         msg["In-Reply-To"] = " <ref-1> "
         msg.set_payload("Dummy message")
-        store = Mock()
-        ref_id = kittystore.utils.get_ref_and_thread_id(
-                msg, "example-list", store)[0]
+        ref_id = kittystore.utils.get_ref(msg)
         self.assertEqual(ref_id, "ref-1")
 
     def test_in_reply_to_and_reference(self):
@@ -52,9 +44,7 @@ class TestUtils(unittest.TestCase):
         msg["In-Reply-To"] = " <ref-1> "
         msg["References"] = " <ref-2> "
         msg.set_payload("Dummy message")
-        store = Mock()
-        ref_id = kittystore.utils.get_ref_and_thread_id(
-                msg, "example-list", store)[0]
+        ref_id = kittystore.utils.get_ref(msg)
         self.assertEqual(ref_id, "ref-1")
 
     def test_single_reference(self):
@@ -63,9 +53,7 @@ class TestUtils(unittest.TestCase):
         msg["Message-ID"] = "<dummy>"
         msg["References"] = " <ref-1> "
         msg.set_payload("Dummy message")
-        store = Mock()
-        ref_id = kittystore.utils.get_ref_and_thread_id(
-                msg, "example-list", store)[0]
+        ref_id = kittystore.utils.get_ref(msg)
         self.assertEqual(ref_id, "ref-1")
 
     def test_multiple_reference(self):
@@ -74,9 +62,7 @@ class TestUtils(unittest.TestCase):
         msg["Message-ID"] = "<dummy>"
         msg["References"] = " <ref-1> <ref-2> "
         msg.set_payload("Dummy message")
-        store = Mock()
-        ref_id = kittystore.utils.get_ref_and_thread_id(
-                msg, "example-list", store)[0]
+        ref_id = kittystore.utils.get_ref(msg)
         self.assertEqual(ref_id, "ref-2")
 
     def test_empty_reference(self):
@@ -85,10 +71,8 @@ class TestUtils(unittest.TestCase):
         msg["Message-ID"] = "<dummy>"
         msg["References"] = " "
         msg.set_payload("Dummy message")
-        store = Mock()
         try:
-            kittystore.utils.get_ref_and_thread_id(
-                    msg, "example-list", store)
+            ref_id = kittystore.utils.get_ref(msg)
         except IndexError, e:
             self.fail("Empty 'References' tag should be handled")
 

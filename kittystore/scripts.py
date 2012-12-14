@@ -108,11 +108,11 @@ def _archive_downloader(args):
         with open(filepath, "w") as f:
             f.write(request.read())
     except urllib2.URLError, e:
-        if e.code == 404:
+        if isinstance(e, urllib2.HTTPError) and e.code == 404:
             print ("This archive hasn't been created on the server yet: "
                    + basename)
         else:
-            print e
+            print "Error: %s" % e.reason
         return
     pos = str(MONTHS.index(month) + 1).rjust(2, "0")
     newname = '{0}-{1}-{2}-{3}.txt'.format(opts.list_name, year, pos, month)

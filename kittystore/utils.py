@@ -110,12 +110,12 @@ def get_ref_and_thread_id(message, list_name, store):
             and not message.has_key("In-Reply-To")):
         return None, None
     # It's a reply, use the thread_id from the parent email
-    ref_id = message.get("References")
-    if ref_id is not None and ref_id.strip():
-        # There can be multiple references, use the first one
-        ref_id = ref_id.split()[0].strip()
-    else:
-        ref_id = message.get("In-Reply-To")
+    ref_id = message.get("In-Reply-To")
+    if ref_id is None or not ref_id.strip():
+        ref_id = message.get("References")
+        if ref_id is not None and ref_id.strip():
+            # There can be multiple references, use the last one
+            ref_id = ref_id.split()[-1].strip()
     if ref_id is not None:
         ref_id = IN_BRACKETS_RE.match(ref_id)
     if ref_id is None:

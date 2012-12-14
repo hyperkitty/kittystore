@@ -33,6 +33,30 @@ class TestUtils(unittest.TestCase):
                 msg, "example-list", store)[0]
         self.assertEqual(ref_id, None)
 
+    def test_in_reply_to(self):
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg["In-Reply-To"] = " <ref-1> "
+        msg.set_payload("Dummy message")
+        store = Mock()
+        ref_id = kittystore.utils.get_ref_and_thread_id(
+                msg, "example-list", store)[0]
+        self.assertEqual(ref_id, "ref-1")
+
+    def test_in_reply_to_and_reference(self):
+        """The In-Reply-To header should win over References"""
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg["In-Reply-To"] = " <ref-1> "
+        msg["References"] = " <ref-2> "
+        msg.set_payload("Dummy message")
+        store = Mock()
+        ref_id = kittystore.utils.get_ref_and_thread_id(
+                msg, "example-list", store)[0]
+        self.assertEqual(ref_id, "ref-1")
+
     def test_single_reference(self):
         msg = Message()
         msg["From"] = "dummy@example.com"
@@ -53,7 +77,7 @@ class TestUtils(unittest.TestCase):
         store = Mock()
         ref_id = kittystore.utils.get_ref_and_thread_id(
                 msg, "example-list", store)[0]
-        self.assertEqual(ref_id, "ref-1")
+        self.assertEqual(ref_id, "ref-2")
 
     def test_empty_reference(self):
         msg = Message()

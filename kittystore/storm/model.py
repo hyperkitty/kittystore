@@ -216,5 +216,9 @@ class Thread(Storm):
         """Auto-set the active date from the last email in thread"""
         if self.date_active is not None:
             return
-        self.date_active = list(self.emails.order_by(Desc(Email.date)
-                                ).config(limit=1).values(Email.date))[0]
+        email_dates = list(self.emails.order_by(Desc(Email.date)
+                                ).config(limit=1).values(Email.date))
+        if email_dates:
+            self.date_active = email_dates[0]
+        else:
+            self.date_active = datetime.datetime.now()

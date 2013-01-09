@@ -89,3 +89,8 @@ class TestStormModel(unittest.TestCase):
         self.store.add_to_list(ml, msg)
         thread = self.store.db.find(Thread).one()
         self.assertEqual(thread.subject, "Dummy subject")
+
+    def test_thread_no_email(self):
+        thread = Thread("example-list", "<msg1>")
+        self.store.db.add(thread)
+        self.store.flush()

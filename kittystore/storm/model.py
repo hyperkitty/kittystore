@@ -74,6 +74,8 @@ class Email(Storm):
     message_id_hash = Unicode()
     thread_id = Unicode()
     archived_date = DateTime(default_factory=datetime.datetime.now)
+    thread_depth = Int(default=0)
+    thread_order = Int(default=0)
     # path is required by IMessage, but it makes no sense here
     path = None
     # References
@@ -151,6 +153,11 @@ class Thread(Storm):
                 (list_name, thread_id),
                 (Email.list_name, Email.thread_id),
                 order_by=Email.date
+             )
+    emails_by_reply = ReferenceSet(
+                (list_name, thread_id),
+                (Email.list_name, Email.thread_id),
+                order_by=Email.thread_order
              )
     _starting_email = None
 

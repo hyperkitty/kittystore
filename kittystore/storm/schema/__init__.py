@@ -27,6 +27,8 @@ CREATES = {
             in_reply_to VARCHAR(255), -- How about replies from another list ?
             message_id_hash VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
+            thread_order INTEGER NOT NULL DEFAULT 0,
+            thread_depth INTEGER NOT NULL DEFAULT 0,
             archived_date DATETIME DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (list_name, message_id),
             FOREIGN KEY (list_name, thread_id)
@@ -58,6 +60,7 @@ CREATES = {
         'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" (list_name, message_id_hash);',
         'CREATE INDEX "ix_email_subject" ON "email" (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
+        'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
         ],
 
@@ -85,6 +88,8 @@ CREATES = {
             in_reply_to VARCHAR(255), -- How about replies from another list ?
             message_id_hash VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
+            thread_order INTEGER NOT NULL DEFAULT 0,
+            thread_depth INTEGER NOT NULL DEFAULT 0,
             archived_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (list_name, message_id),
             FOREIGN KEY (list_name, thread_id)
@@ -116,6 +121,7 @@ CREATES = {
         'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" USING btree (list_name, message_id_hash);',
         'CREATE INDEX "ix_email_subject" ON "email" USING btree (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" USING btree (thread_id);',
+        'CREATE INDEX "ix_email_thread_order" ON "email" USING btree (thread_order);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" USING btree (date_active);',
         ],
 
@@ -143,6 +149,8 @@ CREATES = {
             in_reply_to VARCHAR(255), -- How about replies from another list ?
             message_id_hash VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
+            thread_order INTEGER NOT NULL DEFAULT 0,
+            thread_depth INTEGER NOT NULL DEFAULT 0,
             archived_date DATETIME,
             PRIMARY KEY (list_name, message_id),
             FOREIGN KEY (list_name, thread_id)
@@ -174,6 +182,7 @@ CREATES = {
         'CREATE UNIQUE INDEX `ix_email_list_name_message_id_hash` ON `email` (list_name, message_id_hash);',
         'CREATE INDEX `ix_email_subject` ON `email` (subject(255));',
         'CREATE INDEX `ix_email_thread_id` ON `email` (thread_id);',
+        'CREATE INDEX `ix_email_thread_order` ON `email` (thread_order);',
         'CREATE INDEX `ix_thread_date_active` ON `thread` (date_active);',
         ],
 

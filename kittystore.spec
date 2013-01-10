@@ -31,7 +31,7 @@ It provides an interface to different storage systems. Currently only the
 Storm ORM system is supported.
 
 The code is available from:
-https://github.com/pypingou/kittystore
+https://github.com/hyperkitty/kittystore
 
 
 %prep

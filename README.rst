@@ -9,7 +9,7 @@ It provides an interface to different storage systems. Currently only the
 .. _HyperKitty: https://fedorahosted.org/hyperkitty
 .. _Storm ORM: http://storm.canonical.com
 
-The code is available from: https://github.com/pypingou/kittystore
+The code is available from: https://github.com/hyperkitty/kittystore
 
 
 Populating the database

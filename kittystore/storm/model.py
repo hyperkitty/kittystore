@@ -112,11 +112,10 @@ class EmailFull(Storm):
     email = Reference((list_name, message_id),
                      ("Email.list_name", "Email.message_id"))
 
-    def __init__(self, list_name, message_id, full=None):
+    def __init__(self, list_name, message_id, full):
         self.list_name = unicode(list_name)
         self.message_id = unicode(message_id)
-        if full is not None:
-            self.full = full
+        self.full = full
 
 
 class Attachment(Storm):

@@ -181,14 +181,14 @@ class StormStore(object):
         msg = self.get_message_by_id_from_list(list_name, message_id)
         if msg is None:
             raise MessageNotFound(list_name, message_id)
-        self.db.delete(msg)
+        self.db.remove(msg)
         # Remove the thread if necessary
         thread = self.db.find(Thread, And(
                         Thread.list_name == msg.list_name,
                         Thread.thread_id == msg.thread_id,
                         )).one()
         if len(thread.emails) == 0:
-            self.db.delete(thread)
+            self.db.remove(thread)
         self.flush()
 
     def get_list_size(self, list_name):

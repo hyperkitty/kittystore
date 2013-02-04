@@ -47,6 +47,7 @@ class List(Storm):
 
     name = Unicode(primary=True)
     display_name = Unicode()
+    description = Unicode()
 
     def __init__(self, name):
         self.name = unicode(name)

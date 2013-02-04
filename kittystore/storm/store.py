@@ -90,6 +90,7 @@ class StormStore(object):
             l = List(list_name)
             self.db.add(l)
         l.display_name = mlist.display_name
+        l.description = mlist.description
         if not message.has_key("Message-Id"):
             raise ValueError("No 'Message-Id' header in email", message)
         msg_id = unicode(unquote(message['Message-Id']))
@@ -333,6 +334,13 @@ class StormStore(object):
         :returns: A list containing the names of the archived mailing-lists.
         """
         return list(self.db.find(List.name).order_by(List.name))
+
+    def get_lists(self):
+        """Return the archived lists.
+
+        :returns: A list containing the archived mailing-lists.
+        """
+        return list(self.db.find(List).order_by(List.name))
 
     def get_messages(self, list_name, start, end):
         """ Return all emails between two given dates.

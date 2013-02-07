@@ -14,5 +14,6 @@ class FakeList(object):
     def __init__(self, name):
         self.fqdn_listname = name
         self.display_name = None
+        self.description = None
 
 

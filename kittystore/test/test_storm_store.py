@@ -81,13 +81,17 @@ class TestStormStore(unittest.TestCase):
         msg.set_payload("Dummy message")
         ml = FakeList("example-list")
         ml.display_name = u"name 1"
+        ml.description = u"desc 1"
         self.store.add_to_list(ml, msg)
         ml_db = self.store.db.find(List).one()
         self.assertEqual(ml_db.display_name, "name 1")
+        self.assertEqual(ml_db.description, "desc 1")
         ml.display_name = u"name 2"
+        ml.description = u"desc 2"
         self.store.add_to_list(ml, msg)
         ml_db = self.store.db.find(List).one()
         self.assertEqual(ml_db.display_name, "name 2")
+        self.assertEqual(ml_db.description, "desc 2")
 
     #def test_non_ascii_payload(self):
     #    """add_to_list must handle non-ascii messages"""

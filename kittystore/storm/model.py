@@ -209,6 +209,10 @@ class Thread(Storm):
     def email_ids(self):
         return list(self.emails.find().order_by().values(Email.message_id))
 
+    @property
+    def email_id_hashes(self):
+        return list(self.emails.find().order_by().values(Email.message_id_hash))
+
     def __len__(self):
         return self.emails.count()
 

@@ -3,7 +3,7 @@
 
 Name:           kittystore
 Version:        0.1.4
-Release:        0.1%{?dist}
+Release:        1%{?dist}
 Summary:        A storage engine for GNU Mailman v3 archives
 
 License:        GPLv3
@@ -18,11 +18,13 @@ BuildRequires:  python-mock
 BuildRequires:  python-dateutil < 2.0
 BuildRequires:  python-storm
 BuildRequires:  python-zope-interface
+BuildRequires:  python-networkx
 BuildRequires:  mailman >= 3.0.0b2
 Requires:  python-mock
 Requires:  python-dateutil < 2.0
 Requires:  python-storm
 Requires:  python-zope-interface
+Requires:  python-networkx
 Requires:  mailman >= 3.0.0b2
 
 %description

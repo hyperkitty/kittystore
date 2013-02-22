@@ -19,7 +19,7 @@ BuildRequires:  python-dateutil < 2.0
 BuildRequires:  python-storm
 BuildRequires:  python-zope-interface
 BuildRequires:  python-networkx
-BuildRequires:  mailman >= 3.0.0b2
+BuildRequires:  mailman >= 3:3.0.0b2
 Requires:  python-mock
 Requires:  python-dateutil < 2.0
 Requires:  python-storm

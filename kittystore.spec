@@ -2,8 +2,8 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 
 Name:           kittystore
-Version:        0.1.4
-Release:        1%{?dist}
+Version:        0.1.5
+Release:        0.1%{?dist}
 Summary:        A storage engine for GNU Mailman v3 archives
 
 License:        GPLv3

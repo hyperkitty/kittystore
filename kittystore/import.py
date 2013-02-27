@@ -88,6 +88,7 @@ class DummyMailingList(object):
     def __init__(self, address):
         self.fqdn_listname = unicode(address)
         self.display_name = None
+        self.description = None
 
 
 class DownloadError(Exception): pass

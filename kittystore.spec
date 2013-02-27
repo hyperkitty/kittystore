@@ -19,13 +19,13 @@ BuildRequires:  python-dateutil < 2.0
 BuildRequires:  python-storm
 BuildRequires:  python-zope-interface
 BuildRequires:  python-networkx
-BuildRequires:  mailman >= 3:3.0.0b2
+BuildRequires:  mailman >= 3:3.0.0
 Requires:  python-mock
 Requires:  python-dateutil < 2.0
 Requires:  python-storm
 Requires:  python-zope-interface
 Requires:  python-networkx
-Requires:  mailman >= 3.0.0b2
+Requires:  mailman >= 3:3.0.0
 
 %description
 KittyStore is the archiving library for HyperKitty, the Mailman 3 archiver.

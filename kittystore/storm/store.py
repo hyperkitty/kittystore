@@ -257,7 +257,7 @@ class StormStore(object):
         """
         emails = self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
-                    Email.content.ilike(u'%{0}%'.format(keyword))
+                    Email.content.like(u'%{0}%'.format(keyword), case_sensitive = False)
                 )).order_by(Desc(Email.date))
         return emails
 
@@ -273,8 +273,8 @@ class StormStore(object):
         emails = self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
                     Or(
-                        Email.content.ilike(u'%{0}%'.format(keyword)),
-                        Email.subject.ilike(u'%{0}%'.format(keyword)),
+                        Email.content.like(u'%{0}%'.format(keyword), case_sensitive = False),
+                        Email.subject.like(u'%{0}%'.format(keyword), case_sensitive = False),
                 ))).order_by(Desc(Email.date))
         return emails
 
@@ -289,8 +289,8 @@ class StormStore(object):
         emails = self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
                     Or(
-                        Email.sender_name.ilike(u'%{0}%'.format(keyword)),
-                        Email.sender_email.ilike(u'%{0}%'.format(keyword)),
+                        Email.sender_name.like(u'%{0}%'.format(keyword), case_sensitive = False),
+                        Email.sender_email.like(u'%{0}%'.format(keyword), case_sensitive = False),
                 ))).order_by(Desc(Email.date))
         return emails
 
@@ -304,7 +304,7 @@ class StormStore(object):
         """
         emails = self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
-                    Email.subject.ilike(u'%{0}%'.format(keyword)),
+                    Email.subject.like(u'%{0}%'.format(keyword), case_sensitive = False),
                 )).order_by(Desc(Email.date))
         return emails
 
@@ -327,6 +327,7 @@ class StormStore(object):
                     Email.list_name == unicode(list_name),
                     Email.message_id == unicode(message_id)
                 )).count()
+
 
     def get_list_names(self):
         """Return the names of the archived lists.

@@ -34,8 +34,7 @@ import dateutil.parser, dateutil.tz
 
 
 __all__ = ("get_message_id_hash", "parseaddr", "parsedate",
-           "header_to_unicode", "payload_to_unicode",
-           "get_ref", "get_ref_and_thread_id",
+           "header_to_unicode", "get_ref", "get_ref_and_thread_id",
            )
 
 

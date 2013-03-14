@@ -37,6 +37,8 @@ dre = re.compile(r'^\.*')
 
 BR = '<br>\n'
 
+NEXT_PART = re.compile(r'--------------[ ]next[ ]part[ ]--------------\n')
+
 
 def guess_extension(ctype, ext):
     # mimetypes maps multiple extensions to the same type, e.g. .doc, .dot,
@@ -207,13 +209,16 @@ class Scrubber(object):
                     if not t.endswith('\n'):
                         t += '\n'
                     text.append(t)
-            # Now join the text and set the payload
-            #sep = _('-------------- next part --------------\n')
-            #text = sep.join(text)
+
             text = "\n".join(text)
         else:
             text = self.msg.get_payload(decode=True)
             text = text.decode(get_charset(self.msg, guess=True), "replace")
+
+            next_part_match = NEXT_PART.search(text)
+            if next_part_match:
+                text = text[0:next_part_match.start(0)]
+
         return (text, attachments)
 
 

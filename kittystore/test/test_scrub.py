@@ -129,3 +129,10 @@ class TestScrubber(unittest.TestCase):
                 u'accented letters : \xe9 \xe8 \xe7 \xe0.\r\nAnd an '
                 u'attachment with an accented filename\r\n\r\n\r\n\r\n')
 
+    def test_remove_next_part_from_content(self):
+        with open(get_test_file("pipermail_nextpart.txt")) as email_file:
+            msg = email.message_from_file(email_file, _class=Message)
+        scrubber = Scrubber("testlist@example.com", msg)
+        contents, attachments = scrubber.scrub()
+
+        self.failIf("-------------- next part --------------" in contents)

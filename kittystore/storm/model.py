@@ -201,7 +201,7 @@ class Thread(Storm):
         """Set of email senders in this thread"""
         p = []
         for sender in self.emails.find().config(distinct=True
-                        ).order_by().values(Email.sender_name):
+                        ).order_by().values(Email.sender_name, Email.sender_email):
             p.append(sender)
         return p
 

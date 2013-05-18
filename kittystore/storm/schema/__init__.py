@@ -7,7 +7,7 @@ CREATES = {
         CREATE TABLE "list" (
             name VARCHAR(255) NOT NULL,
             display_name TEXT,
-            description TEXT,
+            subject_prefix TEXT,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE "thread" (
@@ -69,7 +69,7 @@ CREATES = {
         CREATE TABLE "list" (
             name VARCHAR(255) NOT NULL,
             display_name TEXT,
-            description TEXT,
+            subject_prefix TEXT,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE "thread" (
@@ -131,7 +131,7 @@ CREATES = {
         CREATE TABLE `list` (
             name VARCHAR(255) NOT NULL,
             display_name TEXT,
-            description TEXT,
+            subject_prefix TEXT,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE `thread` (

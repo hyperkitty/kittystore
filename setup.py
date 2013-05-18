@@ -22,7 +22,7 @@ def filetolist(filepath):
 
 setup(
     name="KittyStore",
-    version="0.1.5",
+    version="0.1.6",
     description="A storage engine for GNU Mailman v3 archives",
     long_description=open('README.rst').read(),
     author='HyperKitty Developers',

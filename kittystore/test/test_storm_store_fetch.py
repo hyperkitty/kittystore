@@ -29,7 +29,7 @@ class TestStormStoreFetch(unittest.TestCase):
 
         ml = FakeList("example-list")
         ml.display_name = u"name 1"
-        ml.description = u"desc 1"
+        ml.subject_prefix = u"[prefix 1]"
 
         return ml.fqdn_listname, self.store.add_to_list(ml, msg)
 

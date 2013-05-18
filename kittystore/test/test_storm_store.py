@@ -82,17 +82,17 @@ class TestStormStore(unittest.TestCase):
         msg.set_payload("Dummy message")
         ml = FakeList("example-list")
         ml.display_name = u"name 1"
-        ml.description = u"desc 1"
+        ml.subject_prefix = u"[prefix 1]"
         self.store.add_to_list(ml, msg)
         ml_db = self.store.db.find(List).one()
         self.assertEqual(ml_db.display_name, "name 1")
-        self.assertEqual(ml_db.description, "desc 1")
+        self.assertEqual(ml_db.subject_prefix, "[prefix 1]")
         ml.display_name = u"name 2"
-        ml.description = u"desc 2"
+        ml.subject_prefix = u"[prefix 2]"
         self.store.add_to_list(ml, msg)
         ml_db = self.store.db.find(List).one()
         self.assertEqual(ml_db.display_name, "name 2")
-        self.assertEqual(ml_db.description, "desc 2")
+        self.assertEqual(ml_db.subject_prefix, "[prefix 2]")
 
 
     def test_thread_neighbors(self):

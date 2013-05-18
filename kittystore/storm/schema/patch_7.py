@@ -25,7 +25,7 @@ SQL = {
 
 
 def apply(store):
-    """Add the thread table"""
+    """Add the subject_prefix column and delete the description column"""
     dbtype = get_db_type(store)
     for statement in SQL[dbtype]:
         store.execute(statement)

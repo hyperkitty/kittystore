@@ -23,7 +23,10 @@ Various utility scripts.
 Author: Aurelien Bompard <abompard@fedoraproject.org>
 """
 
+from __future__ import absolute_import
 
+import importlib
+import sys
 from optparse import OptionParser
 
 from kittystore import get_store
@@ -35,17 +38,34 @@ from kittystore import get_store
 
 def updatedb():
     parser = OptionParser(usage="%prog -s store_url")
-    parser.add_option("-s", "--store", help="the URL to the store database")
+    parser.add_option("-s", "--store", metavar="URL",
+                      help="the URL to the store database")
+    parser.add_option("--settings",
+                      help="the Python path to a settings module")
+    parser.add_option("--pythonpath",
+                      help="a directory to add to the Python path")
     parser.add_option("-d", "--debug", action="store_true",
-            help="show SQL queries")
+                      help="show SQL queries")
     opts, args = parser.parse_args()
-    if opts.store is None:
-        parser.error("the store URL is missing (eg: "
-                     "sqlite:///kittystore.sqlite).")
+    if opts.store is not None:
+        store_url = opts.store
+    elif opts.settings is not None:
+        if opts.pythonpath is not None:
+            sys.path.append(opts.pythonpath)
+        try:
+            mod = importlib.import_module(opts.settings)
+        except ImportError as e:
+            parser.error("could not import settings '%s' (Is it on "
+                         "sys.path?): %s" % (opts.settings, e))
+        store_url = mod.KITTYSTORE_URL
+    else:
+        parser.error("you must either specify a store URL (eg: "
+                     "sqlite:///kittystore.sqlite) or a Django configuration "
+                     "module (Python path to the settings module)")
     if args:
         parser.error("no arguments allowed.")
     print 'Upgrading the database schema if necessary...'
-    store = get_store(opts.store, debug=opts.debug)
+    store = get_store(store_url, debug=opts.debug)
     version = list(store.db.execute(
                 "SELECT patch.version FROM patch "
                 "ORDER BY version DESC LIMIT 1"

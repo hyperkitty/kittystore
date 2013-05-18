@@ -12,6 +12,7 @@ from mailman.email.message import Message
 
 from kittystore.storm import get_storm_store
 from kittystore.storm.model import Email, Attachment, List
+from kittystore.utils import get_message_id_hash
 
 from kittystore.test import get_test_file, FakeList
 
@@ -92,6 +93,58 @@ class TestStormStore(unittest.TestCase):
         ml_db = self.store.db.find(List).one()
         self.assertEqual(ml_db.display_name, "name 2")
         self.assertEqual(ml_db.description, "desc 2")
+
+
+    def test_thread_neighbors(self):
+        ml = FakeList("example-list")
+        # Create 3 threads
+        msg_t1_1 = Message()
+        msg_t1_1["From"] = "dummy@example.com"
+        msg_t1_1["Message-ID"] = "<id1_1>"
+        msg_t1_1.set_payload("Dummy message")
+        self.store.add_to_list(ml, msg_t1_1)
+        msg_t2_1 = Message()
+        msg_t2_1["From"] = "dummy@example.com"
+        msg_t2_1["Message-ID"] = "<id2_1>"
+        msg_t2_1.set_payload("Dummy message")
+        self.store.add_to_list(ml, msg_t2_1)
+        msg_t3_1 = Message()
+        msg_t3_1["From"] = "dummy@example.com"
+        msg_t3_1["Message-ID"] = "<id3_1>"
+        msg_t3_1.set_payload("Dummy message")
+        self.store.add_to_list(ml, msg_t3_1)
+        # Check the neighbors
+        def check_neighbors(thread, expected_prev, expected_next):
+            thread_id = get_message_id_hash("<id%s_1>" % thread)
+            prev_th, next_th = self.store.get_thread_neighbors(
+                    "example-list", thread_id)
+            # convert to something I can compare
+            prev_th = prev_th and prev_th.thread_id
+            expected_prev = expected_prev and \
+                    get_message_id_hash("<id%s_1>" % expected_prev)
+            next_th = next_th and next_th.thread_id
+            expected_next = expected_next and \
+                    get_message_id_hash("<id%s_1>" % expected_next)
+            # compare
+            self.assertEqual(prev_th, expected_prev)
+            self.assertEqual(next_th, expected_next)
+        # Order should be: 1, 2, 3
+        check_neighbors(1, None, 2)
+        check_neighbors(2, 1, 3)
+        check_neighbors(3, 2, None)
+        # now add a new message in thread 1, which becomes the most recently
+        # active
+        msg_t1_2 = Message()
+        msg_t1_2["From"] = "dummy@example.com"
+        msg_t1_2["Message-ID"] = "<id1_2>"
+        msg_t1_2["In-Reply-To"] = "<id1_1>"
+        msg_t1_2.set_payload("Dummy message")
+        self.store.add_to_list(ml, msg_t1_2)
+        # Order should be: 2, 3, 1
+        check_neighbors(2, None, 3)
+        check_neighbors(3, 2, 1)
+        check_neighbors(1, 3, None)
+
 
     #def test_non_ascii_payload(self):
     #    """add_to_list must handle non-ascii messages"""

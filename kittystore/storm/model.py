@@ -216,6 +216,9 @@ class Thread(Storm):
     def __len__(self):
         return self.emails.count()
 
+    def replies_after(self, date):
+        return self.emails.find(Email.date > date)
+
     def __storm_pre_flush__(self):
         """Auto-set the active date from the last email in thread"""
         if self.date_active is not None:

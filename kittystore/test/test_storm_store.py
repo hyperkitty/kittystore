@@ -56,6 +56,22 @@ class TestStormStore(unittest.TestCase):
         stored_msg = self.store.db.find(Email).one()
         expected = datetime.datetime(2012, 11, 2, 16, 7, 54)
         self.assertEqual(stored_msg.date, expected)
+        self.assertEqual(stored_msg.timezone, 0)
+
+    def test_date_aware(self):
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg["Date"] = "Fri, 02 Nov 2012 16:07:54 +0100"
+        msg.set_payload("Dummy message")
+        try:
+            self.store.add_to_list(FakeList("example-list"), msg)
+        except IntegrityError, e:
+            self.fail(e)
+        stored_msg = self.store.db.find(Email).one()
+        expected = datetime.datetime(2012, 11, 2, 15, 7, 54)
+        self.assertEqual(stored_msg.date, expected)
+        self.assertEqual(stored_msg.timezone, 60)
 
     def test_attachment_insert_order(self):
         """Attachments must not be inserted in the DB before the email"""

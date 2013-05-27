@@ -120,7 +120,7 @@ class StormStore(object):
         msg_date = parsedate(message.get("Date"))
         if msg_date is None:
             # Absent or unparseable date
-            msg_date = datetime.datetime.now()
+            msg_date = datetime.datetime.utcnow()
         utcoffset = msg_date.utcoffset()
         if msg_date.tzinfo is not None:
             msg_date = msg_date.astimezone(tzutc()).replace(tzinfo=None)

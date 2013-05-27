@@ -35,7 +35,7 @@ class TestStormStore(unittest.TestCase):
         msg["From"] = "dummy@example.com"
         msg["Message-ID"] = "<dummy>"
         msg.set_payload("Dummy message")
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         try:
             self.store.add_to_list(FakeList("example-list"), msg)
         except IntegrityError, e:

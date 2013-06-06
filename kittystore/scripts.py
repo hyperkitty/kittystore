@@ -40,6 +40,8 @@ def updatedb():
     parser = OptionParser(usage="%prog -s store_url")
     parser.add_option("-s", "--store", metavar="URL",
                       help="the URL to the store database")
+    parser.add_option("-i", "--search-index", metavar="PATH",
+                      help="the path to the search index")
     parser.add_option("--settings",
                       help="the Python path to a settings module")
     parser.add_option("--pythonpath",
@@ -47,25 +49,30 @@ def updatedb():
     parser.add_option("-d", "--debug", action="store_true",
                       help="show SQL queries")
     opts, args = parser.parse_args()
-    if opts.store is not None:
-        store_url = opts.store
-    elif opts.settings is not None:
+    django_settings = None
+    if opts.settings is not None:
         if opts.pythonpath is not None:
             sys.path.append(opts.pythonpath)
         try:
-            mod = importlib.import_module(opts.settings)
+            django_settings = importlib.import_module(opts.settings)
         except ImportError as e:
             parser.error("could not import settings '%s' (Is it on "
                          "sys.path?): %s" % (opts.settings, e))
-        store_url = mod.KITTYSTORE_URL
+    if opts.store is not None:
+        store_url = opts.store
+    elif getattr(django_settings, "KITTYSTORE_URL", None) is not None:
+        store_url = django_settings.KITTYSTORE_URL
     else:
         parser.error("you must either specify a store URL (eg: "
                      "sqlite:///kittystore.sqlite) or a Django configuration "
                      "module (Python path to the settings module)")
+    if opts.search_index is None:
+        opts.search_index = getattr(django_settings, "KITTYSTORE_SEARCH_INDEX", None)
     if args:
         parser.error("no arguments allowed.")
-    print 'Upgrading the database schema if necessary...'
-    store = get_store(store_url, debug=opts.debug)
+    print 'Upgrading the database schema and populating ' \
+          'the search index if necessary...'
+    store = get_store(store_url, search=opts.search_index, debug=opts.debug)
     version = list(store.db.execute(
                 "SELECT patch.version FROM patch "
                 "ORDER BY version DESC LIMIT 1"

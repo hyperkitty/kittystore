@@ -92,6 +92,7 @@ class Email(Storm):
     full_email = Reference((list_name, message_id),
                      ("EmailFull.list_name", "EmailFull.message_id"))
     full = Proxy(full_email, "EmailFull.full")
+    mlist = Reference(list_name, "List.name")
 
     def __init__(self, list_name, message_id):
         self.list_name = unicode(list_name)

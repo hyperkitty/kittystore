@@ -12,6 +12,7 @@ from storm.schema.schema import Schema
 from .model import List, Email
 from . import schema
 from .store import StormStore
+from .search import SearchEngine
 
 
 class ThreadSafeStorePool(object):
@@ -35,7 +36,7 @@ class ThreadSafeStorePool(object):
             return self._local.store
 
 
-def create_store(url, debug):
+def create_store(url, search, debug):
     if debug:
         storm.tracer.debug(True, stream=sys.stdout)
     database = create_database(url)
@@ -43,11 +44,15 @@ def create_store(url, debug):
     store = Store(database)
     dbschema = Schema(schema.CREATES[dbtype], [], [], schema)
     dbschema.upgrade(store)
-    return StormStore(store, debug)
+    if search is not None:
+        search_index = SearchEngine(search)
+    else:
+        search_index = None
+    return StormStore(store, search_index, debug)
 
 
-def get_storm_store(url, debug=False):
+def get_storm_store(url, search=None, debug=False):
     # Thread safety is managed by the middleware
     #store_pool = ThreadSafeStorePool(url, debug)
     #return store_pool.get()
-    return create_store(url, debug)
+    return create_store(url, search, debug)

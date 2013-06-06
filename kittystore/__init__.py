@@ -18,7 +18,7 @@ license.
 __all__ = ("get_store", "MessageNotFound", )
 
 
-def get_store(url, debug=False):
+def get_store(url, search=None, debug=False):
     """Factory for a KittyStore subclass"""
     if url.startswith("mongo://"):
         raise NotImplementedError
@@ -27,7 +27,10 @@ def get_store(url, debug=False):
     #    return KittySAStore(url, debug)
     else:
         from kittystore.storm import get_storm_store
-        return get_storm_store(url, debug)
+        store = get_storm_store(url, search, debug)
+    if search is not None:
+        store.search_index.initialize_with(store)
+    return store
 
 
 class MessageNotFound(Exception):

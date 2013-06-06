@@ -40,7 +40,7 @@ class StormStore(object):
 
     implements(IMessageStore)
 
-    def __init__(self, db, debug=False):
+    def __init__(self, db, search_index=None, debug=False):
         """ Constructor.
         Create the session using the engine defined in the url.
 
@@ -49,6 +49,8 @@ class StormStore(object):
         """
         self.db = db
         self.debug = debug
+        self.search_index = search_index
+
 
     # IMessageStore methods
 
@@ -158,6 +160,9 @@ class StormStore(object):
         for attachment in attachments:
             self.add_attachment(list_name, msg_id, *attachment)
         self.flush()
+        # search indexing
+        if self.search_index is not None:
+            self.search_index.add(email)
         return email.message_id_hash
 
     def delete_message(self, message_id):
@@ -246,6 +251,25 @@ class StormStore(object):
                     Email.message_id == unicode(message_id)
                 )).one()
         return msg
+
+    def search(self, query, list_name=None, page=None, limit=10):
+        """ Returns a list of email containing the specified keyword in
+        their content.
+
+        :param query: the query string to execute.
+        :param list_name: name of the mailing list in which this email
+            should be searched. If None or not specified, all lists are
+            searched.
+        :param page: the page number to return. If None, don't paginate.
+        :param limit: the number of results per page.
+        """
+        if list_name is not None:
+            query += " list_name:%s" % list_name
+        results = self.search_index.search(query, page, limit)
+        results["results"] = [ self.get_message_by_id_from_list(
+                                    r["list_name"], r["message_id"])
+                               for r in results["results"] ]
+        return results
 
     def search_list_for_content(self, list_name, keyword):
         """ Returns a list of email containing the specified keyword in

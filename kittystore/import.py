@@ -33,7 +33,7 @@ from optparse import OptionParser
 from random import randint
 from email.utils import unquote
 
-from kittystore import get_store
+from kittystore.scripts import get_store_from_options, StoreFromOptionsError
 
 
 PREFIX_RE = re.compile("^\[([\w\s_-]+)\] ")
@@ -225,6 +225,12 @@ def parse_args():
     parser.add_option("-s", "--store", help="the URL to the store database")
     parser.add_option("-l", "--list-name", help="the fully-qualified list "
             "name (including the '@' symbol and the domain name")
+    parser.add_option("-i", "--search-index", metavar="PATH",
+                      help="the path to the search index")
+    parser.add_option("--settings",
+                      help="the Python path to a Django settings module")
+    parser.add_option("--pythonpath",
+                      help="a directory to add to the Python path")
     parser.add_option("-v", "--verbose", action="store_true",
             help="show more output")
     parser.add_option("-d", "--debug", action="store_true",
@@ -248,13 +254,16 @@ def parse_args():
     for mbfile in args:
         if not os.path.exists(mbfile):
             parser.error("No such mbox file: %s" % mbfile)
-    return opts, args
+    try:
+        store = get_store_from_options(opts)
+    except StoreFromOptionsError, e:
+        parser.error(e.args[0])
+    return store, opts, args
 
 
 def main():
-    opts, args = parse_args()
+    store, opts, args = parse_args()
     print 'Importing messages from %s to database...' % opts.list_name
-    store = get_store(opts.store, debug=opts.debug)
     mlist = DummyMailingList(opts.list_name)
     importer = DbImporter(mlist, store, opts)
     for mbfile in args:

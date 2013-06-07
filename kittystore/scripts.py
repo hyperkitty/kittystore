@@ -66,8 +66,6 @@ def get_store_from_options(opts):
                 "module (Python path to the settings module)")
     if opts.search_index is None:
         opts.search_index = getattr(django_settings, "KITTYSTORE_SEARCH_INDEX", None)
-    if args:
-        raise StoreFromOptionsError("no arguments allowed.")
     return get_store(store_url, search=opts.search_index, debug=opts.debug)
 
 
@@ -88,6 +86,8 @@ def updatedb():
     parser.add_option("-d", "--debug", action="store_true",
                       help="show SQL queries")
     opts, args = parser.parse_args()
+    if args:
+        parser.error("no arguments allowed.")
     print 'Upgrading the database schema and populating ' \
           'the search index if necessary...'
     try:

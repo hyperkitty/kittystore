@@ -241,9 +241,6 @@ def parse_args():
             help="do not skip duplicate emails (same Message-ID header), "
                  "import them with a different Message-ID")
     opts, args = parser.parse_args()
-    if opts.store is None:
-        parser.error("the store URL is missing (eg: "
-                     "sqlite:///kittystore.sqlite)")
     if opts.list_name is None:
         parser.error("the list name must be given on the command-line.")
     if not args:

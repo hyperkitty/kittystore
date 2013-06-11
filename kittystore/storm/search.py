@@ -83,7 +83,7 @@ class SearchEngine(object):
         else:
             writer.commit()
 
-    def search(self, query, page=None, limit=10):
+    def search(self, query, page=None, limit=10, sortedby=None, reverse=False):
         """
         TODO: Should the searcher be shared?
         http://pythonhosted.org/Whoosh/threads.html#concurrency
@@ -94,10 +94,13 @@ class SearchEngine(object):
         return_value = {"total": 0, "results": []}
         with self.index.searcher() as searcher:
             if page:
-                results = searcher.search_page(query, page, pagelen=limit)
+                results = searcher.search_page(
+                        query, page, pagelen=limit, sortedby=sortedby,
+                        reverse=reverse)
                 return_value["total"] = results.total
             else:
-                results = searcher.search(query, limit=limit)
+                results = searcher.search(
+                        query, limit=limit, sortedby=sortedby, reverse=reverse)
                 # http://pythonhosted.org/Whoosh/searching.html#results-object
                 if results.has_exact_length():
                     return_value["total"] = len(results)

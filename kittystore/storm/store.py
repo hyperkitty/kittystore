@@ -252,7 +252,8 @@ class StormStore(object):
                 )).one()
         return msg
 
-    def search(self, query, list_name=None, page=None, limit=10):
+    def search(self, query, list_name=None, page=None, limit=10,
+               sortedby=None, reverse=False):
         """ Returns a list of email containing the specified keyword in
         their content.
 
@@ -262,10 +263,14 @@ class StormStore(object):
             searched.
         :param page: the page number to return. If None, don't paginate.
         :param limit: the number of results per page.
+        :param sortedby: the field to sort by. If None or not specified, sort
+            by match score.
+        :param reverse: reverse the order of the results.
         """
         if list_name is not None:
             query += " list_name:%s" % list_name
-        results = self.search_index.search(query, page, limit)
+        results = self.search_index.search(
+                query, page, limit, sortedby=sortedby, reverse=reverse)
         results["results"] = [ self.get_message_by_id_from_list(
                                     r["list_name"], r["message_id"])
                                for r in results["results"] ]

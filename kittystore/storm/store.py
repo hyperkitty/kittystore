@@ -20,7 +20,7 @@ from email.utils import unquote
 from zope.interface import implements
 from mailman.interfaces.messages import IMessageStore
 from storm.locals import Desc
-from storm.expr import And, Or
+from storm.expr import And, Or, Count, Alias
 from dateutil.tz import tzutc
 
 from kittystore import MessageNotFound
@@ -486,6 +486,31 @@ class StormStore(object):
                     ).order_by(Email.archived_date
                     )[num:num+1].one()
         return result
+
+    def get_top_participants(self, list_name, start, end, limit=None):
+        """ Return all the participants between two given dates.
+
+        :param list_name: The name of the mailing list in which this email
+            should be searched.
+        :param start: A datetime object representing the starting date of
+            the interval to query.
+        :param end: A datetime object representing the ending date of
+            the interval to query.
+        :param limit: Limit the number of participants to return. If None or
+            not supplied, return them all.
+        :returns: The list of thread-starting messages.
+        """
+        number = Alias(Count(Email.sender_email), "number")
+        part = self.db.find(
+                (Email.sender_name, Email.sender_email, number),
+                And(
+                    Email.list_name == unicode(list_name),
+                    Email.date >= start,
+                    Email.date < end,
+                )).group_by(Email.sender_email, Email.sender_name).order_by(Desc(number))
+        if limit is not None:
+            part = part.config(limit=limit)
+        return list(part)
 
 
     # Attachments

@@ -14,7 +14,13 @@ CREATES = {
             list_name VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
             date_active DATETIME NOT NULL,
-            PRIMARY KEY (list_name, thread_id)
+            category_id INTEGER,
+            PRIMARY KEY (list_name, thread_id),
+            FOREIGN KEY (category_id) REFERENCES category(id)
+        );""", """
+        CREATE TABLE "category" (
+            id INTEGER NOT NULL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL
         );""", """
         CREATE TABLE "email" (
             list_name VARCHAR(255) NOT NULL,
@@ -63,6 +69,7 @@ CREATES = {
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
+        'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
         ],
 
     "postgres": [ """
@@ -76,8 +83,25 @@ CREATES = {
             list_name VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
             date_active TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-            PRIMARY KEY (list_name, thread_id)
+            category_id INTEGER,
+            PRIMARY KEY (list_name, thread_id),
+            FOREIGN KEY (category_id) REFERENCES category(id)
         );""", """
+        CREATE TABLE "category" (
+            id INTEGER NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            PRIMARY KEY (id)
+        );""", """
+        CREATE SEQUENCE category_id_seq
+            START WITH 1
+            INCREMENT BY 1
+            NO MAXVALUE
+            NO MINVALUE
+            CACHE 1
+        ;""",
+        "ALTER SEQUENCE category_id_seq OWNED BY category.id;",
+        "ALTER TABLE ONLY category ALTER COLUMN id SET DEFAULT nextval('category_id_seq'::regclass);",
+        """
         CREATE TABLE "email" (
             list_name VARCHAR(255) NOT NULL,
             message_id VARCHAR(255) NOT NULL,
@@ -125,6 +149,7 @@ CREATES = {
         'CREATE INDEX "ix_email_thread_id" ON "email" USING btree (thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" USING btree (thread_order);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" USING btree (date_active);',
+        'CREATE UNIQUE INDEX "ix_category_name" ON "category" USING btree (name);',
         ],
 
     "mysql": [ """
@@ -138,7 +163,14 @@ CREATES = {
             list_name VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
             date_active DATETIME NOT NULL,
-            PRIMARY KEY (list_name, thread_id)
+            category_id INTEGER,
+            PRIMARY KEY (list_name, thread_id),
+            FOREIGN KEY (category_id) REFERENCES category(id)
+        );""", """
+        CREATE TABLE `category` (
+            id INTEGER NOT NULL AUTO_INCREMENT,
+            name VARCHAR(255) NOT NULL,
+            PRIMARY KEY (id)
         );""", """
         CREATE TABLE `email` (
             list_name VARCHAR(255) NOT NULL,
@@ -187,6 +219,7 @@ CREATES = {
         'CREATE INDEX `ix_email_thread_id` ON `email` (thread_id);',
         'CREATE INDEX `ix_email_thread_order` ON `email` (thread_order);',
         'CREATE INDEX `ix_thread_date_active` ON `thread` (date_active);',
+        'CREATE UNIQUE INDEX `ix_category_name` ON `category` (name);',
         ],
 
 }

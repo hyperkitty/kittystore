@@ -30,7 +30,7 @@ from kittystore.scrub import Scrubber
 from kittystore.utils import get_ref_and_thread_id
 from kittystore.analysis import compute_thread_order_and_depth
 
-from .model import List, Email, Attachment, Thread, EmailFull
+from .model import List, Email, Attachment, Thread, EmailFull, Category
 
 
 class StormStore(object):
@@ -511,6 +511,12 @@ class StormStore(object):
         if limit is not None:
             part = part.config(limit=limit)
         return list(part)
+
+
+    def get_categories(self):
+        """ Return the list of available categories
+        """
+        return list(self.db.find(Category.name).order_by(Category.name))
 
 
     # Attachments

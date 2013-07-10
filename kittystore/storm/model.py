@@ -37,10 +37,6 @@ class List(Storm):
     # pylint: disable-msg=E0102
     """
     An archived mailing-list.
-
-    Not strictly necessary yet since the list name is used in the email table,
-    but at some point we'll want to store more information on lists in the
-    database.
     """
 
     __storm_table__ = "list"
@@ -150,6 +146,7 @@ class Thread(Storm):
     list_name = Unicode()
     thread_id = Unicode()
     date_active = DateTime()
+    category_id = Int()
     emails = ReferenceSet(
                 (list_name, thread_id),
                 (Email.list_name, Email.thread_id),
@@ -160,6 +157,7 @@ class Thread(Storm):
                 (Email.list_name, Email.thread_id),
                 order_by=Email.thread_order
              )
+    category_obj = Reference(category_id, "Category.id")
     _starting_email = None
 
     def __init__(self, list_name, thread_id, date_active=None):
@@ -220,6 +218,20 @@ class Thread(Storm):
     def replies_after(self, date):
         return self.emails.find(Email.date > date)
 
+    def _get_category(self):
+        if not self.category_obj:
+            return None
+        return self.category_obj.name
+    def _set_category(self, name):
+        if not name:
+            self.category_id = None
+            return
+        # XXX: this is VERY hackish
+        store = self.__storm_object_info__["store"]
+        category = store.find(Category, Category.name == name).one()
+        self.category_id = category.id
+    category = property(_get_category, _set_category)
+
     def __storm_pre_flush__(self):
         """Auto-set the active date from the last email in thread"""
         if self.date_active is not None:
@@ -230,3 +242,18 @@ class Thread(Storm):
             self.date_active = email_dates[0]
         else:
             self.date_active = datetime.datetime.now()
+
+
+class Category(Storm):
+    """
+    A thread category
+    """
+
+    __storm_table__ = "category"
+
+    id = Int(primary=True)
+    name = Unicode()
+    threads = ReferenceSet(id, Thread.category_id)
+
+    def __init__(self, name):
+        self.name = unicode(name)

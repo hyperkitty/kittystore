@@ -219,7 +219,7 @@ class Thread(Storm):
         return self.emails.find(Email.date > date)
 
     def _get_category(self):
-        if not self.category_obj:
+        if not self.category_id:
             return None
         return self.category_obj.name
     def _set_category(self, name):
@@ -229,6 +229,9 @@ class Thread(Storm):
         # XXX: this is VERY hackish
         store = self.__storm_object_info__["store"]
         category = store.find(Category, Category.name == name).one()
+        if category is None:
+            category = Category(name)
+            store.add(category)
         self.category_id = category.id
     category = property(_get_category, _set_category)
 

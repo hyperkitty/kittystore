@@ -232,6 +232,7 @@ class Thread(Storm):
         if category is None:
             category = Category(name)
             store.add(category)
+            store.flush()
         self.category_id = category.id
     category = property(_get_category, _set_category)
 

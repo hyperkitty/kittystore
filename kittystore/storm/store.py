@@ -165,6 +165,18 @@ class StormStore(object):
             self.search_index.add(email)
         return email.message_id_hash
 
+    def attach_to_thread(self, email, thread):
+        """Attach an email to an existing thread"""
+        if email.date <= thread.starting_email.date:
+            raise ValueError("Can't attach emails older than the first "
+                             "email in a thread")
+        email.thread_id = thread.thread_id
+        email.in_reply_to = thread.starting_email.message_id
+        if email.date > thread.date_active:
+            thread.date_active = email.date
+        compute_thread_order_and_depth(thread)
+        self.flush()
+
     def delete_message(self, message_id):
         """Remove the given message from the store.
 
@@ -466,6 +478,18 @@ class StormStore(object):
         except IndexError:
             prev_thread = None
         return (prev_thread, next_thread)
+
+    def delete_thread(self, list_name, thread_id):
+        """ Delete the specified thread.
+
+        :param list_name: The name of the mailing list containing this thread
+        :param thread_id: The thread_id as used in the web-pages. Used here to
+            uniquely identify the thread in the database.
+        """
+        self.db.find(Thread, And(
+                Thread.list_name == unicode(list_name),
+                Thread.thread_id == unicode(thread_id)
+                )).remove()
 
     def get_list(self, list_name):
         """ Return the list object for a mailing list name.

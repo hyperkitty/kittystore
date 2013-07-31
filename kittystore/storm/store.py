@@ -543,6 +543,33 @@ class StormStore(object):
         return list(self.db.find(Category.name).order_by(Category.name))
 
 
+    def get_first_post(self, list_name, email):
+        """ Returns a user's first post on a list """
+        result = self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.sender_email == unicode(email),
+                    )).order_by(Email.archived_date
+                    ).config(limit=1).one()
+        return result
+
+    def get_sender_name(self, email):
+        """ Returns a user's fullname when given his email """
+        result = self.db.find(Email.sender_name,
+                    Email.sender_email == unicode(email),
+                    ).config(distinct=True, limit=1)[0]
+        return result
+
+    def get_message_hashes_by_sender(self, email, list_name=None):
+        """ Returns a user's email hashes """
+        if list_name is None:
+            clause = (Email.sender_email == unicode(email))
+        else:
+            clause = And(Email.sender_email == unicode(email),
+                         Email.list_name == unicode(list_name))
+        result = self.db.find(Email.message_id_hash, clause)
+        return list(result)
+
+
     # Attachments
 
     def add_attachment(self, mlist, msg_id, counter, name, content_type,

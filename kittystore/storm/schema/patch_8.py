@@ -48,7 +48,7 @@ SQL = {
 
 
 def apply(store):
-    """Add the subject_prefix column and delete the description column"""
+    """Add the category table"""
     dbtype = get_db_type(store)
     for statement in SQL[dbtype]:
         store.execute(statement)

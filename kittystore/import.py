@@ -222,14 +222,11 @@ class DbImporter(object):
 def parse_args():
     usage = "%prog -s store_url -l list_name mbox_file [mbox_file ...]"
     parser = OptionParser(usage=usage)
-    parser.add_option("-s", "--store", help="the URL to the store database")
     parser.add_option("-l", "--list-name", help="the fully-qualified list "
             "name (including the '@' symbol and the domain name")
-    parser.add_option("-i", "--search-index", metavar="PATH",
-                      help="the path to the search index")
-    parser.add_option("--settings",
+    parser.add_option("-s", "--settings",
                       help="the Python path to a Django settings module")
-    parser.add_option("--pythonpath",
+    parser.add_option("-p", "--pythonpath",
                       help="a directory to add to the Python path")
     parser.add_option("-v", "--verbose", action="store_true",
             help="show more output")

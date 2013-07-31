@@ -40,7 +40,7 @@ class StormStore(object):
 
     implements(IMessageStore)
 
-    def __init__(self, db, search_index=None, debug=False):
+    def __init__(self, db, search_index, settings, debug=False):
         """ Constructor.
         Create the session using the engine defined in the url.
 
@@ -50,6 +50,7 @@ class StormStore(object):
         self.db = db
         self.debug = debug
         self.search_index = search_index
+        self.settings = settings
 
 
     # IMessageStore methods

@@ -14,13 +14,13 @@ from kittystore.storm import get_storm_store
 from kittystore.storm.model import Email, Attachment, List
 from kittystore.utils import get_message_id_hash
 
-from kittystore.test import get_test_file, FakeList
+from kittystore.test import get_test_file, FakeList, SettingsModule
 
 
 class TestStormStore(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store("sqlite:")
+        self.store = get_storm_store(SettingsModule())
 
     def tearDown(self):
         self.store.close()

@@ -12,7 +12,7 @@ from kittystore.storm import get_storm_store
 from kittystore.storm.model import Email, Thread
 from kittystore.analysis import compute_thread_order_and_depth
 
-from kittystore.test import FakeList
+from kittystore.test import FakeList, SettingsModule
 
 
 def make_fake_email(num=1, list_name="example-list", date=None):
@@ -33,7 +33,7 @@ def make_fake_email(num=1, list_name="example-list", date=None):
 class TestThreadOrderDepth(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store("sqlite:")
+        self.store = get_storm_store(SettingsModule())
 
     def tearDown(self):
         self.store.flush()

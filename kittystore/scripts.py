@@ -40,33 +40,19 @@ class StoreFromOptionsError(Exception): pass
 def get_store_from_options(opts):
     """
     Returns a Store instance from an options object. Known options are;
-    - "store": the store URL
-    - "search_index": the search index path
     - "settings": the Django settings module
     - "pythonpath": an additional Python path to import the Django settings
     """
-    django_settings = None
-    if opts.settings is not None:
-        if opts.pythonpath is not None:
-            sys.path.append(opts.pythonpath)
-        try:
-            django_settings = importlib.import_module(opts.settings)
-        except ImportError as e:
-            raise StoreFromOptionsError(
-                    "could not import settings '%s' (Is it on "
-                    "sys.path?): %s" % (opts.settings, e))
-    if opts.store is not None:
-        store_url = opts.store
-    elif getattr(django_settings, "KITTYSTORE_URL", None) is not None:
-        store_url = django_settings.KITTYSTORE_URL
-    else:
+    settings = None
+    if opts.pythonpath is not None:
+        sys.path.append(opts.pythonpath)
+    try:
+        settings = importlib.import_module(opts.settings)
+    except ImportError as e:
         raise StoreFromOptionsError(
-                "you must either specify a store URL (eg: "
-                "sqlite:///kittystore.sqlite) or a Django configuration "
-                "module (Python path to the settings module)")
-    if opts.search_index is None:
-        opts.search_index = getattr(django_settings, "KITTYSTORE_SEARCH_INDEX", None)
-    return get_store(store_url, search=opts.search_index, debug=opts.debug)
+                "could not import settings '%s' (Is it on "
+                "sys.path?): %s" % (opts.settings, e))
+    return get_store(settings, debug=opts.debug)
 
 
 #
@@ -74,14 +60,10 @@ def get_store_from_options(opts):
 #
 
 def updatedb():
-    parser = OptionParser(usage="%prog -s store_url")
-    parser.add_option("-s", "--store", metavar="URL",
-                      help="the URL to the store database")
-    parser.add_option("-i", "--search-index", metavar="PATH",
-                      help="the path to the search index")
-    parser.add_option("--settings",
-                      help="the Python path to a Django settings module")
-    parser.add_option("--pythonpath",
+    parser = OptionParser(usage="%prog -s settings_module")
+    parser.add_option("-s", "--settings",
+                      help="the Python path to a Django-like settings module")
+    parser.add_option("-p", "--pythonpath",
                       help="a directory to add to the Python path")
     parser.add_option("-d", "--debug", action="store_true",
                       help="show SQL queries")
@@ -92,7 +74,7 @@ def updatedb():
           'the search index if necessary...'
     try:
         store = get_store_from_options(opts)
-    except StoreFromOptionsError, e:
+    except (StoreFromOptionsError, AttributeError), e:
         parser.error(e.args[0])
     version = list(store.db.execute(
                 "SELECT patch.version FROM patch "

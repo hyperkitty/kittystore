@@ -36,23 +36,25 @@ class ThreadSafeStorePool(object):
             return self._local.store
 
 
-def create_store(url, search, debug):
+def create_store(settings, debug):
     if debug:
         storm.tracer.debug(True, stream=sys.stdout)
+    url = settings.KITTYSTORE_URL
     database = create_database(url)
     dbtype = url.partition(":")[0]
     store = Store(database)
     dbschema = Schema(schema.CREATES[dbtype], [], [], schema)
     dbschema.upgrade(store)
+    search = settings.KITTYSTORE_SEARCH_INDEX
     if search is not None:
         search_index = SearchEngine(search)
     else:
         search_index = None
-    return StormStore(store, search_index, debug)
+    return StormStore(store, search_index, settings, debug)
 
 
-def get_storm_store(url, search=None, debug=False):
+def get_storm_store(settings, debug=False):
     # Thread safety is managed by the middleware
     #store_pool = ThreadSafeStorePool(url, debug)
     #return store_pool.get()
-    return create_store(url, search, debug)
+    return create_store(settings, debug)

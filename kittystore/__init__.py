@@ -18,17 +18,25 @@ license.
 __all__ = ("get_store", "MessageNotFound", )
 
 
-def get_store(url, search=None, debug=False):
+def get_store(settings, debug=None):
     """Factory for a KittyStore subclass"""
-    if url.startswith("mongo://"):
+    required_keys = ("KITTYSTORE_URL", "KITTYSTORE_SEARCH_INDEX")
+    for req_key in required_keys:
+        try:
+            getattr(settings, req_key)
+        except AttributeError:
+            raise AttributeError("The settings file is missing the \"%s\" key" % req_key)
+    if debug is None:
+        debug = getattr(settings, "KITTYSTORE_DEBUG", False)
+    if settings.KITTYSTORE_URL.startswith("mongo://"):
         raise NotImplementedError
     #else:
     #    from kittystore.sa import KittySAStore
     #    return KittySAStore(url, debug)
     else:
         from kittystore.storm import get_storm_store
-        store = get_storm_store(url, search, debug)
-    if search is not None:
+        store = get_storm_store(settings, debug)
+    if settings.KITTYSTORE_SEARCH_INDEX is not None:
         store.search_index.initialize_with(store)
     return store
 

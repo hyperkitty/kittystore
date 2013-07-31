@@ -10,13 +10,13 @@ from mailman.email.message import Message
 from kittystore.storm import get_storm_store
 from kittystore.storm.model import Email, Thread
 
-from kittystore.test import get_test_file, FakeList
+from kittystore.test import get_test_file, FakeList, SettingsModule
 
 
 class TestStormModel(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store("sqlite:")
+        self.store = get_storm_store(SettingsModule())
         #self.store = get_storm_store("postgres://kittystore:kittystore@localhost/kittystore_test", True)
         #self.store = get_storm_store("mysql://kittystore:kittystore@localhost/kittystore_test", True)
 

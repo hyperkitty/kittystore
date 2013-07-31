@@ -7,13 +7,13 @@ from mailman.email.message import Message
 
 from kittystore.storm import get_storm_store
 
-from kittystore.test import FakeList
+from kittystore.test import FakeList, SettingsModule
 
 
 class TestStormStoreFetch(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store("sqlite:")
+        self.store = get_storm_store(SettingsModule())
         self.listname, self.m_hash = self.add_fetch_data()
 
     def tearDown(self):

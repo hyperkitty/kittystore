@@ -16,12 +16,14 @@ from __future__ import absolute_import
 
 import datetime
 from email.utils import unquote
+from urllib2 import HTTPError
 
 from zope.interface import implements
 from mailman.interfaces.messages import IMessageStore
 from storm.locals import Desc
 from storm.expr import And, Or, Count, Alias
 from dateutil.tz import tzutc
+import mailmanclient
 
 from kittystore import MessageNotFound
 from kittystore.utils import parseaddr, parsedate
@@ -30,7 +32,8 @@ from kittystore.scrub import Scrubber
 from kittystore.utils import get_ref_and_thread_id
 from kittystore.analysis import compute_thread_order_and_depth
 
-from .model import List, Email, Attachment, Thread, EmailFull, Category
+from .model import (List, Email, Attachment, Thread, EmailFull, Category,
+                    UserAddress)
 
 
 class StormStore(object):
@@ -138,6 +141,23 @@ class StormStore(object):
         scrubber = Scrubber(list_name, message)
         # warning: scrubbing modifies the msg in-place
         email.content, attachments = scrubber.scrub()
+
+        # get the Mailman user
+        try:
+            mm_client = mailmanclient.Client('%s/3.0' %
+                            self.settings.MAILMAN_REST_SERVER,
+                            self.settings.MAILMAN_API_USER,
+                            self.settings.MAILMAN_API_PASS)
+            mm_user = mm_client.get_user(email.sender_email)
+        except (HTTPError, mailmanclient.MailmanConnectionError), e:
+            if self.debug:
+                print "Can't get the user from Mailman: %s" % e
+        else:
+            user_already_there = self.db.find(UserAddress,
+                    address=email.sender_email).count()
+            if not user_already_there:
+                user = UserAddress(mm_user.user_id, email.sender_email)
+                self.db.add(user)
 
         #category = 'Question' # TODO: enum + i18n ?
         #if ('agenda' in message.get('Subject', '').lower() or

@@ -61,6 +61,11 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE "user_address" (
+            user_id VARCHAR(255) NOT NULL,
+            address VARCHAR(255) NOT NULL,
+            PRIMARY KEY (user_id, address)
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
@@ -71,6 +76,8 @@ CREATES = {
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
+        'CREATE INDEX "ix_user_address_user_id" ON "user_address" (user_id);',
+        'CREATE UNIQUE INDEX "ix_user_address_address" ON "user_address" (address);',
         ],
 
     "postgres": [ """
@@ -142,6 +149,11 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE "user_address" (
+            user_id VARCHAR(255) NOT NULL,
+            address VARCHAR(255) NOT NULL,
+            PRIMARY KEY (user_id, address)
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" USING btree (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" USING btree (date);',
@@ -152,6 +164,8 @@ CREATES = {
         'CREATE INDEX "ix_email_thread_order" ON "email" USING btree (thread_order);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" USING btree (date_active);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" USING btree (name);',
+        'CREATE INDEX "ix_user_address_user_id" ON "user_address" USING btree (user_id);',
+        'CREATE UNIQUE INDEX "ix_user_address_address" ON "user_address" USING btree (address);',
         ],
 
     "mysql": [ """
@@ -213,6 +227,11 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE `user_address` (
+            user_id VARCHAR(255) NOT NULL,
+            address VARCHAR(255) NOT NULL,
+            PRIMARY KEY (user_id, address)
         );""",
         'CREATE INDEX `ix_email_list_name` ON `email` (list_name);',
         'CREATE INDEX `ix_email_date` ON `email` (date);',
@@ -223,6 +242,8 @@ CREATES = {
         'CREATE INDEX `ix_email_thread_order` ON `email` (thread_order);',
         'CREATE INDEX `ix_thread_date_active` ON `thread` (date_active);',
         'CREATE UNIQUE INDEX `ix_category_name` ON `category` (name);',
+        'CREATE INDEX `ix_user_address_user_id` ON `user_address` (user_id);',
+        'CREATE UNIQUE INDEX `ix_user_address_address` ON `user_address` (address);',
         ],
 
 }

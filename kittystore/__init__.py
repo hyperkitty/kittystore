@@ -20,7 +20,9 @@ __all__ = ("get_store", "MessageNotFound", )
 
 def get_store(settings, debug=None):
     """Factory for a KittyStore subclass"""
-    required_keys = ("KITTYSTORE_URL", "KITTYSTORE_SEARCH_INDEX")
+    required_keys = ("KITTYSTORE_URL", "KITTYSTORE_SEARCH_INDEX",
+                     "MAILMAN_REST_SERVER", "MAILMAN_API_USER",
+                     "MAILMAN_API_PASS")
     for req_key in required_keys:
         try:
             getattr(settings, req_key)

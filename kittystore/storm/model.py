@@ -261,3 +261,20 @@ class Category(Storm):
 
     def __init__(self, name):
         self.name = unicode(name)
+
+
+class UserAddress(Storm):
+    """
+    The link between an email address and the Mailman user UUID.
+    """
+    __storm_table__ = "user_address"
+    __storm_primary__ = "user_id", "address"
+
+    user_id = Unicode()
+    address = Unicode()
+    emails = ReferenceSet(address, Email.sender_email,
+                          order_by=Email.date)
+
+    def __init__(self, user_id, address):
+        self.user_id = unicode(user_id)
+        self.address = unicode(address)

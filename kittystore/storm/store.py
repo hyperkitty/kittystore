@@ -142,22 +142,8 @@ class StormStore(object):
         # warning: scrubbing modifies the msg in-place
         email.content, attachments = scrubber.scrub()
 
-        # get the Mailman user
-        try:
-            mm_client = mailmanclient.Client('%s/3.0' %
-                            self.settings.MAILMAN_REST_SERVER,
-                            self.settings.MAILMAN_API_USER,
-                            self.settings.MAILMAN_API_PASS)
-            mm_user = mm_client.get_user(email.sender_email)
-        except (HTTPError, mailmanclient.MailmanConnectionError), e:
-            if self.debug:
-                print "Can't get the user from Mailman: %s" % e
-        else:
-            user_already_there = self.db.find(UserAddress,
-                    address=email.sender_email).count()
-            if not user_already_there:
-                user = UserAddress(mm_user.user_id, email.sender_email)
-                self.db.add(user)
+        # store the Mailman user
+        self._store_mailman_user(email.sender_email)
 
         #category = 'Question' # TODO: enum + i18n ?
         #if ('agenda' in message.get('Subject', '').lower() or
@@ -185,6 +171,24 @@ class StormStore(object):
         if self.search_index is not None:
             self.search_index.add(email)
         return email.message_id_hash
+
+    def _store_mailman_user(self, address):
+        try:
+            mm_client = mailmanclient.Client('%s/3.0' %
+                            self.settings.MAILMAN_REST_SERVER,
+                            self.settings.MAILMAN_API_USER,
+                            self.settings.MAILMAN_API_PASS)
+            mm_user = mm_client.get_user(address)
+        except (HTTPError, mailmanclient.MailmanConnectionError), e:
+            if self.debug:
+                print "Can't get the user from Mailman: %s" % e
+        else:
+            user_already_there = self.db.find(UserAddress,
+                                              address=address).count()
+            if not user_already_there:
+                user = UserAddress(mm_user.user_id, address)
+                self.db.add(user)
+
 
     def attach_to_thread(self, email, thread):
         """Attach an email to an existing thread"""
@@ -564,28 +568,32 @@ class StormStore(object):
         return list(self.db.find(Category.name).order_by(Category.name))
 
 
-    def get_first_post(self, list_name, email):
+    def get_first_post(self, list_name, user_id):
         """ Returns a user's first post on a list """
         result = self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
-                    Email.sender_email == unicode(email),
+                    Email.sender_email == UserAddress.address,
+                    UserAddress.user_id == unicode(user_id),
                     )).order_by(Email.archived_date
                     ).config(limit=1).one()
         return result
 
-    def get_sender_name(self, email):
-        """ Returns a user's fullname when given his email """
-        result = self.db.find(Email.sender_name,
-                    Email.sender_email == unicode(email),
-                    ).config(distinct=True, limit=1)[0]
+    def get_sender_name(self, user_id):
+        """ Returns a user's fullname when given his user_id """
+        result = self.db.find(Email.sender_name, And(
+                    Email.sender_email == UserAddress.address,
+                    UserAddress.user_id == unicode(user_id),
+                    )).config(limit=1).one()
         return result
 
-    def get_message_hashes_by_sender(self, email, list_name=None):
+    def get_message_hashes_by_user_id(self, user_id, list_name=None):
         """ Returns a user's email hashes """
         if list_name is None:
-            clause = (Email.sender_email == unicode(email))
+            clause = And(Email.sender_email == UserAddress.address,
+                         UserAddress.user_id == unicode(user_id))
         else:
-            clause = And(Email.sender_email == unicode(email),
+            clause = And(Email.sender_email == UserAddress.address,
+                         UserAddress.user_id == unicode(user_id),
                          Email.list_name == unicode(list_name))
         result = self.db.find(Email.message_id_hash, clause)
         return list(result)

@@ -82,6 +82,17 @@ def updatedb():
                 ))[0][0]
     print "Done, the current schema version is %d." % version
 
+    ## More complex post-update actions:
+
+    # Fill in the user_id from Mailman
+    from kittystore.storm.model import UserAddress, Email
+    if store.db.find(UserAddress).count() == 0:
+        for address in store.db.find(Email.sender_email
+                ).config(distinct=True):
+            store._store_mailman_user(address)
+        store.commit()
+
+
 
 #
 # Mailman 2 archives downloader

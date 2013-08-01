@@ -32,8 +32,7 @@ from kittystore.scrub import Scrubber
 from kittystore.utils import get_ref_and_thread_id
 from kittystore.analysis import compute_thread_order_and_depth
 
-from .model import (List, Email, Attachment, Thread, EmailFull, Category,
-                    UserAddress)
+from .model import List, Email, Attachment, Thread, EmailFull, Category
 
 
 class StormStore(object):
@@ -143,7 +142,7 @@ class StormStore(object):
         email.content, attachments = scrubber.scrub()
 
         # store the Mailman user
-        self._store_mailman_user(email.sender_email)
+        email.user_id = self._store_mailman_user(email.sender_email)
 
         #category = 'Question' # TODO: enum + i18n ?
         #if ('agenda' in message.get('Subject', '').lower() or
@@ -183,11 +182,7 @@ class StormStore(object):
             if self.debug:
                 print "Can't get the user from Mailman: %s" % e
         else:
-            user_already_there = self.db.find(UserAddress,
-                                              address=address).count()
-            if not user_already_there:
-                user = UserAddress(mm_user.user_id, address)
-                self.db.add(user)
+            return unicode(mm_user.user_id)
 
 
     def attach_to_thread(self, email, thread):
@@ -572,28 +567,24 @@ class StormStore(object):
         """ Returns a user's first post on a list """
         result = self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
-                    Email.sender_email == UserAddress.address,
-                    UserAddress.user_id == unicode(user_id),
+                    Email.user_id == unicode(user_id),
                     )).order_by(Email.archived_date
                     ).config(limit=1).one()
         return result
 
     def get_sender_name(self, user_id):
         """ Returns a user's fullname when given his user_id """
-        result = self.db.find(Email.sender_name, And(
-                    Email.sender_email == UserAddress.address,
-                    UserAddress.user_id == unicode(user_id),
-                    )).config(limit=1).one()
+        result = self.db.find(Email.sender_name,
+                              Email.user_id == unicode(user_id)
+                    ).config(limit=1).one()
         return result
 
     def get_message_hashes_by_user_id(self, user_id, list_name=None):
         """ Returns a user's email hashes """
         if list_name is None:
-            clause = And(Email.sender_email == UserAddress.address,
-                         UserAddress.user_id == unicode(user_id))
+            clause = Email.user_id == unicode(user_id)
         else:
-            clause = And(Email.sender_email == UserAddress.address,
-                         UserAddress.user_id == unicode(user_id),
+            clause = And(Email.user_id == unicode(user_id),
                          Email.list_name == unicode(list_name))
         result = self.db.find(Email.message_id_hash, clause)
         return list(result)

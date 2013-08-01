@@ -32,7 +32,7 @@ def email_to_search_doc(email):
             "list_name": email.list_name,
             "message_id": email.message_id,
             "sender": u"%s %s" % (email.sender_name, email.sender_email),
-            "user_id": email.user_id or "",
+            "user_id": email.user_id,
             "subject": email.subject,
             "content": email.content,
             "date": email.date, # UTC
@@ -147,7 +147,7 @@ class SearchEngine(object):
 
     def upgrade(self, store):
         """Upgrade the schema"""
-        if "user_id" not in self.index.schema or True:
+        if "user_id" not in self.index.schema:
             print "Rebuilding the search index to include the new user_id field..."
             shutil.rmtree(self.location)
             self._index = None

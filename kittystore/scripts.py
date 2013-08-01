@@ -85,12 +85,24 @@ def updatedb():
     ## More complex post-update actions:
 
     # Fill in the user_id from Mailman
-    from kittystore.storm.model import UserAddress, Email
-    if store.db.find(UserAddress).count() == 0:
-        for address in store.db.find(Email.sender_email
-                ).config(distinct=True):
-            store._store_mailman_user(address)
+    from kittystore.storm.model import Email
+    user_ids = store.db.find(Email.user_id).config(distinct=True)
+    if user_ids.count() <= 1 and user_ids.one() is None:
+        print "Updating user_id fields from Mailman, this can take some time..."
+        emails = store.db.find(Email)
+        emails_total = emails.count()
+        user_id_cache = {} # speed up the lookup process
+        for num, email in enumerate(emails):
+            if email.sender_email in user_id_cache:
+                email.user_id = user_id_cache[email.sender_email]
+            else:
+                email.user_id = store._store_mailman_user(email.sender_email)
+                user_id_cache[email.sender_email] = email.user_id
+            if (num+1) % 10 == 0:
+                sys.stdout.write("\r%s/%s" % (num+1, emails_total))
+                sys.stdout.flush()
         store.commit()
+        print "  ...done!"
 
 
 

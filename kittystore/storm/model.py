@@ -63,6 +63,7 @@ class Email(Storm):
     message_id = Unicode()
     sender_name = Unicode()
     sender_email = Unicode()
+    user_id = Unicode()
     subject = Unicode()
     content = Unicode()
     date = DateTime()
@@ -89,8 +90,6 @@ class Email(Storm):
                      ("EmailFull.list_name", "EmailFull.message_id"))
     full = Proxy(full_email, "EmailFull.full")
     mlist = Reference(list_name, "List.name")
-    _user_address = Reference(sender_email, "UserAddress.address")
-    user_id = Proxy(_user_address, "UserAddress.user_id")
 
     def __init__(self, list_name, message_id):
         self.list_name = unicode(list_name)
@@ -263,20 +262,3 @@ class Category(Storm):
 
     def __init__(self, name):
         self.name = unicode(name)
-
-
-class UserAddress(Storm):
-    """
-    The link between an email address and the Mailman user UUID.
-    """
-    __storm_table__ = "user_address"
-    __storm_primary__ = "user_id", "address"
-
-    user_id = Unicode()
-    address = Unicode()
-    emails = ReferenceSet(address, Email.sender_email,
-                          order_by=Email.date)
-
-    def __init__(self, user_id, address):
-        self.user_id = unicode(user_id)
-        self.address = unicode(address)

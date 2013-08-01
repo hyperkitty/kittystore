@@ -27,6 +27,7 @@ CREATES = {
             message_id VARCHAR(255) NOT NULL,
             sender_name VARCHAR(255) NOT NULL,
             sender_email VARCHAR(255) NOT NULL,
+            user_id VARCHAR(255),
             subject TEXT NOT NULL,
             content TEXT NOT NULL,
             date DATETIME NOT NULL,
@@ -61,23 +62,17 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
-        );""", """
-        CREATE TABLE "user_address" (
-            user_id VARCHAR(255) NOT NULL,
-            address VARCHAR(255) NOT NULL,
-            PRIMARY KEY (user_id, address)
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
         'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" (list_name, message_id_hash);',
         'CREATE INDEX "ix_email_sender_email" ON "email" (sender_email);',
+        'CREATE INDEX "ix_email_user_id" ON "email" (user_id);',
         'CREATE INDEX "ix_email_subject" ON "email" (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
-        'CREATE INDEX "ix_user_address_user_id" ON "user_address" (user_id);',
-        'CREATE UNIQUE INDEX "ix_user_address_address" ON "user_address" (address);',
         ],
 
     "postgres": [ """
@@ -115,6 +110,7 @@ CREATES = {
             message_id VARCHAR(255) NOT NULL,
             sender_name VARCHAR(255) NOT NULL,
             sender_email VARCHAR(255) NOT NULL,
+            user_id VARCHAR(255),
             subject TEXT NOT NULL,
             content TEXT NOT NULL,
             date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
@@ -149,23 +145,17 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
-        );""", """
-        CREATE TABLE "user_address" (
-            user_id VARCHAR(255) NOT NULL,
-            address VARCHAR(255) NOT NULL,
-            PRIMARY KEY (user_id, address)
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" USING btree (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" USING btree (date);',
         'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" USING btree (list_name, message_id_hash);',
         'CREATE INDEX "ix_email_sender_email" ON "email" USING btree (sender_email);',
+        'CREATE INDEX "ix_email_user_id" ON "email" USING btree (user_id);',
         'CREATE INDEX "ix_email_subject" ON "email" USING btree (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" USING btree (thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" USING btree (thread_order);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" USING btree (date_active);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" USING btree (name);',
-        'CREATE INDEX "ix_user_address_user_id" ON "user_address" USING btree (user_id);',
-        'CREATE UNIQUE INDEX "ix_user_address_address" ON "user_address" USING btree (address);',
         ],
 
     "mysql": [ """
@@ -193,6 +183,7 @@ CREATES = {
             message_id VARCHAR(255) NOT NULL,
             sender_name VARCHAR(255) NOT NULL COLLATE utf8_general_ci,
             sender_email VARCHAR(255) NOT NULL,
+            user_id VARCHAR(255),
             subject TEXT NOT NULL COLLATE utf8_general_ci,
             content TEXT NOT NULL COLLATE utf8_general_ci,
             date DATETIME NOT NULL,
@@ -227,23 +218,17 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
-        );""", """
-        CREATE TABLE `user_address` (
-            user_id VARCHAR(255) NOT NULL,
-            address VARCHAR(255) NOT NULL,
-            PRIMARY KEY (user_id, address)
         );""",
         'CREATE INDEX `ix_email_list_name` ON `email` (list_name);',
         'CREATE INDEX `ix_email_date` ON `email` (date);',
         'CREATE UNIQUE INDEX `ix_email_list_name_message_id_hash` ON `email` (list_name, message_id_hash);',
         'CREATE INDEX `ix_email_sender_email` ON `email` (sender_email(255));',
+        'CREATE INDEX `ix_email_user_id` ON `email` (user_id(255));',
         'CREATE INDEX `ix_email_subject` ON `email` (subject(255));',
         'CREATE INDEX `ix_email_thread_id` ON `email` (thread_id);',
         'CREATE INDEX `ix_email_thread_order` ON `email` (thread_order);',
         'CREATE INDEX `ix_thread_date_active` ON `thread` (date_active);',
         'CREATE UNIQUE INDEX `ix_category_name` ON `category` (name);',
-        'CREATE INDEX `ix_user_address_user_id` ON `user_address` (user_id);',
-        'CREATE UNIQUE INDEX `ix_user_address_address` ON `user_address` (address);',
         ],
 
 }

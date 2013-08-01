@@ -6,32 +6,17 @@ from . import get_db_type
 
 
 SQL = {
-    "sqlite": ["""
-        CREATE TABLE "user_address" (
-            user_id VARCHAR(255) NOT NULL,
-            address VARCHAR(255) NOT NULL,
-            PRIMARY KEY (user_id, address)
-        );""",
-        'CREATE INDEX "ix_user_address_user_id" ON "user_address" (user_id);',
-        'CREATE UNIQUE INDEX "ix_user_address_address" ON "user_address" (address);',
+    "sqlite": [
+        'ALTER TABLE "email" ADD COLUMN user_id VARCHAR(255);',
+        'CREATE INDEX "ix_email_user_id" ON "email" (user_id);',
         ],
-    "postgres": ["""
-        CREATE TABLE "user_address" (
-            user_id VARCHAR(255) NOT NULL,
-            address VARCHAR(255) NOT NULL,
-            PRIMARY KEY (user_id, address)
-        );""",
-        'CREATE INDEX "ix_user_address_user_id" ON "user_address" USING btree (user_id);',
-        'CREATE UNIQUE INDEX "ix_user_address_address" ON "user_address" USING btree (address);',
+    "postgres": [
+        'ALTER TABLE "email" ADD COLUMN user_id VARCHAR(255);',
+        'CREATE INDEX "ix_email_user_id" ON "email" USING btree (user_id);',
         ],
-    "mysql": ["""
-        CREATE TABLE `user_address` (
-            user_id VARCHAR(255) NOT NULL,
-            address VARCHAR(255) NOT NULL,
-            PRIMARY KEY (user_id, address)
-        );""",
-        'CREATE INDEX `ix_user_address_user_id` ON `user_address` (user_id);',
-        'CREATE UNIQUE INDEX `ix_user_address_address` ON `user_address` (address);',
+    "mysql": [
+        'ALTER TABLE `email` ADD COLUMN user_id VARCHAR(255);',
+        'CREATE INDEX `ix_email_user_id` ON `email` (user_id(255));',
         ],
     }
 

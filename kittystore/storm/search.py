@@ -15,6 +15,7 @@ license.
 from __future__ import absolute_import
 
 import os
+import shutil
 
 from whoosh.index import create_in, exists_in, open_dir
 from whoosh.fields import Schema, ID, TEXT, DATETIME, KEYWORD
@@ -31,6 +32,7 @@ def email_to_search_doc(email):
             "list_name": email.list_name,
             "message_id": email.message_id,
             "sender": u"%s %s" % (email.sender_name, email.sender_email),
+            "user_id": email.user_id or "",
             "subject": email.subject,
             "content": email.content,
             "date": email.date, # UTC
@@ -53,6 +55,7 @@ class SearchEngine(object):
                 list_name=ID(stored=True),
                 message_id=ID(stored=True),
                 sender=TEXT(field_boost=1.5),
+                user_id=TEXT,
                 subject=TEXT(field_boost=2.0, analyzer=stem_ana),
                 content=TEXT(analyzer=stem_ana),
                 date=DATETIME(),
@@ -141,3 +144,11 @@ class SearchEngine(object):
             return # index already exists
         messages = store.db.find(Email).order_by(Email.archived_date)
         self.add_batch(messages)
+
+    def upgrade(self, store):
+        """Upgrade the schema"""
+        if "user_id" not in self.index.schema or True:
+            print "Rebuilding the search index to include the new user_id field..."
+            shutil.rmtree(self.location)
+            self._index = None
+            self.initialize_with(store)

@@ -40,6 +40,7 @@ def get_store(settings, debug=None):
         store = get_storm_store(settings, debug)
     if settings.KITTYSTORE_SEARCH_INDEX is not None:
         store.search_index.initialize_with(store)
+        store.search_index.upgrade(store)
     return store
 
 

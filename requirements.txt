@@ -1,7 +1,8 @@
 mailman>=3.0.0b2
 zope.interface
 storm
-python-dateutil < 2.0 # 2.0+ is for Python 3
+# python-dateutil 2.0+ is for Python 3
+python-dateutil < 2.0
 mock
 networkx
 Whoosh

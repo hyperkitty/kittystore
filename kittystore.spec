@@ -1,14 +1,14 @@
 %global pypi_name KittyStore
-%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+%global prerel 1
 
 Name:           kittystore
-Version:        0.1.6
-Release:        1%{?dist}
+Version:        0.1.7
+Release:        %{?prerel:0.}1%{?dist}
 Summary:        A storage engine for GNU Mailman v3 archives
 
 License:        GPLv3
 URL:            https://fedorahosted.org/hyperkitty/
-Source0:        http://pypi.python.org/packages/source/K/%{pypi_name}/%{pypi_name}-%{version}.tar.gz
+Source0:        http://pypi.python.org/packages/source/K/%{pypi_name}/%{pypi_name}-%{version}%{?prerel:dev}.tar.gz
 
 BuildArch:      noarch
 BuildRequires:  python-devel
@@ -43,7 +43,7 @@ https://github.com/hyperkitty/kittystore
 
 
 %prep
-%setup -q -n %{pypi_name}-%{version}
+%setup -q -n %{pypi_name}-%{version}%{?prerel:dev}
 # Remove bundled egg-info
 rm -rf %{pypi_name}.egg-info
 
@@ -64,7 +64,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc README.rst COPYING.txt AUTHORS.txt
 %{_bindir}/kittystore-*
 %{python_sitelib}/kittystore
-%{python_sitelib}/%{pypi_name}-%{version}-py?.?.egg-info
+%{python_sitelib}/%{pypi_name}-%{version}%{?prerel:dev}-py?.?.egg-info
 
 
 %changelog

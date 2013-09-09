@@ -10,6 +10,10 @@ CREATES = {
             subject_prefix TEXT,
             PRIMARY KEY (name)
         );""", """
+        CREATE TABLE "category" (
+            id INTEGER NOT NULL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL
+        );""", """
         CREATE TABLE "thread" (
             list_name VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
@@ -17,10 +21,6 @@ CREATES = {
             category_id INTEGER,
             PRIMARY KEY (list_name, thread_id),
             FOREIGN KEY (category_id) REFERENCES category(id)
-        );""", """
-        CREATE TABLE "category" (
-            id INTEGER NOT NULL PRIMARY KEY,
-            name VARCHAR(255) NOT NULL
         );""", """
         CREATE TABLE "email" (
             list_name VARCHAR(255) NOT NULL,
@@ -82,14 +82,6 @@ CREATES = {
             subject_prefix TEXT,
             PRIMARY KEY (name)
         );""", """
-        CREATE TABLE "thread" (
-            list_name VARCHAR(255) NOT NULL,
-            thread_id VARCHAR(255) NOT NULL,
-            date_active TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-            category_id INTEGER,
-            PRIMARY KEY (list_name, thread_id),
-            FOREIGN KEY (category_id) REFERENCES category(id)
-        );""", """
         CREATE TABLE "category" (
             id INTEGER NOT NULL,
             name VARCHAR(255) NOT NULL,
@@ -105,6 +97,14 @@ CREATES = {
         "ALTER SEQUENCE category_id_seq OWNED BY category.id;",
         "ALTER TABLE ONLY category ALTER COLUMN id SET DEFAULT nextval('category_id_seq'::regclass);",
         """
+        CREATE TABLE "thread" (
+            list_name VARCHAR(255) NOT NULL,
+            thread_id VARCHAR(255) NOT NULL,
+            date_active TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+            category_id INTEGER,
+            PRIMARY KEY (list_name, thread_id),
+            FOREIGN KEY (category_id) REFERENCES category(id)
+        );""", """
         CREATE TABLE "email" (
             list_name VARCHAR(255) NOT NULL,
             message_id VARCHAR(255) NOT NULL,
@@ -165,6 +165,11 @@ CREATES = {
             subject_prefix TEXT,
             PRIMARY KEY (name)
         );""", """
+        CREATE TABLE `category` (
+            id INTEGER NOT NULL AUTO_INCREMENT,
+            name VARCHAR(255) NOT NULL,
+            PRIMARY KEY (id)
+        );""", """
         CREATE TABLE `thread` (
             list_name VARCHAR(255) NOT NULL,
             thread_id VARCHAR(255) NOT NULL,
@@ -172,11 +177,6 @@ CREATES = {
             category_id INTEGER,
             PRIMARY KEY (list_name, thread_id),
             FOREIGN KEY (category_id) REFERENCES category(id)
-        );""", """
-        CREATE TABLE `category` (
-            id INTEGER NOT NULL AUTO_INCREMENT,
-            name VARCHAR(255) NOT NULL,
-            PRIMARY KEY (id)
         );""", """
         CREATE TABLE `email` (
             list_name VARCHAR(255) NOT NULL,

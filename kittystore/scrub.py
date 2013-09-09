@@ -210,7 +210,7 @@ class Scrubber(object):
                         t += '\n'
                     text.append(t)
 
-            text = "\n".join(text)
+            text = u"\n".join(text)
         else:
             text = self.msg.get_payload(decode=True)
             text = text.decode(get_charset(self.msg, guess=True), "replace")

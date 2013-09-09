@@ -103,6 +103,19 @@ class TestScrubber(unittest.TestCase):
             self.assertEqual(contents, u'This message contains non-ascii '
                     u'characters:\n\xe9 \xe8 \xe7 \xe0 \xee \xef \xeb \u20ac\n')
 
+    def test_bad_content_type(self):
+        """Scrubber must handle unknown content-types"""
+        with open(get_test_file("payload-unknown.txt")) as email_file:
+            msg = email.message_from_file(email_file, _class=Message)
+        scrubber = Scrubber("testlist@example.com", msg)
+        try:
+            contents, attachments = scrubber.scrub()
+        except LookupError, e:
+            import traceback;
+            print traceback.format_exc()
+            self.fail(e) # codec not found
+        self.assertTrue(isinstance(contents, unicode))
+
     def test_attachment_4(self):
         with open(get_test_file("attachment-4.txt")) as email_file:
             msg = email.message_from_file(email_file, _class=Message)

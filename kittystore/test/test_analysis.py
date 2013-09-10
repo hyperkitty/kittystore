@@ -127,3 +127,34 @@ class TestThreadOrderDepth(unittest.TestCase):
         self.assertEqual(msg3.thread_depth, 1)
         self.assertEqual(msg4.thread_order, 2)
         self.assertEqual(msg4.thread_depth, 2)
+
+    def test_reply_to_oneself(self):
+        # A message replying to itself (yes, it's been spotted in the wild)
+        thread = Thread("example-list", "<msg1>")
+        self.store.db.add(thread)
+        msg1 = make_fake_email(1)
+        msg1.in_reply_to = u"<msg1>"
+        msg1.thread_order = msg1.thread_depth = 42
+        self.store.db.add(msg1)
+        self.store.flush()
+        compute_thread_order_and_depth(thread)
+        # Don't traceback with a "maximum recursion depth exceeded" error
+        self.assertEqual(msg1.thread_order, 0)
+        self.assertEqual(msg1.thread_depth, 0)
+
+    def test_reply_loops(self):
+        """Loops in message replies"""
+        # This implies that someone replies to a message not yet sent, but you
+        # never know, Dr Who can be on your mailing-list.
+        thread = Thread("example-list", "<msg1>")
+        self.store.db.add(thread)
+        msg1 = make_fake_email(1)
+        msg1.in_reply_to = u"<msg2>"
+        self.store.db.add(msg1)
+        msg2 = make_fake_email(2)
+        msg2.thread_id = u"<msg1>"
+        msg2.in_reply_to = u"<msg1>"
+        self.store.db.add(msg2)
+        self.store.flush()
+        compute_thread_order_and_depth(thread)
+        # Don't traceback with a "maximum recursion depth exceeded" error

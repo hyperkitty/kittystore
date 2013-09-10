@@ -37,11 +37,14 @@ def compute_thread_order_and_depth(thread):
         thread_pos["d"] += 1
         thread_pos["o"] += 1
         for succ in sorted(graph.successors(msgid),
-                        key=lambda m: graph.node[m]["num"]):
+                           key=lambda m: graph.node[m]["num"]):
             walk_successors(succ)
         thread_pos["d"] -= 1
     for index, email in enumerate(thread.emails):
         graph.add_node(email.message_id, num=index, obj=email)
         if email.in_reply_to is not None:
             graph.add_edge(email.in_reply_to, email.message_id)
+            if not nx.is_directed_acyclic_graph(graph):
+                # I don't want reply loops in my graph, thank you very much
+                graph.remove_edge(email.in_reply_to, email.message_id)
     walk_successors(thread.starting_email.message_id)

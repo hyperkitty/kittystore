@@ -72,6 +72,7 @@ CREATES = {
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
+        'CREATE INDEX "ix_thread_list_name" ON "thread" (list_name);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
         ],
 
@@ -155,6 +156,7 @@ CREATES = {
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
+        'CREATE INDEX "ix_thread_list_name" ON "thread" (list_name);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
         ],
 
@@ -228,6 +230,7 @@ CREATES = {
         'CREATE INDEX `ix_email_thread_id` ON `email` (thread_id);',
         'CREATE INDEX `ix_email_thread_order` ON `email` (thread_order);',
         'CREATE INDEX `ix_thread_date_active` ON `thread` (date_active);',
+        'CREATE INDEX `ix_thread_list_name` ON `thread` (list_name);',
         'CREATE UNIQUE INDEX `ix_category_name` ON `category` (name);',
         ],
 

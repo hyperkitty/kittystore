@@ -32,7 +32,7 @@ SQL = {
         "ALTER TABLE ONLY category ALTER COLUMN id SET DEFAULT nextval('category_id_seq'::regclass);",
         'ALTER TABLE "thread" ADD COLUMN category_id INTEGER;',
         'ALTER TABLE "thread" ADD FOREIGN KEY (category_id) REFERENCES category(id);',
-        'CREATE UNIQUE INDEX "ix_category_name" ON "category" USING btree (name);',
+        'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
         ],
     "mysql": ["""
         CREATE TABLE `category` (

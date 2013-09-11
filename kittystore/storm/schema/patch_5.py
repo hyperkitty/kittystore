@@ -16,7 +16,7 @@ SQL = {
     "postgres": [
         'ALTER TABLE "email" ADD COLUMN "thread_order" INTEGER NOT NULL DEFAULT 0;',
         'ALTER TABLE "email" ADD COLUMN "thread_depth" INTEGER NOT NULL DEFAULT 0;',
-        'CREATE INDEX "ix_email_thread_order" ON "email" USING btree (thread_order);',
+        'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
         ],
     "mysql": [
         'ALTER TABLE `email` ADD COLUMN `thread_order` INTEGER NOT NULL DEFAULT 0;',

@@ -10,7 +10,7 @@ SQL = {
         'CREATE INDEX "ix_sender_email" ON "email" (sender_email);',
         ],
     "postgres": [
-        'CREATE INDEX "ix_sender_email" ON "email" USING btree (sender_email);',
+        'CREATE INDEX "ix_sender_email" ON "email" (sender_email);',
         ],
     "mysql": [
         'CREATE INDEX `ix_sender_email` ON `email` (sender_email);',

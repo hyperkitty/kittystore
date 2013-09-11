@@ -146,16 +146,16 @@ CREATES = {
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
         );""",
-        'CREATE INDEX "ix_email_list_name" ON "email" USING btree (list_name);',
-        'CREATE INDEX "ix_email_date" ON "email" USING btree (date);',
-        'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" USING btree (list_name, message_id_hash);',
-        'CREATE INDEX "ix_email_sender_email" ON "email" USING btree (sender_email);',
-        'CREATE INDEX "ix_email_user_id" ON "email" USING btree (user_id);',
-        'CREATE INDEX "ix_email_subject" ON "email" USING btree (subject);',
-        'CREATE INDEX "ix_email_thread_id" ON "email" USING btree (thread_id);',
-        'CREATE INDEX "ix_email_thread_order" ON "email" USING btree (thread_order);',
-        'CREATE INDEX "ix_thread_date_active" ON "thread" USING btree (date_active);',
-        'CREATE UNIQUE INDEX "ix_category_name" ON "category" USING btree (name);',
+        'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
+        'CREATE INDEX "ix_email_date" ON "email" (date);',
+        'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" (list_name, message_id_hash);',
+        'CREATE INDEX "ix_email_sender_email" ON "email" (sender_email);',
+        'CREATE INDEX "ix_email_user_id" ON "email" (user_id);',
+        'CREATE INDEX "ix_email_subject" ON "email" (subject);',
+        'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
+        'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
+        'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
+        'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
         ],
 
     "mysql": [ """

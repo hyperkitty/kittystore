@@ -12,7 +12,7 @@ SQL = {
         ],
     "postgres": [
         'ALTER TABLE "email" ADD COLUMN user_id VARCHAR(255);',
-        'CREATE INDEX "ix_email_user_id" ON "email" USING btree (user_id);',
+        'CREATE INDEX "ix_email_user_id" ON "email" (user_id);',
         ],
     "mysql": [
         'ALTER TABLE `email` ADD COLUMN user_id VARCHAR(255);',

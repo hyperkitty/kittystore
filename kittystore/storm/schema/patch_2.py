@@ -27,7 +27,7 @@ SQL = {
             date_active TIMESTAMP WITH TIME ZONE NOT NULL,
             PRIMARY KEY (list_name, thread_id)
         );""",
-        'CREATE INDEX "ix_thread_date_active" ON "thread" USING btree (date_active);',
+        'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
         'ALTER TABLE "list" ADD COLUMN "display_name" TEXT;',
         ],
     "mysql": [],

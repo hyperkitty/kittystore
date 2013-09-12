@@ -105,6 +105,12 @@ class DbImporter(object):
         self.no_download = opts.no_download
         self.verbose = opts.verbose
         self.since = opts.since
+        if opts.cont:
+            self.since = store.get_last_date(self.mlist.fqdn_listname)
+        if self.since is not None:
+            self.since = awarify(self.since)
+            if self.verbose:
+                print "Only emails after %s will be imported" % self.since
 
     def from_mbox(self, mbfile):
         """ Upload all the emails in a mbox file into the database using
@@ -131,6 +137,8 @@ class DbImporter(object):
                         continue
             cnt_read = cnt_read + 1
             self.total_imported += 1
+            if self.verbose:
+                print "%s (%d)" % (message["Message-Id"], self.total_imported)
             # Un-wrap the subject line if necessary
             if message["subject"]:
                 message.replace_header("subject",
@@ -239,6 +247,8 @@ def parse_args():
                       help="the Python path to a Django settings module")
     parser.add_option("-p", "--pythonpath",
                       help="a directory to add to the Python path")
+    parser.add_option("-c", "--continue", action="store_true", dest="cont",
+                      help="only import newer emails")
     parser.add_option("--since", help="only import emails after this date")
     parser.add_option("-v", "--verbose", action="store_true",
             help="show more output")
@@ -262,7 +272,7 @@ def parse_args():
             parser.error("No such mbox file: %s" % mbfile)
     if opts.since is not None:
         try:
-            opts.since = awarify(parse(opts.since))
+            opts.since = parse(opts.since)
         except ValueError, e:
             parser.error("invalid value for '--since': %s" % e)
     try:

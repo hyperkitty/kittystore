@@ -469,6 +469,21 @@ class StormStore(object):
         else:
             return None
 
+    def get_last_date(self, list_name):
+        """ Get the date of the last archived email in a list.
+
+        :param list_name: The fully qualified list name to search
+        :returns: The datetime of the last message, or None if no message have
+            been archived yet.
+        """
+        date = self.db.find(Email.date,
+                Email.list_name == unicode(list_name)
+                ).order_by(Desc(Email.date))[:1]
+        if date:
+            return date.one()
+        else:
+            return None
+
     def get_thread_neighbors(self, list_name, thread_id):
         """ Return the previous and the next threads of the specified thread,
         in date order.

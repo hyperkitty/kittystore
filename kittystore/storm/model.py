@@ -16,7 +16,7 @@ import datetime
 
 from zope.interface import implements
 from storm.locals import Unicode, RawStr, Int, ReferenceSet, Reference, Proxy
-from storm.locals import Storm
+from storm.locals import Storm, Store
 from storm.expr import Desc
 from mailman.interfaces.messages import IMessage
 
@@ -227,8 +227,7 @@ class Thread(Storm):
         if not name:
             self.category_id = None
             return
-        # XXX: this is VERY hackish
-        store = self.__storm_object_info__["store"]
+        store = Store.of(self)
         category = store.find(Category, Category.name == name).one()
         if category is None:
             category = Category(name)

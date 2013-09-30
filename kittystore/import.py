@@ -183,6 +183,10 @@ class DbImporter(object):
 
             self.store.flush()
             cnt_imported += 1
+            if cnt_imported % 1000:
+                # commit once in a while to avoid loosing everything on an
+                # interrupt or a crash
+                self.store.commit()
         self.store.commit()
         if self.verbose:
             print '  %s email read' % cnt_read

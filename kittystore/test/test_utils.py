@@ -93,6 +93,23 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(h_out, h_expected)
             self.assertTrue(isinstance(h_out, unicode))
 
+    def test_bad_header(self):
+        """
+        utils.header_to_unicode must handle badly encoded non-ascii headers
+        """
+        testdata = [
+            ("Guillermo G\xf3mez", u"Guillermo G\ufffdmez"),
+            ("=?gb2312?B?UmU6IFJlOl9bQW1iYXNzYWRvcnNdX01hdGVyaWFfc29icmVfb19DRVNvTF8oRGnhcmlvX2RlX2JvcmRvKQ==?=",
+                u"Re: Re:_[Ambassadors]_Materia_sobre_o_CESoL_(Di\ufffdrio_de_bordo)"),
+        ]
+        for h_in, h_expected in testdata:
+            try:
+                h_out = kittystore.utils.header_to_unicode(h_in)
+            except UnicodeDecodeError, e:
+                self.fail(e)
+            self.assertEqual(h_out, h_expected)
+            self.assertTrue(isinstance(h_out, unicode))
+
     def test_wrong_datestring(self):
         datestring = "Fri, 5 Dec 2003 11:41 +0000 (GMT Standard Time)"
         parsed = kittystore.utils.parsedate(datestring)

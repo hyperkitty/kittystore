@@ -61,6 +61,8 @@ def parseaddr(address):
     Wrapper around email.utils.parseaddr to also handle Mailman's generated
     mbox archives.
     """
+    if address is None:
+        return "", ""
     address = address.replace(" at ", "@")
     from_name, from_email = email.utils.parseaddr(address)
     if not from_name:

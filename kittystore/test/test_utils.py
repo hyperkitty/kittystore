@@ -139,3 +139,13 @@ class TestUtils(unittest.TestCase):
         header = "=?x-gbk?Q?Frank_B=A8=B9ttner?="
         decoded = kittystore.utils.header_to_unicode(header)
         self.assertEqual(decoded, u'Frank B\ufffd\ufffdttner')
+
+    def test_no_from(self):
+        msg = Message()
+        msg.set_payload("Dummy message")
+        try:
+            name, email = kittystore.utils.parseaddr(msg["From"])
+        except AttributeError, e:
+            self.fail(e)
+        self.assertEqual(name, '')
+        self.assertEqual(email, '')

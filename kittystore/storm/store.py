@@ -99,6 +99,10 @@ class StormStore(object):
         if not message.has_key("Message-Id"):
             raise ValueError("No 'Message-Id' header in email", message)
         msg_id = unicode(unquote(message['Message-Id']))
+        # Protect against extremely long Message-Ids (there is no limit in the
+        # email spec), it's set to VARCHAR(255) in the database
+        if len(msg_id) >= 255:
+            msg_id = msg_id[:254]
         email = Email(list_name, msg_id)
         if self.is_message_in_list(list_name, email.message_id):
             print ("Duplicate email from %s: %s" %
@@ -283,7 +287,7 @@ class StormStore(object):
         """
         msg = self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
-                    Email.message_id == unicode(message_id)
+                    Email.message_id == unicode(message_id)[:254]
                 )).one()
         return msg
 
@@ -385,11 +389,11 @@ class StormStore(object):
         :param list_name: The fully qualified list name to which the
             message should be added.
         :param message_id: The Message-ID header contents to search for.
-        :returns: The message, or None if no matching message was found.
+        :returns: True of False (well, 1 or 0 actually)
         """
         return self.db.find(Email.message_id, And(
                     Email.list_name == unicode(list_name),
-                    Email.message_id == unicode(message_id)
+                    Email.message_id == unicode(message_id)[:254]
                 )).count()
 
 
@@ -641,7 +645,7 @@ class StormStore(object):
         """
         att = self.db.find(Attachment, And(
                     Attachment.list_name == unicode(list_name),
-                    Attachment.message_id == unicode(message_id)
+                    Attachment.message_id == unicode(message_id)[:254]
                 )).order_by(Attachment.counter)
         return list(att)
 
@@ -656,7 +660,7 @@ class StormStore(object):
         """
         return self.db.find(Attachment, And(
                     Attachment.list_name == unicode(list_name),
-                    Attachment.message_id == unicode(message_id),
+                    Attachment.message_id == unicode(message_id)[:254],
                     Attachment.counter == counter
                 )).one()
 

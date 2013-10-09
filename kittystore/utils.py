@@ -123,7 +123,7 @@ def get_ref(message):
         # Can't parse the reference
         return None
     ref_id = ref_id.group(1)
-    return unicode(ref_id)
+    return unicode(ref_id)[:254]
 
 
 def get_ref_and_thread_id(message, list_name, store):

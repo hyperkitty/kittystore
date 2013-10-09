@@ -11,7 +11,7 @@ from storm.exceptions import IntegrityError
 from mailman.email.message import Message
 
 from kittystore.storm import get_storm_store
-from kittystore.storm.model import Email, Attachment, List
+from kittystore.storm.model import Email, Attachment, List, Thread
 from kittystore.utils import get_message_id_hash
 
 from kittystore.test import get_test_file, FakeList, SettingsModule
@@ -160,6 +160,47 @@ class TestStormStore(unittest.TestCase):
         check_neighbors(2, None, 3)
         check_neighbors(3, 2, 1)
         check_neighbors(1, 3, None)
+
+    def test_long_message_id(self):
+        # Some message-ids are more than 255 chars long
+        # Check with assert here because SQLite will not enforce the limit
+        # (http://www.sqlite.org/faq.html#q9)
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "X" * 260
+        msg.set_payload("Dummy message")
+        try:
+            self.store.add_to_list(FakeList("example-list"), msg)
+        except IntegrityError, e:
+            self.fail(e)
+        stored_msg = self.store.db.find(Email).one()
+        self.assertTrue(len(stored_msg.message_id) <= 255,
+                "Very long message-id headers are not truncated")
+
+    def test_long_message_id_reply(self):
+        # Some message-ids are more than 255 chars long, we'll truncate them
+        # but check that references are preserved
+        msg1 = Message()
+        msg1["From"] = "dummy@example.com"
+        msg1["Message-ID"] = "<" + ("X" * 260) + ">"
+        msg1.set_payload("Dummy message")
+        msg2 = Message()
+        msg2["From"] = "dummy@example.com"
+        msg2["Message-ID"] = "<Y>"
+        msg2["References"] = "<" + ("X" * 260) + ">"
+        msg2.set_payload("Dummy message")
+        try:
+            self.store.add_to_list(FakeList("example-list"), msg1)
+            self.store.add_to_list(FakeList("example-list"), msg2)
+        except IntegrityError, e:
+            self.fail(e)
+        stored_msg2 = self.store.db.find(Email, Email.message_id == u"Y").one()
+        self.assertEqual(stored_msg2.in_reply_to, "X" * 254)
+        self.assertEqual(stored_msg2.thread_order, 1)
+        self.assertEqual(stored_msg2.thread_depth, 1)
+        thread = self.store.db.find(Thread).one()
+        self.assertTrue(thread is not None)
+        self.assertEqual(len(thread), 2)
 
 
     #def test_non_ascii_payload(self):

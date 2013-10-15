@@ -23,6 +23,8 @@ Import the content of a mbox file into the database.
 Author: Aurelien Bompard <abompard@fedoraproject.org>
 """
 
+from __future__ import absolute_import
+
 import mailbox
 import os
 import re
@@ -32,7 +34,9 @@ from dateutil import tz
 from optparse import OptionParser
 from random import randint
 from email.utils import unquote
+from traceback import print_exc
 
+from storm.exceptions import DatabaseError
 from kittystore.scripts import get_store_from_options, StoreFromOptionsError
 
 
@@ -174,6 +178,12 @@ class DbImporter(object):
                 print "%s from %s about %s" % (e.args[0],
                         e.args[1].get("From"), e.args[1].get("Subject"))
                 continue
+            except DatabaseError:
+                print_exc()
+                print ("Message %s failed to import, skipping"
+                       % unquote(message["Message-Id"]))
+                self.store.rollback()
+                continue
             # And insert the attachments
             for counter, att in enumerate(attachments):
                 self.store.add_attachment(
@@ -183,11 +193,8 @@ class DbImporter(object):
 
             self.store.flush()
             cnt_imported += 1
-            if cnt_imported % 1000:
-                # commit once in a while to avoid loosing everything on an
-                # interrupt or a crash
-                self.store.commit()
-        self.store.commit()
+            # Commit every time to be able to rollback on error
+            self.store.commit()
         if self.verbose:
             print '  %s email read' % cnt_read
             print '  %s email added to the database' % cnt_imported

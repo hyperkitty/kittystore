@@ -8,6 +8,7 @@ CREATES = {
             name VARCHAR(255) NOT NULL,
             display_name TEXT,
             subject_prefix TEXT,
+            archive_policy INTEGER,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE "category" (
@@ -81,6 +82,7 @@ CREATES = {
             name VARCHAR(255) NOT NULL,
             display_name TEXT,
             subject_prefix TEXT,
+            archive_policy INTEGER,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE "category" (
@@ -165,6 +167,7 @@ CREATES = {
             name VARCHAR(255) NOT NULL,
             display_name TEXT,
             subject_prefix TEXT,
+            archive_policy INTEGER,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE `category` (

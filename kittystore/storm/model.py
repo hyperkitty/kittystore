@@ -19,6 +19,8 @@ from storm.locals import Unicode, RawStr, Int, ReferenceSet, Reference, Proxy
 from storm.locals import Storm, Store
 from storm.expr import Desc
 from mailman.interfaces.messages import IMessage
+from mailman.interfaces.archiver import ArchivePolicy
+from mailman.database.types import Enum
 
 from kittystore.utils import get_message_id_hash
 from .hack_datetime import DateTime
@@ -44,6 +46,7 @@ class List(Storm):
     name = Unicode(primary=True)
     display_name = Unicode()
     subject_prefix = Unicode()
+    archive_policy = Enum(ArchivePolicy)
 
     def __init__(self, name):
         self.name = unicode(name)

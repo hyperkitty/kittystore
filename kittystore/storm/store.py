@@ -96,6 +96,7 @@ class StormStore(object):
             self.db.add(l)
         l.display_name = mlist.display_name
         l.subject_prefix = mlist.subject_prefix
+        l.archive_policy = mlist.archive_policy
         if not message.has_key("Message-Id"):
             raise ValueError("No 'Message-Id' header in email", message)
         msg_id = unicode(unquote(message['Message-Id']))

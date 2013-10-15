@@ -5,6 +5,7 @@
 
 import unittest
 import email
+from traceback import format_exc
 
 from mock import Mock
 from mailman.email.message import Message
@@ -151,6 +152,21 @@ class TestScrubber(unittest.TestCase):
         self.assertEqual(contents, u'This is a test, HTML message with '
                 u'accented letters : \xe9 \xe8 \xe7 \xe0.\r\nAnd an '
                 u'attachment with an accented filename\r\n\r\n\r\n\r\n')
+
+    def test_attachment_name_badly_encoded(self):
+        msg = email.message.Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg.set_payload("Dummy content")
+        msg.add_header('Content-Disposition', 'attachment', filename='non-ascii-\xb8\xb1\xb1\xbe.jpg')
+        scrubber = Scrubber("testlist@example.com", msg)
+        try:
+            contents, attachments = scrubber.scrub()
+        except UnicodeDecodeError:
+            print format_exc()
+            self.fail("Could not decode the filename")
+        self.assertEqual(attachments,
+                [(0, 'attachment.bin', 'text/plain', None, 'Dummy content')])
 
     def test_remove_next_part_from_content(self):
         with open(get_test_file("pipermail_nextpart.txt")) as email_file:

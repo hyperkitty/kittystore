@@ -238,7 +238,7 @@ class Scrubber(object):
         # i18n file name is encoded
         try:
             filename = oneline(part.get_filename(''), in_unicode=True)
-        except TypeError:
+        except (TypeError, UnicodeDecodeError):
             # Workaround for https://bugs.launchpad.net/mailman/+bug/1060951
             # (accented filenames)
             filename = "attachment.bin"

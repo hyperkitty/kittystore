@@ -130,6 +130,9 @@ class StormStore(object):
         email.sender_name = from_name.strip()
         email.sender_email = unicode(from_email).strip()
         email.subject = header_to_unicode(message.get('Subject'))
+        if email.subject is not None:
+            # limit subject size to 2000 chars or PostgreSQL may complain
+            email.subject = email.subject[:2000]
         msg_date = parsedate(message.get("Date"))
         if msg_date is None:
             # Absent or unparseable date

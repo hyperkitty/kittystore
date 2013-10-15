@@ -4,6 +4,9 @@
 # - Invalid name XXX (should match YYY)
 
 import unittest
+import email
+import string
+import random
 
 from mailman.email.message import Message
 
@@ -21,6 +24,8 @@ class TestStormModel(unittest.TestCase):
         #self.store = get_storm_store("mysql://kittystore:kittystore@localhost/kittystore_test", True)
 
     def tearDown(self):
+        self.store.db.find(Thread).remove()
+        self.store.db.find(Email).remove()
         self.store.close()
 
     def test_starting_message_1(self):
@@ -94,3 +99,24 @@ class TestStormModel(unittest.TestCase):
         thread = Thread("example-list", "<msg1>")
         self.store.db.add(thread)
         self.store.flush()
+
+    def test_long_subject(self):
+        # PostgreSQL will raise an OperationalError if the subject's index is
+        # longer than 2712, but SQLite will accept anything, so we must test
+        # with assertions here.
+        # We use random chars to build the subject, if we use a single repeated
+        # char, the index will never be big enough.
+        ml = FakeList("example-list")
+        subject = [ random.choice(string.letters + string.digits + " ")
+                    for i in range(3000) ]
+        subject = "".join(subject)
+        msg = Message()
+        msg["From"] = "sender@example.com"
+        msg["Message-ID"] = "<dummymsg>"
+        msg["Date"] = "Fri, 02 Nov 2012 16:07:54 +0000"
+        msg["Subject"] = subject
+        msg.set_payload("Dummy message")
+        self.store.add_to_list(ml, msg)
+        msg_db = self.store.db.find(Email).one()
+        self.assertTrue(len(msg_db.subject) < 2712,
+                "Very long subjects are not trimmed")

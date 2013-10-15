@@ -6,8 +6,10 @@
 import unittest
 import email
 import datetime
+#from traceback import format_exc
 
 from storm.exceptions import IntegrityError
+#from storm.exceptions import DatabaseError
 from mailman.email.message import Message
 
 from kittystore.storm import get_storm_store
@@ -76,9 +78,10 @@ class TestStormStore(unittest.TestCase):
     def test_attachment_insert_order(self):
         """Attachments must not be inserted in the DB before the email"""
         # Re-activate foreign key support in sqlite
-        self.store.db._connection._raw_connection.isolation_level = 'IMMEDIATE'
-        self.store.db.execute("PRAGMA foreign_keys = ON")
-        self.store.db._connection._raw_connection.execute("PRAGMA foreign_keys = ON")
+        if SettingsModule.KITTYSTORE_URL.startswith("sqlite:"):
+            self.store.db._connection._raw_connection.isolation_level = 'IMMEDIATE'
+            self.store.db.execute("PRAGMA foreign_keys = ON")
+            self.store.db._connection._raw_connection.execute("PRAGMA foreign_keys = ON")
         #print "*"*10, list(self.store.db.execute("PRAGMA foreign_keys"))
         #self.store = get_storm_store("postgres://kittystore:kittystore@localhost/kittystore_test")
         with open(get_test_file("attachment-1.txt")) as email_file:
@@ -201,6 +204,21 @@ class TestStormStore(unittest.TestCase):
         thread = self.store.db.find(Thread).one()
         self.assertTrue(thread is not None)
         self.assertEqual(len(thread), 2)
+
+
+    #def test_payload_invalid_unicode(self):
+    #    # Python2 won't mind, but PostgreSQL will refuse the data
+    #    # http://bugs.python.org/issue9133
+    #    msg = Message()
+    #    msg["Message-ID"] = "<dummy>"
+    #    msg.set_payload("\xed\xa1\xbc") # This is invalid UTF-8
+    #    try:
+    #        self.store.add_to_list(FakeList("example-list"), msg)
+    #    except DatabaseError, e:
+    #        print type(e)
+    #        print format_exc()
+    #        self.fail("Failed to add the message")
+    #    self.fail("WIP")
 
 
     #def test_non_ascii_payload(self):

@@ -162,6 +162,7 @@ class Thread(Storm):
                 order_by=Email.thread_order
              )
     category_obj = Reference(category_id, "Category.id")
+    mlist = Reference(list_name, "List.name")
     _starting_email = None
 
     def __init__(self, list_name, thread_id, date_active=None):

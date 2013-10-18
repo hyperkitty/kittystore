@@ -2,6 +2,8 @@
 
 import os
 
+from mailman.interfaces.archiver import ArchivePolicy
+
 
 def get_test_file(*fileparts):
     return os.path.join(os.path.dirname(__file__), "testdata", *fileparts)
@@ -15,6 +17,7 @@ class FakeList(object):
         self.fqdn_listname = name
         self.display_name = None
         self.subject_prefix = None
+        self.archive_policy = ArchivePolicy.public
 
 class SettingsModule:
     KITTYSTORE_URL = "sqlite:"

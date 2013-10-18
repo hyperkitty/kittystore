@@ -20,6 +20,7 @@ from urllib2 import HTTPError
 
 from zope.interface import implements
 from mailman.interfaces.messages import IMessageStore
+from mailman.interfaces.archiver import ArchivePolicy
 from storm.locals import Desc
 from storm.expr import And, Or, Count, Alias
 from dateutil.tz import tzutc
@@ -97,6 +98,9 @@ class StormStore(object):
         l.display_name = mlist.display_name
         l.subject_prefix = mlist.subject_prefix
         l.archive_policy = mlist.archive_policy
+        if l.archive_policy == ArchivePolicy.never:
+            print "Archiving disabled by list policy for %s" % list_name
+            return None
         if not message.has_key("Message-Id"):
             raise ValueError("No 'Message-Id' header in email", message)
         msg_id = unicode(unquote(message['Message-Id']))
@@ -297,8 +301,10 @@ class StormStore(object):
 
     def search(self, query, list_name=None, page=None, limit=10,
                sortedby=None, reverse=False):
-        """ Returns a list of email containing the specified keyword in
-        their content.
+        """
+        Returns a list of email corresponding to the query string. The
+        sender, subject, content and attachment names are searched. If
+        list_name is None, all public lists are searched.
 
         :param query: the query string to execute.
         :param list_name: name of the mailing list in which this email
@@ -310,10 +316,9 @@ class StormStore(object):
             by match score.
         :param reverse: reverse the order of the results.
         """
-        if list_name is not None:
-            query += " list_name:%s" % list_name
         results = self.search_index.search(
-                query, page, limit, sortedby=sortedby, reverse=reverse)
+                query, list_name, page, limit, sortedby=sortedby,
+                reverse=reverse)
         results["results"] = [ self.get_message_by_id_from_list(
                                     r["list_name"], r["message_id"])
                                for r in results["results"] ]

@@ -18,9 +18,11 @@ import os
 import shutil
 
 from whoosh.index import create_in, exists_in, open_dir
-from whoosh.fields import Schema, ID, TEXT, DATETIME, KEYWORD
+from whoosh.fields import Schema, ID, TEXT, DATETIME, KEYWORD, BOOLEAN
 from whoosh.analysis import StemmingAnalyzer
 from whoosh.qparser import MultifieldParser
+from whoosh.query import Term
+from mailman.interfaces.archiver import ArchivePolicy
 
 from .model import Email
 
@@ -28,6 +30,7 @@ from .model import Email
 def email_to_search_doc(email):
     if not isinstance(email, Email):
         raise ValueError("not an instance of the Email class")
+    private_list = (email.mlist.archive_policy == ArchivePolicy.private)
     search_doc = {
             "list_name": email.list_name,
             "message_id": email.message_id,
@@ -36,6 +39,7 @@ def email_to_search_doc(email):
             "subject": email.subject,
             "content": email.content,
             "date": email.date, # UTC
+            "private_list": private_list,
     }
     attachments = [a.name for a in email.attachments]
     if attachments:
@@ -61,6 +65,7 @@ class SearchEngine(object):
                 date=DATETIME(),
                 attachments=TEXT,
                 tags=KEYWORD(commas=True, scorable=True),
+                private_list=BOOLEAN(),
             )
 
     @property
@@ -86,7 +91,8 @@ class SearchEngine(object):
         else:
             writer.commit()
 
-    def search(self, query, page=None, limit=10, sortedby=None, reverse=False):
+    def search(self, query, list_name=None, page=None, limit=10,
+               sortedby=None, reverse=False):
         """
         TODO: Should the searcher be shared?
         http://pythonhosted.org/Whoosh/threads.html#concurrency
@@ -94,16 +100,22 @@ class SearchEngine(object):
         query = MultifieldParser(
                 ["sender", "subject", "content", "attachments"],
                 self.index.schema).parse(query)
+        if list_name:
+            results_filter = Term("list_name", list_name)
+        else:
+            # When searching all lists, only the public lists are searched
+            results_filter = Term("private_list", False)
         return_value = {"total": 0, "results": []}
         with self.index.searcher() as searcher:
             if page:
                 results = searcher.search_page(
                         query, page, pagelen=limit, sortedby=sortedby,
-                        reverse=reverse)
+                        reverse=reverse, filter=results_filter)
                 return_value["total"] = results.total
             else:
                 results = searcher.search(
-                        query, limit=limit, sortedby=sortedby, reverse=reverse)
+                        query, limit=limit, sortedby=sortedby,
+                        reverse=reverse, filter=results_filter)
                 # http://pythonhosted.org/Whoosh/searching.html#results-object
                 if results.has_exact_length():
                     return_value["total"] = len(results)
@@ -152,3 +164,10 @@ class SearchEngine(object):
             shutil.rmtree(self.location)
             self._index = None
             self.initialize_with(store)
+        new_schema = self._get_schema()
+        writer = self.index.writer()
+        for field_name, field_type in new_schema.items():
+            if field_name not in self.index.schema:
+                print "Adding field %s to the search index" % field_name
+                writer.add_field(field_name, field_type)
+        writer.commit(optimize=True)

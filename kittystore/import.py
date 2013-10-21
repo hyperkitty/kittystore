@@ -34,8 +34,11 @@ from dateutil import tz
 from optparse import OptionParser
 from random import randint
 from email.utils import unquote
+from urllib2 import HTTPError
 from traceback import print_exc
 
+import mailmanclient
+from mailman.interfaces.archiver import ArchivePolicy
 from storm.exceptions import DatabaseError
 from kittystore.scripts import get_store_from_options, StoreFromOptionsError
 
@@ -84,6 +87,9 @@ def awarify(date):
     return date
 
 
+class DownloadError(Exception): pass
+
+
 class DummyMailingList(object):
     # pylint: disable=R0903
     # (Too few public methods)
@@ -91,9 +97,26 @@ class DummyMailingList(object):
         self.fqdn_listname = unicode(address)
         self.display_name = None
         self.subject_prefix = None
+        self.archive_policy = ArchivePolicy.public
 
 
-class DownloadError(Exception): pass
+def get_mailinglist(list_name, settings, opts):
+    mlist = DummyMailingList(list_name)
+    try:
+        mm_client = mailmanclient.Client('%s/3.0' %
+                        settings.MAILMAN_REST_SERVER,
+                        settings.MAILMAN_API_USER,
+                        settings.MAILMAN_API_PASS)
+        mm_list = mm_client.get_list(list_name)
+    except (HTTPError, mailmanclient.MailmanConnectionError), e:
+        if opts.debug:
+            print "Can't get the mailing-list from Mailman: %s" % e
+    else:
+        mlist_settings = mm_list.settings
+        mlist.display_name = mlist_settings["display_name"]
+        mlist.subject_prefix = mlist_settings["subject_prefix"]
+        mlist.archive_policy = getattr(ArchivePolicy, mlist_settings["archive_policy"])
+    return mlist
 
 
 class DbImporter(object):
@@ -296,7 +319,7 @@ def parse_args():
 def main():
     store, opts, args = parse_args()
     print 'Importing messages from %s to database...' % opts.list_name
-    mlist = DummyMailingList(opts.list_name)
+    mlist = get_mailinglist(opts.list_name, store.settings, opts)
     importer = DbImporter(mlist, store, opts)
     for mbfile in args:
         print "Importing from mbox file %s" % mbfile

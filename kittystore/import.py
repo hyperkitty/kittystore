@@ -171,10 +171,10 @@ class DbImporter(object):
                 message.replace_header("subject",
                         TEXTWRAP_RE.sub(" ", message["subject"]))
             # Try to find the mailing-list subject prefix in the first email
-            if cnt_read == 1:
+            if not self.mlist.subject_prefix and message["subject"]:
                 subject_prefix = PREFIX_RE.search(message["subject"])
                 if subject_prefix:
-                    self.mlist.display_name = unicode(subject_prefix.group(1))
+                    self.mlist.subject_prefix = unicode(subject_prefix.group(1))
             if self.force_import:
                 while self.store.is_message_in_list(
                             self.mlist.fqdn_listname,

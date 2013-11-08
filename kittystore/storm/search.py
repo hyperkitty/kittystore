@@ -16,6 +16,7 @@ from __future__ import absolute_import
 
 import os
 import shutil
+import sys
 
 from whoosh.index import create_in, exists_in, open_dir
 from whoosh.fields import Schema, ID, TEXT, DATETIME, KEYWORD, BOOLEAN
@@ -131,7 +132,13 @@ class SearchEngine(object):
         """
         See http://pythonhosted.org/Whoosh/batch.html
         """
-        writer = self.index.writer(limitmb=256, procs=4, multisegment=True)
+        sys.stdout.write("Indexing all messages")
+        sys.stdout.flush()
+        # Don't use optimizations below, it will eat up lots of memory and can
+        # go as far as preventing forking (OSError), tested on a 3GB VM with
+        # the Fedora archives
+        #writer = self.index.writer(limitmb=256, procs=4, multisegment=True)
+        writer = self.index.writer(multisegment=True)
         # remove the LRU cache limit from the stemanalyzer
         for component in writer.schema["content"].analyzer:
             try:
@@ -140,15 +147,20 @@ class SearchEngine(object):
             except AttributeError:
                 continue
         try:
-            for doc in documents:
+            for num, doc in enumerate(documents):
                 if isinstance(doc, Email):
                     doc = email_to_search_doc(doc)
                 writer.add_document(**doc)
+                if num % 100 == 0:
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
         except Exception:
             writer.cancel()
             raise
         else:
             writer.commit()
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
     def initialize_with(self, store):
         """Create and populate the index with the contents of a Store"""

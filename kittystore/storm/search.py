@@ -58,7 +58,7 @@ class SearchEngine(object):
         stem_ana = StemmingAnalyzer()
         return Schema(
                 list_name=ID(stored=True),
-                message_id=ID(stored=True),
+                message_id=ID(stored=True, unique=True),
                 sender=TEXT(field_boost=1.5),
                 user_id=TEXT,
                 subject=TEXT(field_boost=2.0, analyzer=stem_ana),

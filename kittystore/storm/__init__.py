@@ -13,6 +13,7 @@ from .model import List, Email
 from . import schema
 from .store import StormStore
 from .search import SearchEngine
+from kittystore.caching import CacheManager
 
 
 class ThreadSafeStorePool(object):
@@ -50,7 +51,10 @@ def create_store(settings, debug):
         search_index = SearchEngine(search)
     else:
         search_index = None
-    return StormStore(store, search_index, settings, debug)
+    cache_manager = CacheManager()
+    cache_manager.discover()
+    return StormStore(store, search_index, settings, cache_manager,
+                      debug=debug)
 
 
 def get_storm_store(settings, debug=False):

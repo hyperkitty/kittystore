@@ -40,13 +40,18 @@ class List(Storm):
     """
     An archived mailing-list.
     """
+    # When updating this model, remember to update the fake version
+    # in test/__init__.py
 
     __storm_table__ = "list"
 
     name = Unicode(primary=True)
     display_name = Unicode()
+    description = Unicode()
     subject_prefix = Unicode()
     archive_policy = Enum(ArchivePolicy)
+    recent_participants_count = Int()  # cache
+    recent_threads_count = Int()       # cache
 
     def __init__(self, name):
         self.name = unicode(name)

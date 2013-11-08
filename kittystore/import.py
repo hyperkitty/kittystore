@@ -41,6 +41,7 @@ import mailmanclient
 from mailman.interfaces.archiver import ArchivePolicy
 from storm.exceptions import DatabaseError
 from kittystore.scripts import get_store_from_options, StoreFromOptionsError
+from kittystore.test import FakeList
 
 
 PREFIX_RE = re.compile("^\[([\w\s_-]+)\] ")
@@ -90,18 +91,8 @@ def awarify(date):
 class DownloadError(Exception): pass
 
 
-class DummyMailingList(object):
-    # pylint: disable=R0903
-    # (Too few public methods)
-    def __init__(self, address):
-        self.fqdn_listname = unicode(address)
-        self.display_name = None
-        self.subject_prefix = None
-        self.archive_policy = ArchivePolicy.public
-
-
 def get_mailinglist(list_name, settings, opts):
-    mlist = DummyMailingList(list_name)
+    mlist = FakeList(list_name)
     try:
         mm_client = mailmanclient.Client('%s/3.0' %
                         settings.MAILMAN_REST_SERVER,

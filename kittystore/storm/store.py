@@ -43,7 +43,7 @@ class StormStore(object):
 
     implements(IMessageStore)
 
-    def __init__(self, db, search_index, settings, debug=False):
+    def __init__(self, db, search_index, settings, cache_manager=None, debug=False):
         """ Constructor.
         Create the session using the engine defined in the url.
 
@@ -54,6 +54,7 @@ class StormStore(object):
         self.debug = debug
         self.search_index = search_index
         self.settings = settings
+        self._cache_manager = cache_manager
 
 
     # IMessageStore methods
@@ -95,10 +96,7 @@ class StormStore(object):
         if l is None:
             l = List(list_name)
             self.db.add(l)
-        l.display_name = mlist.display_name
-        l.subject_prefix = mlist.subject_prefix
-        l.archive_policy = mlist.archive_policy
-        if l.archive_policy == ArchivePolicy.never:
+        if mlist.archive_policy == ArchivePolicy.never:
             print "Archiving disabled by list policy for %s" % list_name
             return None
         if not message.has_key("Message-Id"):
@@ -157,9 +155,6 @@ class StormStore(object):
         # warning: scrubbing modifies the msg in-place
         email.content, attachments = scrubber.scrub()
 
-        # store the Mailman user
-        email.user_id = self._store_mailman_user(email.sender_email)
-
         #category = 'Question' # TODO: enum + i18n ?
         #if ('agenda' in message.get('Subject', '').lower() or
         #        'reminder' in message.get('Subject', '').lower()):
@@ -184,20 +179,13 @@ class StormStore(object):
         # search indexing
         if self.search_index is not None:
             self.search_index.add(email)
-        return email.message_id_hash
+        # caching
+        if self._cache_manager is not None:
+            self._cache_manager.on_new_message(self, mlist, email)
+            if new_thread:
+                self._cache_manager.on_new_thread(self, mlist, thread)
 
-    def _store_mailman_user(self, address):
-        try:
-            mm_client = mailmanclient.Client('%s/3.0' %
-                            self.settings.MAILMAN_REST_SERVER,
-                            self.settings.MAILMAN_API_USER,
-                            self.settings.MAILMAN_API_PASS)
-            mm_user = mm_client.get_user(address)
-        except (HTTPError, mailmanclient.MailmanConnectionError), e:
-            if self.debug:
-                print "Can't get the user from Mailman: %s" % e
-        else:
-            return unicode(mm_user.user_id)
+        return email.message_id_hash
 
 
     def attach_to_thread(self, email, thread):
@@ -689,3 +677,11 @@ class StormStore(object):
 
     def rollback(self):
         self.db.rollback()
+
+
+    # Caching
+
+    def refresh_cache(self):
+        if self._cache_manager is None:
+            return
+        self._cache_manager.refresh(self)

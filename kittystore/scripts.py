@@ -81,28 +81,39 @@ def updatedb():
                 "ORDER BY version DESC LIMIT 1"
                 ))[0][0]
     print "Done, the current schema version is %d." % version
+    print "Refreshing the cache, this can take some time..."
+    store.refresh_cache()
+    store.commit()
+    print "  ...done!"
 
     ## More complex post-update actions:
+    # (none yet)
 
-    # Fill in the user_id from Mailman
-    from kittystore.storm.model import Email
-    user_ids = store.db.find(Email.user_id).config(distinct=True)
-    if user_ids.count() <= 1 and user_ids.one() is None:
-        print "Updating user_id fields from Mailman, this can take some time..."
-        emails = store.db.find(Email)
-        emails_total = emails.count()
-        user_id_cache = {} # speed up the lookup process
-        for num, email in enumerate(emails):
-            if email.sender_email in user_id_cache:
-                email.user_id = user_id_cache[email.sender_email]
-            else:
-                email.user_id = store._store_mailman_user(email.sender_email)
-                user_id_cache[email.sender_email] = email.user_id
-            if (num+1) % 10 == 0:
-                sys.stdout.write("\r%s/%s" % (num+1, emails_total))
-                sys.stdout.flush()
-        store.commit()
-        print "  ...done!"
+
+
+#
+# Manual cache refresh
+#
+
+def cache_refresh():
+    parser = OptionParser(usage="%prog -s settings_module")
+    parser.add_option("-s", "--settings",
+                      help="the Python path to a Django-like settings module")
+    parser.add_option("-p", "--pythonpath",
+                      help="a directory to add to the Python path")
+    parser.add_option("-d", "--debug", action="store_true",
+                      help="show SQL queries")
+    opts, args = parser.parse_args()
+    if args:
+        parser.error("no arguments allowed.")
+    print 'Refreshing the cache...'
+    try:
+        store = get_store_from_options(opts)
+    except (StoreFromOptionsError, AttributeError), e:
+        parser.error(e.args[0])
+    store.refresh_cache()
+    store.commit()
+    print "  ...done!"
 
 
 

@@ -7,8 +7,11 @@ CREATES = {
         CREATE TABLE "list" (
             name VARCHAR(255) NOT NULL,
             display_name TEXT,
+            description TEXT,
             subject_prefix TEXT,
             archive_policy INTEGER,
+            recent_participants_count INTEGER,
+            recent_threads_count INTEGER,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE "category" (
@@ -81,8 +84,11 @@ CREATES = {
         CREATE TABLE "list" (
             name VARCHAR(255) NOT NULL,
             display_name TEXT,
+            description TEXT,
             subject_prefix TEXT,
             archive_policy INTEGER,
+            recent_participants_count INTEGER,
+            recent_threads_count INTEGER,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE "category" (
@@ -166,8 +172,11 @@ CREATES = {
         CREATE TABLE `list` (
             name VARCHAR(255) NOT NULL,
             display_name TEXT,
+            description TEXT,
             subject_prefix TEXT,
             archive_policy INTEGER,
+            recent_participants_count INTEGER,
+            recent_threads_count INTEGER,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE `category` (

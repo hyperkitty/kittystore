@@ -13,11 +13,14 @@ get_test_file.__test__ = False
 class FakeList(object):
     # pylint: disable=R0903
     # (Too few public methods)
+    display_name = None
+    description = None
+    subject_prefix = None
+    archive_policy = ArchivePolicy.public
+    recent_participants_count = 0
+    recent_threads_count = 0
     def __init__(self, name):
-        self.fqdn_listname = name
-        self.display_name = None
-        self.subject_prefix = None
-        self.archive_policy = ArchivePolicy.public
+        self.fqdn_listname = unicode(name)
 
 class SettingsModule:
     KITTYSTORE_URL = "sqlite:"

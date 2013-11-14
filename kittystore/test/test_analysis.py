@@ -33,7 +33,7 @@ def make_fake_email(num=1, list_name="example-list", date=None):
 class TestThreadOrderDepth(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store(SettingsModule())
+        self.store = get_storm_store(SettingsModule(), auto_create=True)
 
     def tearDown(self):
         self.store.flush()

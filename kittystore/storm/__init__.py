@@ -7,58 +7,43 @@ import threading
 
 import storm.tracer
 from storm.locals import create_database, Store
-from storm.schema.schema import Schema
 
 from .model import List, Email
 from . import schema
 from .store import StormStore
-from .search import SearchEngine
+from .schema.utils import CheckingSchema
+from kittystore import SchemaUpgradeNeeded
 from kittystore.caching import CacheManager
 
 
-class ThreadSafeStorePool(object):
-    """
-    Storm does not have a thread pool, like SQLAlchemy. Solve the threading
-    problem by keeping the store in a thread-local object.
+def _get_native_store(settings):
+    database = create_database(settings.KITTYSTORE_URL)
+    return Store(database)
 
-    http://unpythonic.blogspot.fr/2007/11/using-storm-and-sqlite-in-multithreaded.html
-    """
-
-    def __init__(self, url, debug):
-        self.url = url
-        self.debug = debug
-        self._local = threading.local()
-
-    def get(self):
-        try:
-            return self._local.store
-        except AttributeError:
-            self._local.store = create_store(self.url, self.debug)
-            return self._local.store
+def _get_schema(settings):
+    dbtype = settings.KITTYSTORE_URL.partition(":")[0]
+    return CheckingSchema(schema.CREATES[dbtype], [], [], schema)
 
 
-def create_store(settings, debug):
+def create_storm_store(settings, debug=False):
     if debug:
         storm.tracer.debug(True, stream=sys.stdout)
-    url = settings.KITTYSTORE_URL
-    database = create_database(url)
-    dbtype = url.partition(":")[0]
-    store = Store(database)
-    dbschema = Schema(schema.CREATES[dbtype], [], [], schema)
+    store = _get_native_store(settings)
+    dbschema = _get_schema(settings)
     dbschema.upgrade(store)
-    search = settings.KITTYSTORE_SEARCH_INDEX
-    if search is not None:
-        search_index = SearchEngine(search)
-    else:
-        search_index = None
+
+
+def get_storm_store(settings, search_index=None, debug=False, auto_create=False):
+    if debug:
+        storm.tracer.debug(True, stream=sys.stdout)
+    store = _get_native_store(settings)
+    dbschema = _get_schema(settings)
+    if dbschema.has_pending_patches(store):
+        if auto_create:
+            dbschema.upgrade(store)
+        else:
+            raise SchemaUpgradeNeeded()
     cache_manager = CacheManager()
     cache_manager.discover()
     return StormStore(store, search_index, settings, cache_manager,
                       debug=debug)
-
-
-def get_storm_store(settings, debug=False):
-    # Thread safety is managed by the middleware
-    #store_pool = ThreadSafeStorePool(url, debug)
-    #return store_pool.get()
-    return create_store(settings, debug)

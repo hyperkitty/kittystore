@@ -19,7 +19,7 @@ from kittystore.test import get_test_file, FakeList, SettingsModule
 class TestStormModel(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store(SettingsModule())
+        self.store = get_storm_store(SettingsModule(), auto_create=True)
         #self.store = get_storm_store("postgres://kittystore:kittystore@localhost/kittystore_test", True)
         #self.store = get_storm_store("mysql://kittystore:kittystore@localhost/kittystore_test", True)
 

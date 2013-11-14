@@ -29,6 +29,7 @@ import mailbox
 import os
 import re
 import urllib
+import sys
 from dateutil.parser import parse
 from dateutil import tz
 from optparse import OptionParser
@@ -40,6 +41,7 @@ from traceback import print_exc
 import mailmanclient
 from mailman.interfaces.archiver import ArchivePolicy
 from storm.exceptions import DatabaseError
+from kittystore import SchemaUpgradeNeeded
 from kittystore.scripts import get_store_from_options, StoreFromOptionsError
 from kittystore.test import FakeList
 
@@ -304,6 +306,10 @@ def parse_args():
         store = get_store_from_options(opts)
     except StoreFromOptionsError, e:
         parser.error(e.args[0])
+    except SchemaUpgradeNeeded:
+        print >>sys.stderr, ("The database schema needs to be upgraded, "
+                             "please run kittystore-updatedb first")
+        sys.exit(1)
     return store, opts, args
 
 

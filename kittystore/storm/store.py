@@ -608,6 +608,8 @@ class StormStore(object):
         result = self.db.find(Email.message_id_hash, clause)
         return list(result)
 
+    def get_all_messages(self):
+        return self.db.find(Email).order_by(Email.archived_date)
 
     # Attachments
 

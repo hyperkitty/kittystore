@@ -13,7 +13,7 @@ from kittystore.test import FakeList, SettingsModule
 class TestStormStoreFetch(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store(SettingsModule())
+        self.store = get_storm_store(SettingsModule(), auto_create=True)
         self.listname, self.m_hash = self.add_fetch_data()
 
     def tearDown(self):

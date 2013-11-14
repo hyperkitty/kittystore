@@ -22,7 +22,7 @@ from kittystore.test import get_test_file, FakeList, SettingsModule
 class TestStormStore(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store(SettingsModule())
+        self.store = get_storm_store(SettingsModule(), auto_create=True)
 
     def tearDown(self):
         self.store.close()

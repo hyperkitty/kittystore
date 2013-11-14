@@ -15,11 +15,14 @@ See http://www.gnu.org/copyleft/gpl.html  for the full text of the
 license.
 """
 
-__all__ = ("get_store", "MessageNotFound", )
+__all__ = ("get_store", "create_store", "MessageNotFound",
+           "SchemaUpgradeNeeded")
 
 
-def get_store(settings, debug=None):
-    """Factory for a KittyStore subclass"""
+from .search import SearchEngine
+
+
+def _check_settings(settings):
     required_keys = ("KITTYSTORE_URL", "KITTYSTORE_SEARCH_INDEX",
                      "MAILMAN_REST_SERVER", "MAILMAN_API_USER",
                      "MAILMAN_API_PASS")
@@ -28,20 +31,52 @@ def get_store(settings, debug=None):
             getattr(settings, req_key)
         except AttributeError:
             raise AttributeError("The settings file is missing the \"%s\" key" % req_key)
-    if debug is None:
-        debug = getattr(settings, "KITTYSTORE_DEBUG", False)
     if settings.KITTYSTORE_URL.startswith("mongo://"):
         raise NotImplementedError
-    #else:
-    #    from kittystore.sa import KittySAStore
-    #    return KittySAStore(url, debug)
-    else:
-        from kittystore.storm import get_storm_store
-        store = get_storm_store(settings, debug)
-    if settings.KITTYSTORE_SEARCH_INDEX is not None:
-        store.search_index.initialize_with(store)
-        store.search_index.upgrade(store)
+
+def _get_search_index(settings):
+    search_index_path = settings.KITTYSTORE_SEARCH_INDEX
+    if search_index_path is None:
+        return None
+    return SearchEngine(search_index_path)
+
+def get_store(settings, debug=None, auto_create=False):
+    """Factory for a KittyStore subclass"""
+    _check_settings(settings)
+    if debug is None:
+        debug = getattr(settings, "KITTYSTORE_DEBUG", False)
+
+    search_index = _get_search_index(settings)
+
+    from kittystore.storm import get_storm_store
+    store = get_storm_store(settings, search_index, debug, auto_create)
+
+    if search_index is not None and search_index.needs_upgrade():
+        if auto_create:
+            search_index.upgrade(store)
+        else:
+            raise SchemaUpgradeNeeded()
+
     return store
+
+
+def create_store(settings, debug=None):
+    """Factory for a KittyStore subclass"""
+    _check_settings(settings)
+    if debug is None:
+        debug = getattr(settings, "KITTYSTORE_DEBUG", False)
+
+    search_index = _get_search_index(settings)
+    from kittystore.storm import get_storm_store, create_storm_store
+    create_storm_store(settings, debug)
+    store = get_storm_store(settings, search_index, debug)
+    if search_index is not None:
+        search_index.upgrade(store)
+    return store
+
+
+class SchemaUpgradeNeeded(Exception):
+    """Raised when there are pending patches"""
 
 
 class MessageNotFound(Exception):

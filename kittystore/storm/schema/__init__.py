@@ -292,8 +292,3 @@ CREATES = {
         ],
 
 }
-
-
-def get_db_type(store):
-    database = store.get_database()
-    return database.__class__.__module__.split(".")[-1]

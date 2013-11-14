@@ -18,18 +18,19 @@ import os
 import shutil
 import sys
 
+from zope.interface import providedBy
 from whoosh.index import create_in, exists_in, open_dir
 from whoosh.fields import Schema, ID, TEXT, DATETIME, KEYWORD, BOOLEAN
 from whoosh.analysis import StemmingAnalyzer
 from whoosh.qparser import MultifieldParser
 from whoosh.query import Term
 from mailman.interfaces.archiver import ArchivePolicy
+from mailman.interfaces.messages import IMessage
 
-from .model import Email
 
 
 def email_to_search_doc(email):
-    if not isinstance(email, Email):
+    if not IMessage.providedBy(email):
         raise ValueError("not an instance of the Email class")
     private_list = (email.mlist.archive_policy == ArchivePolicy.private)
     search_doc = {
@@ -72,17 +73,12 @@ class SearchEngine(object):
     @property
     def index(self):
         if self._index is None:
-            if not os.path.isdir(self.location):
-                os.makedirs(self.location)
-            if exists_in(self.location):
-                self._index = open_dir(self.location)
-            else:
-                self._index = create_in(self.location, self._get_schema())
+            self._index = open_dir(self.location)
         return self._index
 
     def add(self, doc):
         writer = self.index.writer()
-        if isinstance(doc, Email):
+        if IMessage.providedBy(doc):
             doc = email_to_search_doc(doc)
         try:
             writer.add_document(**doc)
@@ -148,7 +144,7 @@ class SearchEngine(object):
                 continue
         try:
             for num, doc in enumerate(documents):
-                if isinstance(doc, Email):
+                if IMessage.providedBy(doc):
                     doc = email_to_search_doc(doc)
                 writer.add_document(**doc)
                 if num % 100 == 0:
@@ -164,17 +160,29 @@ class SearchEngine(object):
 
     def initialize_with(self, store):
         """Create and populate the index with the contents of a Store"""
-        if exists_in(self.location):
-            return # index already exists
-        messages = store.db.find(Email).order_by(Email.archived_date)
-        self.add_batch(messages)
+        if not os.path.isdir(self.location):
+            os.makedirs(self.location)
+        self._index = create_in(self.location, self._get_schema())
+        self.add_batch(store.get_all_messages())
+
+    def needs_upgrade(self):
+        if not exists_in(self.location):
+            return True
+        if "user_id" not in self.index.schema:
+            return True
+        new_schema = self._get_schema()
+        for field_name, field_type in new_schema.items():
+            if field_name not in self.index.schema:
+                return True
+        return False
 
     def upgrade(self, store):
         """Upgrade the schema"""
+        if not exists_in(self.location):
+            self.initialize_with(store)
         if "user_id" not in self.index.schema:
             print "Rebuilding the search index to include the new user_id field..."
             shutil.rmtree(self.location)
-            self._index = None
             self.initialize_with(store)
         new_schema = self._get_schema()
         writer = self.index.writer()

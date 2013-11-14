@@ -29,7 +29,7 @@ import importlib
 import sys
 from optparse import OptionParser
 
-from kittystore import get_store
+from kittystore import get_store, create_store, SchemaUpgradeNeeded
 
 
 #
@@ -37,9 +37,9 @@ from kittystore import get_store
 #
 class StoreFromOptionsError(Exception): pass
 
-def get_store_from_options(opts):
+def get_settings_from_options(opts):
     """
-    Returns a Store instance from an options object. Known options are;
+    Returns a settings object from an options object. Known options are;
     - "settings": the Django settings module
     - "pythonpath": an additional Python path to import the Django settings
     """
@@ -52,6 +52,15 @@ def get_store_from_options(opts):
         raise StoreFromOptionsError(
                 "could not import settings '%s' (Is it on "
                 "sys.path?): %s" % (opts.settings, e))
+    return settings
+
+def get_store_from_options(opts):
+    """
+    Returns a Store instance from an options object. Known options are;
+    - "settings": the Django settings module
+    - "pythonpath": an additional Python path to import the Django settings
+    """
+    settings = get_settings_from_options(opts)
     return get_store(settings, debug=opts.debug)
 
 
@@ -73,21 +82,25 @@ def updatedb():
     print 'Upgrading the database schema and populating ' \
           'the search index if necessary...'
     try:
-        store = get_store_from_options(opts)
+        settings = get_settings_from_options(opts)
     except (StoreFromOptionsError, AttributeError), e:
         parser.error(e.args[0])
-    version = list(store.db.execute(
-                "SELECT patch.version FROM patch "
-                "ORDER BY version DESC LIMIT 1"
-                ))[0][0]
-    print "Done, the current schema version is %d." % version
-    print "Refreshing the cache, this can take some time..."
-    store.refresh_cache(full=True)
-    store.commit()
-    print "  ...done!"
-
-    ## More complex post-update actions:
-    # (none yet)
+    try:
+        store = get_store(settings, debug=opts.debug)
+    except SchemaUpgradeNeeded:
+        print "Upgrading the schema..."
+        store = create_store(settings, debug=opts.debug)
+        version = list(store.db.execute(
+                    "SELECT patch.version FROM patch "
+                    "ORDER BY version DESC LIMIT 1"
+                    ))[0][0]
+        print "Done, the current schema version is %d." % version
+        print "Refreshing the cache, this can take some time..."
+        store.refresh_cache(full=True)
+        store.commit()
+        print "  ...done!"
+    else:
+        print "No schema upgrade needed."
 
 
 
@@ -113,6 +126,10 @@ def cache_refresh():
         store = get_store_from_options(opts)
     except (StoreFromOptionsError, AttributeError), e:
         parser.error(e.args[0])
+    except SchemaUpgradeNeeded:
+        print >>sys.stderr, ("The database schema needs to be upgraded, "
+                             "please run kittystore-updatedb first")
+        sys.exit(1)
     store.refresh_cache(full=opts.full)
     store.commit()
     print "  ...done!"

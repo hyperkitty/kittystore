@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from . import get_db_type
+from .utils import get_db_type
 
 
 SQL = {

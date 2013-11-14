@@ -42,7 +42,7 @@ class CacheManagerTestCase(unittest.TestCase):
         ml = FakeList("example-list")
         self.cm.on_new_message = Mock()
         self.cm.on_new_thread = Mock()
-        store = get_store(SettingsModule())
+        store = get_store(SettingsModule(), auto_create=True)
         store._cache_manager = self.cm
         try:
             store.add_to_list(ml, msg)
@@ -64,7 +64,7 @@ class CacheManagerTestCase(unittest.TestCase):
         msg2.set_payload("Dummy message")
         self.cm.on_new_message = Mock()
         self.cm.on_new_thread = Mock()
-        store = get_store(SettingsModule())
+        store = get_store(SettingsModule(), auto_create=True)
         store._cache_manager = self.cm
         try:
             store.add_to_list(ml, msg1)
@@ -78,7 +78,7 @@ class CacheManagerTestCase(unittest.TestCase):
 class ListCacheTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_store(SettingsModule())
+        self.store = get_store(SettingsModule(), auto_create=True)
 
     def tearDown(self):
         self.store.close()

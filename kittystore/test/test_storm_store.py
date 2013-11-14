@@ -6,12 +6,16 @@
 import unittest
 import email
 import datetime
+from shutil import rmtree
+from tempfile import mkdtemp
 #from traceback import format_exc
 
 from storm.exceptions import IntegrityError
 #from storm.exceptions import DatabaseError
 from mailman.email.message import Message
+from mailman.interfaces.archiver import ArchivePolicy
 
+from kittystore import get_store
 from kittystore.storm import get_storm_store
 from kittystore.storm.model import Email, Attachment, List, Thread
 from kittystore.utils import get_message_id_hash
@@ -230,3 +234,28 @@ class TestStormStore(unittest.TestCase):
     #                "From header not decoded: %s" % msg.sender)
     #        self.failIf("=?" in msg.subject,
     #                "Subject header not decoded: %s" % msg.sender)
+
+
+class TestStormStoreWithSearch(unittest.TestCase):
+
+    def setUp(self):
+        self.tmpdir = mkdtemp(prefix="kittystore-testing-")
+        settings = SettingsModule()
+        settings.KITTYSTORE_SEARCH_INDEX = self.tmpdir
+        self.store = get_store(settings, auto_create=True)
+
+    def tearDown(self):
+        self.store.close()
+        rmtree(self.tmpdir)
+
+    def test_private_list(self):
+        # emails on private lists must not be found by a search on all lists
+        ml = FakeList("example-list")
+        ml.archive_policy = ArchivePolicy.private
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg.set_payload("Dummy message")
+        self.store.add_to_list(ml, msg)
+        result = self.store.search("dummy")
+        self.assertEqual(result["total"], 0)

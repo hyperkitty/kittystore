@@ -176,14 +176,16 @@ class StormStore(object):
         for attachment in attachments:
             self.add_attachment(list_name, msg_id, *attachment)
         self.flush()
-        # search indexing
-        if self.search_index is not None:
-            self.search_index.add(email)
         # caching
         if self._cache_manager is not None:
             self._cache_manager.on_new_message(self, mlist, email)
             if new_thread:
                 self._cache_manager.on_new_thread(self, mlist, thread)
+        # search indexing
+        # do it after caching because we need some list properties (like
+        # archive_policy)
+        if self.search_index is not None:
+            self.search_index.add(email)
 
         return email.message_id_hash
 

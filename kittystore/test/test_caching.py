@@ -12,7 +12,6 @@ from mailman.interfaces.archiver import ArchivePolicy
 
 from kittystore import get_store
 from kittystore.caching import CacheManager
-from kittystore.caching.mlist import ListPropertiesCache
 from kittystore.test import get_test_file, FakeList, SettingsModule
 
 
@@ -20,22 +19,20 @@ class CacheManagerTestCase(unittest.TestCase):
 
     def setUp(self):
         self.cm = CacheManager()
-        self.cm.auto_refresh = False
 
     def test_discover(self):
         self.cm.discover()
         self.assertNotEqual(len(self.cm._cached_values), 0)
 
-    def test_old_refresh(self):
-        self.cm.auto_refresh = True
+    def test_old_daily(self):
         cv = Mock()
         self.cm._cached_values = [cv]
         yesterday = datetime.date.today() - datetime.timedelta(days=1)
-        self.cm._last_refresh = yesterday
+        self.cm._last_daily = yesterday
         self.cm.on_new_message(None, None, None)
-        self.assertEqual(self.cm._last_refresh, datetime.date.today())
-        self.assertTrue(cv.refresh.called)
-        self.assertFalse(cv.on_new_message.called)
+        self.assertEqual(self.cm._last_daily, datetime.date.today())
+        self.assertTrue(cv.daily.called)
+        self.assertTrue(cv.on_new_message.called) # called anyway
 
     def test_on_new_message(self):
         msg = Message()
@@ -82,13 +79,11 @@ class ListCacheTestCase(unittest.TestCase):
 
     def setUp(self):
         self.store = get_store(SettingsModule())
-        self.store._cache_manager.auto_refresh = False
 
     def tearDown(self):
         self.store.close()
 
     def test_properties_on_new_message(self):
-        #updater = ListPropertiesCache()
         ml = FakeList("example-list")
         ml.display_name = u"name 1"
         ml.subject_prefix = u"[prefix 1]"
@@ -113,4 +108,15 @@ class ListCacheTestCase(unittest.TestCase):
         self.assertEqual(ml_db.description, "desc 2")
         self.assertEqual(ml_db.archive_policy, ArchivePolicy.private)
 
-
+    def test_on_old_message(self):
+        olddate = datetime.datetime.utcnow() - datetime.timedelta(days=40)
+        ml = FakeList("example-list")
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg["Date"] = olddate.isoformat()
+        msg.set_payload("Dummy message")
+        self.store.add_to_list(ml, msg)
+        ml_db = self.store.get_lists()[0]
+        self.assertEqual(ml_db.recent_participants_count, 0)
+        self.assertEqual(ml_db.recent_threads_count, 0)

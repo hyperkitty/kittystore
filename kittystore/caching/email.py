@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Cached values concerning mailing-lists
+Cached values concerning emails
 """
 
+import datetime
 from urllib2 import HTTPError
 import mailmanclient
 
 from kittystore.caching import CachedValue
 
 
-class MailmanUserCache(CachedValue):
+class MailmanUser(CachedValue):
 
     _mm_client = None
     _user_id_cache = {}
@@ -33,6 +34,20 @@ class MailmanUserCache(CachedValue):
             message.user_id = self._get_user_id(store, message)
         except (HTTPError, mailmanclient.MailmanConnectionError):
             return # Can't refresh at this time
+
+    def daily(self, store):
+        # XXX: Storm-specific
+        from storm.locals import And
+        from kittystore.storm.model import Email
+        start_day = datetime.datetime.now() - datetime.timedelta(days=2)
+        messages = store.db.find(Email,
+                And(Email.user_id == None,
+                    Email.archived_date >= start_day))
+        try:
+            for message in messages:
+                message.user_id = self._get_user_id(store, message)
+        except (HTTPError, mailmanclient.MailmanConnectionError):
+            return # Can't update at this time
 
     def refresh(self, store):
         # XXX: Storm-specific

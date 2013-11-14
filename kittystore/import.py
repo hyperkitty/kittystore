@@ -318,3 +318,5 @@ def main():
         if opts.verbose:
             print '  %s emails are stored into the database' \
                   % store.get_list_size(opts.list_name)
+    store.refresh_cache(full=True)
+    store.commit()

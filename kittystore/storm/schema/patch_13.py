@@ -10,16 +10,25 @@ SQL = {
         'ALTER TABLE "list" ADD COLUMN description TEXT;',
         'ALTER TABLE "list" ADD COLUMN recent_participants_count INTEGER;',
         'ALTER TABLE "list" ADD COLUMN recent_threads_count INTEGER;',
+        'ALTER TABLE "thread" ADD COLUMN emails_count INTEGER;',
+        'ALTER TABLE "thread" ADD COLUMN participants_count INTEGER;',
+        'ALTER TABLE "thread" ADD COLUMN subject TEXT;',
         ],
     "postgres": [
         'ALTER TABLE "list" ADD COLUMN description TEXT;',
         'ALTER TABLE "list" ADD COLUMN recent_participants_count INTEGER;',
         'ALTER TABLE "list" ADD COLUMN recent_threads_count INTEGER;',
+        'ALTER TABLE "thread" ADD COLUMN emails_count INTEGER;',
+        'ALTER TABLE "thread" ADD COLUMN participants_count INTEGER;',
+        'ALTER TABLE "thread" ADD COLUMN subject TEXT;',
         ],
     "mysql": [
         'ALTER TABLE `list` ADD COLUMN description TEXT;',
         'ALTER TABLE `list` ADD COLUMN recent_participants_count INTEGER;',
         'ALTER TABLE `list` ADD COLUMN recent_threads_count INTEGER;',
+        'ALTER TABLE `thread` ADD COLUMN emails_count INTEGER;',
+        'ALTER TABLE `thread` ADD COLUMN participants_count INTEGER;',
+        'ALTER TABLE `thread` ADD COLUMN subject TEXT COLLATE utf8_general_ci;',
         ],
     }
 

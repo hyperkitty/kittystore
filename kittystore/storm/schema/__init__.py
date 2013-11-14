@@ -23,7 +23,11 @@ CREATES = {
             thread_id VARCHAR(255) NOT NULL,
             date_active DATETIME NOT NULL,
             category_id INTEGER,
+            subject TEXT,
+            emails_count INTEGER,
+            participants_count INTEGER,
             PRIMARY KEY (list_name, thread_id),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (category_id) REFERENCES category(id)
         );""", """
         CREATE TABLE "email" (
@@ -43,6 +47,7 @@ CREATES = {
             thread_depth INTEGER NOT NULL DEFAULT 0,
             archived_date DATETIME DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (list_name, message_id),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (list_name, thread_id)
                 REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
         );""", """
@@ -66,6 +71,15 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE "list_month_activity" (
+            list_name VARCHAR(255) NOT NULL,
+            year INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            participants_count INTEGER,
+            threads_count INTEGER,
+            PRIMARY KEY (list_name, year, month),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
@@ -75,6 +89,7 @@ CREATES = {
         'CREATE INDEX "ix_email_subject" ON "email" (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
+        'CREATE INDEX "ix_email_archived_date" ON "email" (archived_date);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
         'CREATE INDEX "ix_thread_list_name" ON "thread" (list_name);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
@@ -111,7 +126,11 @@ CREATES = {
             thread_id VARCHAR(255) NOT NULL,
             date_active TIMESTAMP WITHOUT TIME ZONE NOT NULL,
             category_id INTEGER,
+            subject TEXT,
+            emails_count INTEGER,
+            participants_count INTEGER,
             PRIMARY KEY (list_name, thread_id),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (category_id) REFERENCES category(id)
         );""", """
         CREATE TABLE "email" (
@@ -131,6 +150,7 @@ CREATES = {
             thread_depth INTEGER NOT NULL DEFAULT 0,
             archived_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (list_name, message_id),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (list_name, thread_id)
                 REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
         );""", """
@@ -154,6 +174,15 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE "list_month_activity" (
+            list_name VARCHAR(255) NOT NULL,
+            year INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            participants_count INTEGER,
+            threads_count INTEGER,
+            PRIMARY KEY (list_name, year, month),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
@@ -163,6 +192,7 @@ CREATES = {
         'CREATE INDEX "ix_email_subject" ON "email" (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
+        'CREATE INDEX "ix_email_archived_date" ON "email" (archived_date);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
         'CREATE INDEX "ix_thread_list_name" ON "thread" (list_name);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
@@ -189,7 +219,11 @@ CREATES = {
             thread_id VARCHAR(255) NOT NULL,
             date_active DATETIME NOT NULL,
             category_id INTEGER,
+            subject TEXT COLLATE utf8_general_ci,
+            emails_count INTEGER,
+            participants_count INTEGER,
             PRIMARY KEY (list_name, thread_id),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (category_id) REFERENCES category(id)
         );""", """
         CREATE TABLE `email` (
@@ -209,6 +243,7 @@ CREATES = {
             thread_depth INTEGER NOT NULL DEFAULT 0,
             archived_date DATETIME,
             PRIMARY KEY (list_name, message_id),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (list_name, thread_id)
                 REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
         );""", """
@@ -232,6 +267,15 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE `list_month_activity` (
+            list_name VARCHAR(255) NOT NULL,
+            year INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            participants_count INTEGER,
+            threads_count INTEGER,
+            PRIMARY KEY (list_name, year, month),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE
         );""",
         'CREATE INDEX `ix_email_list_name` ON `email` (list_name);',
         'CREATE INDEX `ix_email_date` ON `email` (date);',
@@ -241,6 +285,7 @@ CREATES = {
         'CREATE INDEX `ix_email_subject` ON `email` (subject(255));',
         'CREATE INDEX `ix_email_thread_id` ON `email` (thread_id);',
         'CREATE INDEX `ix_email_thread_order` ON `email` (thread_order);',
+        'CREATE INDEX `ix_email_archived_date` ON `email` (archived_date);',
         'CREATE INDEX `ix_thread_date_active` ON `thread` (date_active);',
         'CREATE INDEX `ix_thread_list_name` ON `thread` (list_name);',
         'CREATE UNIQUE INDEX `ix_category_name` ON `category` (name);',

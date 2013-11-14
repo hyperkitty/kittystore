@@ -82,7 +82,7 @@ def updatedb():
                 ))[0][0]
     print "Done, the current schema version is %d." % version
     print "Refreshing the cache, this can take some time..."
-    store.refresh_cache()
+    store.refresh_cache(full=True)
     store.commit()
     print "  ...done!"
 
@@ -96,7 +96,9 @@ def updatedb():
 #
 
 def cache_refresh():
-    parser = OptionParser(usage="%prog -s settings_module")
+    parser = OptionParser(usage="%prog -s settings_module [-f]")
+    parser.add_option("-f", "--full", action="store_true",
+                      help="rebuild the whole cache (can be long)")
     parser.add_option("-s", "--settings",
                       help="the Python path to a Django-like settings module")
     parser.add_option("-p", "--pythonpath",
@@ -111,7 +113,7 @@ def cache_refresh():
         store = get_store_from_options(opts)
     except (StoreFromOptionsError, AttributeError), e:
         parser.error(e.args[0])
-    store.refresh_cache()
+    store.refresh_cache(full=opts.full)
     store.commit()
     print "  ...done!"
 

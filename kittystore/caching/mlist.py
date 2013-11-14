@@ -9,10 +9,9 @@ from urllib2 import HTTPError
 import mailmanclient
 
 from kittystore.caching import CachedValue
-from kittystore.utils import daterange
 
 
-class ListPropertiesCache(CachedValue):
+class ListProperties(CachedValue):
 
     props = ("display_name", "description", "subject_prefix", "archive_policy")
 
@@ -20,6 +19,9 @@ class ListPropertiesCache(CachedValue):
         l = store.get_list(mlist.fqdn_listname)
         for propname in self.props:
             setattr(l, propname, getattr(mlist, propname))
+
+    def daily(self, store):
+        return self.refresh(store)
 
     def refresh(self, store):
         try:
@@ -35,32 +37,35 @@ class ListPropertiesCache(CachedValue):
                 self.on_new_message(store, mm_mlist, None)
 
 
-class ListActivityCache(CachedValue):
+class RecentListActivity(CachedValue):
     """
     Refresh the recent_participants_count and recent_threads_count properties.
     """
 
-    def _refresh_list(self, store, mlist):
-        # Get stats for last 30 days
-        today = datetime.datetime.utcnow()
-        #today -= datetime.timedelta(days=400) #debug
-        # the upper boundary is excluded in the search, add one day
-        end_date = today + datetime.timedelta(days=1)
-        begin_date = end_date - datetime.timedelta(days=32)
-        days = daterange(begin_date, end_date)
-        # now compute the values
-        threads = store.get_threads(list_name=mlist.name,
-                                    start=begin_date, end=end_date)
-        participants = set()
-        for thread in threads:
-            participants.update(thread.participants)
-        mlist.recent_participants_count = len(participants)
-        mlist.recent_threads_count = len(threads)
-
     def on_new_message(self, store, mlist, message):
         l = store.get_list(mlist.fqdn_listname)
-        self._refresh_list(store, l)
+        begin_date = l.get_recent_dates()[0]
+        if message.date >= begin_date:
+            l.refresh_cache()
+
+    def daily(self, store):
+        return self.refresh(store)
 
     def refresh(self, store):
         for mlist in store.get_lists():
-            self._refresh_list(store, mlist)
+            mlist.refresh_cache()
+
+
+class MonthlyListActivity(CachedValue):
+    """
+    Refresh the monthly participants_count and threads_count values.
+    """
+
+    def on_new_message(self, store, mlist, message):
+        l = store.get_list(mlist.fqdn_listname)
+        activity = l.get_month_activity(message.date.year, message.date.month)
+        activity.refresh()
+
+    def refresh(self, store):
+        for mlist in store.get_lists():
+            mlist.clear_month_activity()

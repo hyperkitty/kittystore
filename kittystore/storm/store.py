@@ -681,7 +681,10 @@ class StormStore(object):
 
     # Caching
 
-    def refresh_cache(self):
+    def refresh_cache(self, full=False):
         if self._cache_manager is None:
             return
-        self._cache_manager.refresh(self)
+        if full:
+            self._cache_manager.refresh(self)
+        else:
+            self._cache_manager.daily(self)

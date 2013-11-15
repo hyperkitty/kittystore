@@ -616,6 +616,23 @@ class StormStore(object):
     def get_all_messages(self):
         return self.db.find(Email).order_by(Email.archived_date)
 
+    def get_message_dates(self, list_name, start, end):
+        """ Return all email dates between two given dates.
+
+        :param list_name: The name of the mailing list in which these emails
+            should be searched.
+        :param start: A datetime object representing the starting date of
+            the interval to query.
+        :param end: A datetime object representing the ending date of
+            the interval to query.
+        :returns: The list of messages.
+        """
+        return self.db.find(Email, And(
+                    Email.list_name == unicode(list_name),
+                    Email.date >= start,
+                    Email.date < end,
+                )).order_by(Desc(Email.date)).values(Email.date)
+
     # Attachments
 
     def add_attachment(self, mlist, msg_id, counter, name, content_type,

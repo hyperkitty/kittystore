@@ -124,12 +124,13 @@ class SearchEngine(object):
     def optimize(self):
         return self.index.optimize()
 
-    def add_batch(self, documents):
+    def add_batch(self, documents, debug=False):
         """
         See http://pythonhosted.org/Whoosh/batch.html
         """
-        sys.stdout.write("Indexing all messages")
-        sys.stdout.flush()
+        if debug:
+            sys.stdout.write("Indexing all messages")
+            sys.stdout.flush()
         # Don't use optimizations below, it will eat up lots of memory and can
         # go as far as preventing forking (OSError), tested on a 3GB VM with
         # the Fedora archives
@@ -147,7 +148,7 @@ class SearchEngine(object):
                 if IMessage.providedBy(doc):
                     doc = email_to_search_doc(doc)
                 writer.add_document(**doc)
-                if num % 100 == 0:
+                if debug and num % 100 == 0:
                     sys.stdout.write(".")
                     sys.stdout.flush()
         except Exception:
@@ -155,15 +156,16 @@ class SearchEngine(object):
             raise
         else:
             writer.commit()
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+        if debug:
+            sys.stdout.write("\n")
+            sys.stdout.flush()
 
     def initialize_with(self, store):
         """Create and populate the index with the contents of a Store"""
         if not os.path.isdir(self.location):
             os.makedirs(self.location)
         self._index = create_in(self.location, self._get_schema())
-        self.add_batch(store.get_all_messages())
+        self.add_batch(store.get_all_messages(), store.debug)
 
     def needs_upgrade(self):
         if not exists_in(self.location):

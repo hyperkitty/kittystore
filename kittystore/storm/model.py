@@ -48,13 +48,17 @@ class List(Storm):
 
     __storm_table__ = "list"
 
+    # The following properties are mirrored from Mailman's MailingList instance
+    mailman_props = ("display_name", "description", "subject_prefix",
+                     "archive_policy")
+
     name = Unicode(primary=True)
     display_name = Unicode()
     description = Unicode()
     subject_prefix = Unicode()
     archive_policy = Enum(ArchivePolicy)
-    recent_participants_count = Int()  # cache
-    recent_threads_count = Int()       # cache
+    recent_participants_count = Int()  # cached computation result
+    recent_threads_count = Int()       # cached computation result
 
     def __init__(self, name):
         self.name = unicode(name)
@@ -192,9 +196,9 @@ class Thread(Storm):
     thread_id = Unicode()
     date_active = DateTime()
     category_id = Int()
-    emails_count = Int()  # cache
-    participants_count = Int()  # cache
-    subject = Unicode()   # cache
+    emails_count = Int()  # cached computation result
+    participants_count = Int()  # cached computation result
+    subject = Unicode()   # cached computation result
     emails = ReferenceSet(
                 (list_name, thread_id),
                 (Email.list_name, Email.thread_id),

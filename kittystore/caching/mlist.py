@@ -13,11 +13,9 @@ from kittystore.caching import CachedValue
 
 class ListProperties(CachedValue):
 
-    props = ("display_name", "description", "subject_prefix", "archive_policy")
-
     def on_new_message(self, store, mlist, message):
         l = store.get_list(mlist.fqdn_listname)
-        for propname in self.props:
+        for propname in l.mailman_props:
             setattr(l, propname, getattr(mlist, propname))
 
     def daily(self, store):

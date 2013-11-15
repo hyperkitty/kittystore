@@ -95,6 +95,9 @@ class StormStore(object):
         l = self.db.find(List, List.name == list_name).one()
         if l is None:
             l = List(list_name)
+            # Don't wait for the cache to set those properties
+            for propname in l.mailman_props:
+                setattr(l, propname, getattr(mlist, propname))
             self.db.add(l)
         if mlist.archive_policy == ArchivePolicy.never:
             print "Archiving disabled by list policy for %s" % list_name

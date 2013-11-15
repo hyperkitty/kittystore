@@ -18,6 +18,7 @@ SQL = {
         );""",
         # No alter table add constraint in SQLite: http://www.sqlite.org/omitted.html
         'CREATE INDEX "ix_email_archived_date" ON "email" (archived_date);',
+        'ALTER TABLE "list" ADD COLUMN created_at DATETIME;',
         ],
     "postgres": ["""
         CREATE TABLE "list_month_activity" (
@@ -32,6 +33,7 @@ SQL = {
         'ALTER TABLE "thread" ADD CONSTRAINT fk_thread_list FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE;',
         'ALTER TABLE "email" ADD CONSTRAINT fk_email_list FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE;',
         'CREATE INDEX "ix_email_archived_date" ON "email" (archived_date);',
+        'ALTER TABLE "list" ADD COLUMN created_at TIMESTAMP WITHOUT TIME ZONE;',
         ],
     "mysql": ["""
         CREATE TABLE `list_month_activity` (
@@ -46,6 +48,7 @@ SQL = {
         'ALTER TABLE `thread` ADD CONSTRAINT fk_thread_list FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE;',
         'ALTER TABLE `email` ADD CONSTRAINT fk_email_list FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE;',
         'CREATE INDEX `ix_email_archived_date` ON `email` (archived_date);',
+        'ALTER TABLE `list` ADD COLUMN created_at DATETIME;',
         ],
     }
 

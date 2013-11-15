@@ -50,13 +50,14 @@ class List(Storm):
 
     # The following properties are mirrored from Mailman's MailingList instance
     mailman_props = ("display_name", "description", "subject_prefix",
-                     "archive_policy")
+                     "archive_policy", "created_at")
 
     name = Unicode(primary=True)
     display_name = Unicode()
     description = Unicode()
     subject_prefix = Unicode()
     archive_policy = Enum(ArchivePolicy)
+    created_at = DateTime()
     recent_participants_count = Int()  # cached computation result
     recent_threads_count = Int()       # cached computation result
 

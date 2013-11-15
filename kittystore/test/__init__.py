@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import datetime
 
 from mailman.interfaces.archiver import ArchivePolicy
 
@@ -21,6 +22,7 @@ class FakeList(object):
     description = None
     subject_prefix = None
     archive_policy = ArchivePolicy.public
+    created_at = datetime.datetime.utcnow()
 
     def __init__(self, name):
         self.fqdn_listname = unicode(name)

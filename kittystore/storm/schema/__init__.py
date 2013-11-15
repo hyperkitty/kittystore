@@ -10,6 +10,7 @@ CREATES = {
             description TEXT,
             subject_prefix TEXT,
             archive_policy INTEGER,
+            created_at DATETIME,
             recent_participants_count INTEGER,
             recent_threads_count INTEGER,
             PRIMARY KEY (name)
@@ -102,6 +103,7 @@ CREATES = {
             description TEXT,
             subject_prefix TEXT,
             archive_policy INTEGER,
+            created_at TIMESTAMP WITHOUT TIME ZONE,
             recent_participants_count INTEGER,
             recent_threads_count INTEGER,
             PRIMARY KEY (name)
@@ -205,6 +207,7 @@ CREATES = {
             description TEXT,
             subject_prefix TEXT,
             archive_policy INTEGER,
+            created_at DATETIME,
             recent_participants_count INTEGER,
             recent_threads_count INTEGER,
             PRIMARY KEY (name)

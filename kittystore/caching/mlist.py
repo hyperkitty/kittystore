@@ -7,14 +7,40 @@ import datetime
 from urllib2 import HTTPError
 
 import mailmanclient
+from dateutil.parser import parse as date_parse
+from mailman.interfaces.mailinglist import IMailingList
+from mailman.interfaces.archiver import ArchivePolicy
 
 from kittystore.caching import CachedValue
+
+
+class CompatibleMList(object):
+    """
+    Convert the List object returned by mailmanclient to an
+    IMailingList-compatible object
+    """
+    converters = {
+        "created_at": date_parse,
+        "archive_policy": lambda p: getattr(ArchivePolicy, p),
+    }
+    def __init__(self, mlist, props):
+        for prop in props:
+            try:
+                value = getattr(mlist, prop)
+            except AttributeError:
+                value = mlist.settings[prop]
+            if prop in self.converters:
+                value = converters[prop](value)
+            setattr(self, prop, value)
 
 
 class ListProperties(CachedValue):
 
     def on_new_message(self, store, mlist, message):
         l = store.get_list(mlist.fqdn_listname)
+        if not IMailingList.providedBy(mlist):
+            # this is probably a List instance returned by mailmanclient
+            mlist = CompatibleMList(mlist, l.mailman_props)
         for propname in l.mailman_props:
             setattr(l, propname, getattr(mlist, propname))
 

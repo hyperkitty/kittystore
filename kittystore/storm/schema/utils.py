@@ -26,5 +26,4 @@ class CheckingSchema(StormSchema):
             return True
         else:
             patch_applier = PatchApplier(store, self._patch_package)
-            print patch_applier.has_pending_patches()
             return patch_applier.has_pending_patches()

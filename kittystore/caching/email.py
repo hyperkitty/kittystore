@@ -53,7 +53,9 @@ class MailmanUser(CachedValue):
         # XXX: Storm-specific
         from kittystore.storm.model import Email
         try:
-            for message in store.db.find(Email, Email.user_id == None):
+            for num, message in enumerate(store.db.find(Email, Email.user_id == None)):
                 message.user_id = self._get_user_id(store, message)
+                if num % 1000 == 0:
+                    store.commit() # otherwise we'll blow up the memory
         except (HTTPError, mailmanclient.MailmanConnectionError):
             return # Can't refresh at this time

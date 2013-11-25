@@ -20,10 +20,12 @@ class ThreadStats(CachedValue):
     def refresh(self, store):
         # XXX: Storm-specific
         from kittystore.storm.model import Thread
-        for thread in store.db.find(Thread):
+        for num, thread in enumerate(store.db.find(Thread)):
             thread.emails_count = None # reset it
             len(thread) # this will refill the cached value
             thread.participants_count = len(thread.participants)
+            if num % 1000 == 0:
+                store.commit() # otherwise we'll blow up the memory
 
 
 class ThreadSubject(CachedValue):

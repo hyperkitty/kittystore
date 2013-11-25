@@ -8,7 +8,6 @@ from urllib2 import HTTPError
 
 import mailmanclient
 from dateutil.parser import parse as date_parse
-from mailman.interfaces.mailinglist import IMailingList
 from mailman.interfaces.archiver import ArchivePolicy
 
 from kittystore.caching import CachedValue
@@ -30,7 +29,7 @@ class CompatibleMList(object):
             except AttributeError:
                 value = mlist.settings[prop]
             if prop in self.converters:
-                value = converters[prop](value)
+                value = self.converters[prop](value)
             setattr(self, prop, value)
 
 
@@ -38,8 +37,7 @@ class ListProperties(CachedValue):
 
     def on_new_message(self, store, mlist, message):
         l = store.get_list(mlist.fqdn_listname)
-        if not IMailingList.providedBy(mlist):
-            # this is probably a List instance returned by mailmanclient
+        if isinstance(mlist, mailmanclient._client._List):
             mlist = CompatibleMList(mlist, l.mailman_props)
         for propname in l.mailman_props:
             setattr(l, propname, getattr(mlist, propname))

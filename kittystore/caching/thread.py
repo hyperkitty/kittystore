@@ -5,12 +5,11 @@ Cached values concerning threads
 
 from kittystore.caching import CachedValue
 
-import logging
-logger = logging.getLogger(__name__)
-
 
 class ThreadStats(CachedValue):
     """Number of emails and number of participants"""
+
+    start_msg = "Computing thread statistics"
 
     def on_new_message(self, store, mlist, message):
         if message.thread.emails_count is None:
@@ -21,7 +20,6 @@ class ThreadStats(CachedValue):
             len(message.thread.participants)
 
     def refresh(self, store):
-        logger.info("Refreshing thread statistics")
         # XXX: Storm-specific
         from kittystore.storm.model import Thread
         for num, thread in enumerate(store.db.find(Thread)):
@@ -33,6 +31,8 @@ class ThreadStats(CachedValue):
 
 
 class ThreadSubject(CachedValue):
+
+    start_msg = "Refreshing thread subjects"
 
     def on_new_thread(self, store, mlist, thread):
         thread.subject = thread.starting_email.subject

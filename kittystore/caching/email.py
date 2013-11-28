@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 class MailmanUser(CachedValue):
 
+    start_msg = "Getting missing email user ids from Mailman"
     _mm_client = None
     _user_id_cache = {}
 
@@ -62,10 +63,9 @@ class MailmanUser(CachedValue):
     def refresh(self, store):
         # There can be millions of emails, break into smaller chuncks to avoid
         # hogging up the memory
-        logger.info("Getting missing email user ids from Mailman")
+        buffer_size = 50000
         # XXX: Storm-specific
         from kittystore.storm.model import Email
-        buffer_size = 50000
         prev_count = store.db.find(Email, Email.user_id == None).count()
         try:
             while True:

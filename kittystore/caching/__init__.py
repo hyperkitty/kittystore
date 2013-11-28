@@ -17,8 +17,13 @@ from urllib2 import HTTPError
 from pkg_resources import resource_listdir
 import mailmanclient
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class CachedValue(object):
+
+    start_msg = __doc__
 
     def on_new_message(self, store, mlist, message):
         """A new message has been added to the list"""
@@ -80,4 +85,6 @@ class CacheManager(object):
 
     def refresh(self, store):
         for cval in self._cached_values:
+            if cval.start_msg:
+                logger.info(cval.start_msg)
             cval.refresh(store)

@@ -35,6 +35,8 @@ class CompatibleMList(object):
 
 class ListProperties(CachedValue):
 
+    start_msg = "Refreshing list properties from Mailman"
+
     def on_new_message(self, store, mlist, message):
         l = store.get_list(mlist.fqdn_listname)
         if isinstance(mlist, mailmanclient._client._List):
@@ -63,6 +65,8 @@ class RecentListActivity(CachedValue):
     """
     Refresh the recent_participants_count and recent_threads_count properties.
     """
+
+    start_msg = "Computing recent list activity"
 
     def on_new_message(self, store, mlist, message):
         l = store.get_list(mlist.fqdn_listname)

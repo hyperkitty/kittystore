@@ -18,6 +18,7 @@ class ThreadStats(CachedValue):
             len(message.thread.participants)
 
     def refresh(self, store):
+        print "Refreshing thread statistics"
         # XXX: Storm-specific
         from kittystore.storm.model import Thread
         for num, thread in enumerate(store.db.find(Thread)):

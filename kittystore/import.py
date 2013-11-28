@@ -283,6 +283,8 @@ def parse_args():
             help="show a whole lot more of output")
     parser.add_option("--no-download", action="store_true",
             help="don't download attachments")
+    parser.add_option("--no-refresh", action="store_true",
+            help="don't refresh the cache after importing")
     parser.add_option("-D", "--duplicates", action="store_true",
             help="do not skip duplicate emails (same Message-ID header), "
                  "import them with a different Message-ID")
@@ -324,5 +326,6 @@ def main():
         if opts.verbose:
             print '  %s emails are stored into the database' \
                   % store.get_list_size(opts.list_name)
-    store.refresh_cache(full=True)
+    if not opts.no_refresh:
+        store.refresh_cache(full=True)
     store.commit()

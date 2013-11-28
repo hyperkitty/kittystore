@@ -27,6 +27,8 @@ from whoosh.query import Term
 from mailman.interfaces.archiver import ArchivePolicy
 from mailman.interfaces.messages import IMessage
 
+import logging
+logger = logging.getLogger(__name__)
 
 
 def email_to_search_doc(email):
@@ -124,13 +126,11 @@ class SearchEngine(object):
     def optimize(self):
         return self.index.optimize()
 
-    def add_batch(self, documents, debug=False):
+    def add_batch(self, documents):
         """
         See http://pythonhosted.org/Whoosh/batch.html
         """
-        if debug:
-            sys.stdout.write("Indexing all messages")
-            sys.stdout.flush()
+        logger.info("Indexing all messages")
         # Don't use optimizations below, it will eat up lots of memory and can
         # go as far as preventing forking (OSError), tested on a 3GB VM with
         # the Fedora archives
@@ -148,24 +148,21 @@ class SearchEngine(object):
                 if IMessage.providedBy(doc):
                     doc = email_to_search_doc(doc)
                 writer.add_document(**doc)
-                if debug and num % 100 == 0:
-                    sys.stdout.write(".")
-                    sys.stdout.flush()
+                if num % 1000 == 0:
+                    logger.info("...still indexing (%d/%d)..."
+                                 % (num, len(documents)))
         except Exception:
             writer.cancel()
             raise
         else:
             writer.commit()
-        if debug:
-            sys.stdout.write("\n")
-            sys.stdout.flush()
 
     def initialize_with(self, store):
         """Create and populate the index with the contents of a Store"""
         if not os.path.isdir(self.location):
             os.makedirs(self.location)
         self._index = create_in(self.location, self._get_schema())
-        self.add_batch(store.get_all_messages(), store.debug)
+        self.add_batch(store.get_all_messages())
 
     def needs_upgrade(self):
         if not exists_in(self.location):
@@ -183,13 +180,13 @@ class SearchEngine(object):
         if not exists_in(self.location):
             self.initialize_with(store)
         if "user_id" not in self.index.schema:
-            print "Rebuilding the search index to include the new user_id field..."
+            logger.info("Rebuilding the search index to include the new user_id field...")
             shutil.rmtree(self.location)
             self.initialize_with(store)
         new_schema = self._get_schema()
         writer = self.index.writer()
         for field_name, field_type in new_schema.items():
             if field_name not in self.index.schema:
-                print "Adding field %s to the search index" % field_name
+                logger.info("Adding field %s to the search index" % field_name)
                 writer.add_field(field_name, field_type)
         writer.commit(optimize=True)

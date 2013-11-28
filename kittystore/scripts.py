@@ -27,6 +27,7 @@ from __future__ import absolute_import
 
 import importlib
 import sys
+import logging
 from optparse import OptionParser
 
 from kittystore import get_store, create_store, SchemaUpgradeNeeded
@@ -79,6 +80,11 @@ def updatedb():
     opts, args = parser.parse_args()
     if args:
         parser.error("no arguments allowed.")
+    if opts.debug:
+        debuglevel = logging.DEBUG
+    else:
+        debuglevel = logging.INFO
+    logging.basicConfig(format='%(message)s', level=debuglevel)
     print 'Upgrading the database schema and populating ' \
           'the search index if necessary...'
     try:
@@ -121,6 +127,11 @@ def cache_refresh():
     opts, args = parser.parse_args()
     if args:
         parser.error("no arguments allowed.")
+    if opts.debug:
+        debuglevel = logging.DEBUG
+    else:
+        debuglevel = logging.INFO
+    logging.basicConfig(format='%(message)s', level=debuglevel)
     print 'Refreshing the cache...'
     try:
         store = get_store_from_options(opts)

@@ -35,6 +35,9 @@ from kittystore.analysis import compute_thread_order_and_depth
 
 from .model import List, Email, Attachment, Thread, EmailFull, Category
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class StormStore(object):
     """
@@ -100,7 +103,7 @@ class StormStore(object):
                 setattr(l, propname, getattr(mlist, propname))
             self.db.add(l)
         if mlist.archive_policy == ArchivePolicy.never:
-            print "Archiving disabled by list policy for %s" % list_name
+            logger.info("Archiving disabled by list policy for %s" % list_name)
             return None
         if not message.has_key("Message-Id"):
             raise ValueError("No 'Message-Id' header in email", message)
@@ -111,7 +114,7 @@ class StormStore(object):
             msg_id = msg_id[:254]
         email = Email(list_name, msg_id)
         if self.is_message_in_list(list_name, email.message_id):
-            print ("Duplicate email from %s: %s" %
+            logger.info("Duplicate email from %s: %s" %
                    (message['From'], message.get('Subject', '""')))
             return email.message_id_hash
 

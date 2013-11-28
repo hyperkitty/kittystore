@@ -30,6 +30,7 @@ import os
 import re
 import urllib
 import sys
+import logging
 from dateutil.parser import parse
 from dateutil import tz
 from optparse import OptionParser
@@ -317,6 +318,11 @@ def parse_args():
 
 def main():
     store, opts, args = parse_args()
+    if opts.debug:
+        debuglevel = logging.DEBUG
+    else:
+        debuglevel = logging.INFO
+    logging.basicConfig(format='%(message)s', level=debuglevel)
     print 'Importing messages from %s to database...' % opts.list_name
     mlist = get_mailinglist(opts.list_name, store.settings, opts)
     importer = DbImporter(mlist, store, opts)

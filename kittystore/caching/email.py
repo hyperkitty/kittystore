@@ -9,6 +9,9 @@ import mailmanclient
 
 from kittystore.caching import CachedValue
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class MailmanUser(CachedValue):
 
@@ -59,7 +62,7 @@ class MailmanUser(CachedValue):
     def refresh(self, store):
         # There can be millions of emails, break into smaller chuncks to avoid
         # hogging up the memory
-        print "Getting missing email user ids from Mailman"
+        logger.info("Getting missing email user ids from Mailman")
         # XXX: Storm-specific
         from kittystore.storm.model import Email
         buffer_size = 50000
@@ -74,6 +77,6 @@ class MailmanUser(CachedValue):
                 if count == 0 or count == prev_count:
                     break # done, or no improvement (former members)
                 prev_count = count
-                print "%d emails left to refresh" % count
+                logger.info("%d emails left to refresh" % count)
         except (HTTPError, mailmanclient.MailmanConnectionError):
             return # Can't refresh at this time

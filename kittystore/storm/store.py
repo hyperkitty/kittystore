@@ -464,7 +464,7 @@ class StormStore(object):
                     Thread.date_active >= start,
                     Thread.date_active < end,
                 )).order_by(Desc(Thread.date_active))
-        return list(threads)
+        return threads
 
     def get_start_date(self, list_name):
         """ Get the date of the first archived email in a list.

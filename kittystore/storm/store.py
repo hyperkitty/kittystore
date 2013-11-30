@@ -616,6 +616,16 @@ class StormStore(object):
         result = self.db.find(Email.message_id_hash, clause)
         return list(result)
 
+    def get_messages_by_user_id(self, user_id, list_name=None):
+        """ Returns a user's email hashes """
+        if list_name is None:
+            clause = Email.user_id == unicode(user_id)
+        else:
+            clause = And(Email.user_id == unicode(user_id),
+                         Email.list_name == unicode(list_name))
+        result = self.db.find(Email, clause).order_by(Desc(Email.date))
+        return result
+
     def get_all_messages(self):
         return self.db.find(Email).order_by(Email.archived_date)
 

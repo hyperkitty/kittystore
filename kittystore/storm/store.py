@@ -70,7 +70,7 @@ class StormStore(object):
             an X-Message-ID-Hash header, overriding any existing such
             header.
         :returns: The calculated X-Message-ID-Hash header.
-        :raises ValueError: if the message is missing a Message-ID 
+        :raises ValueError: if the message is missing a Message-ID
             header.
             The storage service is also allowed to raise this exception
             if it find, but disallows collisions.
@@ -615,6 +615,16 @@ class StormStore(object):
                          Email.list_name == unicode(list_name))
         result = self.db.find(Email.message_id_hash, clause)
         return list(result)
+
+    def get_message_count_by_user_id(self, user_id, list_name=None):
+        """ Returns a user's email hashes """
+        if list_name is None:
+            clause = Email.user_id == unicode(user_id)
+        else:
+            clause = And(Email.user_id == unicode(user_id),
+                         Email.list_name == unicode(list_name))
+        result = self.db.find(Email.message_id_hash, clause)
+        return result.count()
 
     def get_messages_by_user_id(self, user_id, list_name=None):
         """ Returns a user's email hashes """

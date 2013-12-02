@@ -42,6 +42,7 @@ def get_storm_store(settings, search_index=None, debug=False, auto_create=False)
         if auto_create:
             dbschema.upgrade(store)
         else:
+            store.close()
             raise SchemaUpgradeNeeded()
     cache_manager = CacheManager()
     cache_manager.discover()

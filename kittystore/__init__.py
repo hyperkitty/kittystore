@@ -55,6 +55,7 @@ def get_store(settings, debug=None, auto_create=False):
         if auto_create:
             search_index.upgrade(store)
         else:
+            store.close()
             raise SchemaUpgradeNeeded()
 
     return store

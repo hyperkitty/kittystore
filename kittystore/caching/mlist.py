@@ -10,7 +10,8 @@ import mailmanclient
 from dateutil.parser import parse as date_parse
 from mailman.interfaces.archiver import ArchivePolicy
 
-from kittystore.caching import CachedValue
+from kittystore import events
+from kittystore.utils import get_mailman_client
 
 
 class CompatibleMList(object):
@@ -33,65 +34,29 @@ class CompatibleMList(object):
             setattr(self, prop, value)
 
 
-class ListProperties(CachedValue):
+def update_props(store, mlist):
+    l = store.get_list(mlist.fqdn_listname)
+    if isinstance(mlist, mailmanclient._client._List):
+        mlist = CompatibleMList(mlist, l.mailman_props)
+    for propname in l.mailman_props:
+        setattr(l, propname, getattr(mlist, propname))
 
-    start_msg = "Refreshing list properties from Mailman"
 
-    def on_new_message(self, store, mlist, message):
-        l = store.get_list(mlist.fqdn_listname)
-        if isinstance(mlist, mailmanclient._client._List):
-            mlist = CompatibleMList(mlist, l.mailman_props)
-        for propname in l.mailman_props:
-            setattr(l, propname, getattr(mlist, propname))
+@events.subscribe_to(events.NewMessage)
+def on_new_message(event):
+    update_props(event.store, event.mlist)
 
-    def daily(self, store):
-        return self.refresh(store)
 
-    def refresh(self, store):
+def sync_list_properties(store):
+    """Sync the list properties from Mailman"""
+    try:
+        mm_client = get_mailman_client(store.settings)
+    except HTTPError:
+        return # Can't refresh at this time
+    for list_name in store.get_list_names():
         try:
-            mm_client = self._get_mailman_client(store.settings)
-        except HTTPError:
-            return # Can't refresh at this time
-        for list_name in store.get_list_names():
-            try:
-                mm_mlist = mm_client.get_list(list_name)
-            except (HTTPError, mailmanclient.MailmanConnectionError):
-                continue
-            if mm_mlist:
-                self.on_new_message(store, mm_mlist, None)
-
-
-class RecentListActivity(CachedValue):
-    """
-    Refresh the recent_participants_count and recent_threads_count properties.
-    """
-
-    start_msg = "Computing recent list activity"
-
-    def on_new_message(self, store, mlist, message):
-        l = store.get_list(mlist.fqdn_listname)
-        begin_date = l.get_recent_dates()[0]
-        if message.date >= begin_date:
-            l.refresh_cache()
-
-    def daily(self, store):
-        return self.refresh(store)
-
-    def refresh(self, store):
-        for mlist in store.get_lists():
-            mlist.refresh_cache()
-
-
-class MonthlyListActivity(CachedValue):
-    """
-    Refresh the monthly participants_count and threads_count values.
-    """
-
-    def on_new_message(self, store, mlist, message):
-        l = store.get_list(mlist.fqdn_listname)
-        activity = l.get_month_activity(message.date.year, message.date.month)
-        activity.refresh()
-
-    def refresh(self, store):
-        for mlist in store.get_lists():
-            mlist.clear_month_activity()
+            mm_mlist = mm_client.get_list(list_name)
+        except (HTTPError, mailmanclient.MailmanConnectionError):
+            continue
+        if mm_mlist:
+            update_props(store, mm_mlist)

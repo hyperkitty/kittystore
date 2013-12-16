@@ -15,6 +15,7 @@ license.
 from __future__ import absolute_import
 
 import datetime
+from collections import namedtuple
 
 from zope.interface import implements
 from storm.locals import Unicode, RawStr, Int, ReferenceSet, Reference, Proxy
@@ -24,6 +25,7 @@ from mailman.interfaces.messages import IMessage
 from mailman.interfaces.archiver import ArchivePolicy
 from mailman.database.types import Enum
 
+from kittystore import events
 from kittystore.utils import get_message_id_hash
 from .utils import get_participants_count_between, get_threads_between
 from .hack_datetime import DateTime
@@ -34,7 +36,7 @@ from .hack_datetime import DateTime
 # R0903: Too few public methods (X/2)
 
 
-__all__ = ("List", "Email", "Attachment")
+__all__ = ("List", "Email", "EmailFull", "Attachment", "Thread", "Category")
 
 
 class List(Storm):
@@ -58,8 +60,6 @@ class List(Storm):
     subject_prefix = Unicode()
     archive_policy = Enum(ArchivePolicy)
     created_at = DateTime()
-    recent_participants_count = Int()  # cached computation result
-    recent_threads_count = Int()       # cached computation result
 
     def __init__(self, name):
         self.name = unicode(name)
@@ -72,30 +72,60 @@ class List(Storm):
         begin_date = end_date - datetime.timedelta(days=32)
         return begin_date, end_date
 
-    def refresh_cache(self):
+    @property
+    def recent_participants_count(self):
         store = Store.of(self)
         begin_date, end_date = self.get_recent_dates()
-        self.recent_participants_count = get_participants_count_between(
-                store, self.name, begin_date, end_date)
-        self.recent_threads_count = get_threads_between(
-                store, self.name, begin_date, end_date).count()
+        return store.cache.get_or_create(
+            "list:%s:recent_participants_count" % self.name,
+            lambda: get_participants_count_between(store, self.name,
+                                                   begin_date, end_date),
+            86400)
+
+    @property
+    def recent_threads_count(self):
+        store = Store.of(self)
+        begin_date, end_date = self.get_recent_dates()
+        return store.cache.get_or_create(
+            "list:%s:recent_threads_count" % self.name,
+            lambda: get_threads_between(store, self.name,
+                                        begin_date, end_date).count(),
+            86400)
 
     def get_month_activity(self, year, month):
         store = Store.of(self)
-        act = store.find(ListMonthActivity, And(
-                ListMonthActivity.list_name == self.name,
-                ListMonthActivity.year == year,
-                ListMonthActivity.month == month,
-                )).one()
-        if act is None: # create the cache
-            act = ListMonthActivity(self.name, year, month)
-            store.add(act)
-            act.refresh()
-        return act
-    def clear_month_activity(self):
-        store = Store.of(self)
-        store.find(ListMonthActivity,
-                ListMonthActivity.list_name == self.name).remove()
+        begin_date = datetime.datetime(year, month, 1)
+        end_date = begin_date + datetime.timedelta(days=32)
+        end_date = end_date.replace(day=1)
+        Activity = namedtuple('Activity',
+                ['year', 'month', 'participants_count', 'threads_count'])
+        participants_count = store.cache.get_or_create(
+            "list:%s:participants_count:%s:%s" % (self.name, year, month),
+            lambda: get_participants_count_between(store, self.name,
+                                                   begin_date, end_date),
+            )
+        threads_count = store.cache.get_or_create(
+            "list:%s:threads_count:%s:%s" % (self.name, year, month),
+            lambda: get_threads_between(store, self.name,
+                                        begin_date, end_date).count(),
+            )
+        return Activity(year, month, participants_count, threads_count)
+
+    @events.subscribe_to(events.NewMessage)
+    def on_new_message(event): # will be called unbound (no self as 1st argument)
+        cache = event.store.db.cache
+        l = event.store.get_list(event.mlist.fqdn_listname)
+        # recent activity
+        begin_date = l.get_recent_dates()[0]
+        if event.message.date >= begin_date:
+            cache.delete("list:%s:recent_participants_count" % l.name)
+            l.recent_participants_count
+            cache.delete("list:%s:recent_threads_count" % l.name)
+            l.recent_threads_count
+        # month activity
+        year, month = event.message.date.year, event.message.date.month
+        cache.delete("list:%s:participants_count:%s:%s" % (l.name, year, month))
+        l.get_month_activity(year, month)
 
 
 class Email(Storm):
@@ -197,9 +227,6 @@ class Thread(Storm):
     thread_id = Unicode()
     date_active = DateTime()
     category_id = Int()
-    emails_count = Int()  # cached computation result
-    participants_count = Int()  # cached computation result
-    subject = Unicode()   # cached computation result
     emails = ReferenceSet(
                 (list_name, thread_id),
                 (Email.list_name, Email.thread_id),
@@ -257,9 +284,7 @@ class Thread(Storm):
         return list(self.emails.find().order_by().values(Email.message_id_hash))
 
     def __len__(self):
-        if self.emails_count is None:
-            self.emails_count = self.emails.count()
-        return self.emails_count # need to be refreshed by the cache
+        return self.emails_count
 
     def replies_after(self, date):
         return self.emails.find(Email.date > date)
@@ -280,6 +305,46 @@ class Thread(Storm):
             store.flush()
         self.category_id = category.id
     category = property(_get_category, _set_category)
+
+    @property
+    def emails_count(self):
+        store = Store.of(self)
+        return store.cache.get_or_create(
+            "list:%s:thread:%s:emails_count" % (self.list_name, self.thread_id),
+            self.emails.count())
+
+    @property
+    def participants_count(self):
+        store = Store.of(self)
+        return store.cache.get_or_create(
+            "list:%s:thread:%s:participants_count"
+                % (self.list_name, self.thread_id),
+            lambda: len(self.participants))
+
+    @property
+    def subject(self):
+        store = Store.of(self)
+        return store.cache.get_or_create(
+            "list:%s:thread:%s:subject"
+                % (self.list_name, self.thread_id),
+            lambda: self.starting_email.subject)
+
+    @events.subscribe_to(events.NewMessage)
+    def on_new_message(event): # will be called unbound (no self as 1st argument)
+        cache = event.store.db.cache
+        cache.delete("list:%s:thread:%s:emails_count"
+                     % (event.message.list_name, event.message.thread_id))
+        event.message.thread.emails_count
+        cache.delete("list:%s:thread:%s:participants_count"
+                     % (event.message.list_name, event.message.thread_id))
+        event.message.thread.participants_count
+
+    @events.subscribe_to(events.NewThread)
+    def on_new_thread(event): # will be called unbound (no self as 1st argument)
+        event.store.db.cache.set(
+                "list:%s:thread:%s:subject"
+                % (event.thread.list_name, event.thread.thread_id),
+                event.thread.starting_email.subject)
 
     def __storm_pre_flush__(self):
         """Auto-set the active date from the last email in thread"""
@@ -306,35 +371,3 @@ class Category(Storm):
 
     def __init__(self, name):
         self.name = unicode(name)
-
-
-class ListMonthActivity(Storm):
-    """
-    List activity data. This is only a cache.
-    """
-
-    __storm_table__ = "list_month_activity"
-    __storm_primary__ = "list_name", "year", "month"
-
-    list_name = Unicode()
-    year = Int()
-    month = Int()
-    participants_count = Int()
-    threads_count = Int()
-
-    mlist = Reference(list_name, "List.name")
-
-    def __init__(self, list_name, year, month):
-        self.list_name = unicode(list_name)
-        self.year = year
-        self.month = month
-
-    def refresh(self):
-        store = Store.of(self)
-        begin_date = datetime.datetime(self.year, self.month, 1)
-        end_date = begin_date + datetime.timedelta(days=32)
-        end_date = end_date.replace(day=1)
-        self.participants_count = get_participants_count_between(
-                store, self.list_name, begin_date, end_date)
-        self.threads_count = get_threads_between(
-                store, self.list_name, begin_date, end_date).count()

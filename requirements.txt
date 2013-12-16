@@ -6,5 +6,6 @@ python-dateutil < 2.0
 mock
 networkx
 Whoosh
+dogpile.cache
 # mailmanclient is not yet in PyPI
 bzr+lp:mailman.client#egg=mailmanclient

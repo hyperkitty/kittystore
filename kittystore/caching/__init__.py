@@ -14,77 +14,51 @@ The computation is done in this module instead of in the model because it is
 
 import datetime
 from urllib2 import HTTPError
-from pkg_resources import resource_listdir
 import mailmanclient
+from pkg_resources import resource_listdir
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class CachedValue(object):
+def sync_mailman(store):
+    from kittystore.caching.mailman_user import sync_mailman_user
+    from kittystore.caching.mlist import sync_list_properties
+    for sync_fn in (sync_mailman_user, sync_list_properties):
+        if sync_fn.__doc__:
+            logger.info(sync_fn.__doc__)
+        sync_fn(store)
 
-    start_msg = __doc__
 
-    def on_new_message(self, store, mlist, message):
-        """A new message has been added to the list"""
-        pass
-
-    def on_new_thread(self, store, mlist, thread):
-        """A new thread has been created in the list"""
-        pass
-
-    def daily(self, store):
-        """Executed once a day"""
-        pass
-
-    def refresh(self, store):
-        """Rebuild the cache entirely"""
-        pass
-
-    def _get_mailman_client(self, settings):
+def setup_cache(cache, settings):
+    def find_backend():
+        default_backend = "dogpile.cache.memory"
+        default_args = {}
         try:
-            mm_client = mailmanclient.Client('%s/3.0' %
-                            settings.MAILMAN_REST_SERVER,
-                            settings.MAILMAN_API_USER,
-                            settings.MAILMAN_API_PASS)
-        except (HTTPError, mailmanclient.MailmanConnectionError):
-            raise HTTPError
-        return mm_client
+            django_backend = settings.CACHES["default"]["BACKEND"]
+            django_location = settings.CACHES["default"]["LOCATION"]
+        except (KeyError, AttributeError):
+            return default_backend, default_args
+        if django_backend == \
+                "django.core.cache.backends.memcached.PyLibMCCache":
+            backend = 'dogpile.cache.pylibmc'
+        elif django_backend == \
+                "django.core.cache.backends.memcached.MemcachedCache":
+            backend = 'dogpile.cache.memcached'
+        else:
+            return default_backend, default_args
+        if isinstance(django_location, basestring):
+            django_location = [django_location]
+        arguments = { 'url': django_location, }
+        return backend, arguments
+    backend, arguments = find_backend()
+    cache.configure(backend, arguments=arguments)
 
 
-class CacheManager(object):
-
-    _cached_values = []
-    _last_daily = None
-
-    def discover(self):
-        """
-        Discover subclasses of CachedValue. This only search direct submodules
-        of kittystore.caching.
-        """
-        submodules = [ f[:-3] for f in resource_listdir("kittystore.caching", "")
-                       if f.endswith(".py") and f != "__init__.py" ]
-        for submod_name in submodules:
-            __import__("kittystore.caching.%s" % submod_name)
-        self._cached_values = [ C() for C in CachedValue.__subclasses__() ]
-
-    def on_new_message(self, store, mlist, message):
-        for cval in self._cached_values:
-            cval.on_new_message(store, mlist, message)
-        if datetime.date.today() != self._last_daily:
-            self.daily(store)
-
-    def on_new_thread(self, store, mlist, thread):
-        for cval in self._cached_values:
-            cval.on_new_thread(store, mlist, thread)
-
-    def daily(self, store):
-        for cval in self._cached_values:
-            cval.daily(store)
-        self._last_daily = datetime.date.today()
-
-    def refresh(self, store):
-        for cval in self._cached_values:
-            if cval.start_msg:
-                logger.info(cval.start_msg)
-            cval.refresh(store)
+def register_events():
+    """Register event subscriptions"""
+    submodules = [ f[:-3] for f in resource_listdir("kittystore.caching", "")
+                   if f.endswith(".py") and f != "__init__.py" ]
+    for submod_name in submodules:
+        # import the modules, decorators are used to register the right event
+        __import__("kittystore.caching.%s" % submod_name)

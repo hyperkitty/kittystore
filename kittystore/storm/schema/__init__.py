@@ -11,8 +11,6 @@ CREATES = {
             subject_prefix TEXT,
             archive_policy INTEGER,
             created_at DATETIME,
-            recent_participants_count INTEGER,
-            recent_threads_count INTEGER,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE "category" (
@@ -24,9 +22,6 @@ CREATES = {
             thread_id VARCHAR(255) NOT NULL,
             date_active DATETIME NOT NULL,
             category_id INTEGER,
-            subject TEXT,
-            emails_count INTEGER,
-            participants_count INTEGER,
             PRIMARY KEY (list_name, thread_id),
             FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (category_id) REFERENCES category(id)
@@ -72,15 +67,6 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
-        );""", """
-        CREATE TABLE "list_month_activity" (
-            list_name VARCHAR(255) NOT NULL,
-            year INTEGER NOT NULL,
-            month INTEGER NOT NULL,
-            participants_count INTEGER,
-            threads_count INTEGER,
-            PRIMARY KEY (list_name, year, month),
-            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
@@ -104,8 +90,6 @@ CREATES = {
             subject_prefix TEXT,
             archive_policy INTEGER,
             created_at TIMESTAMP WITHOUT TIME ZONE,
-            recent_participants_count INTEGER,
-            recent_threads_count INTEGER,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE "category" (
@@ -128,9 +112,6 @@ CREATES = {
             thread_id VARCHAR(255) NOT NULL,
             date_active TIMESTAMP WITHOUT TIME ZONE NOT NULL,
             category_id INTEGER,
-            subject TEXT,
-            emails_count INTEGER,
-            participants_count INTEGER,
             PRIMARY KEY (list_name, thread_id),
             FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (category_id) REFERENCES category(id)
@@ -176,15 +157,6 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
-        );""", """
-        CREATE TABLE "list_month_activity" (
-            list_name VARCHAR(255) NOT NULL,
-            year INTEGER NOT NULL,
-            month INTEGER NOT NULL,
-            participants_count INTEGER,
-            threads_count INTEGER,
-            PRIMARY KEY (list_name, year, month),
-            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE
         );""",
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
@@ -208,8 +180,6 @@ CREATES = {
             subject_prefix TEXT,
             archive_policy INTEGER,
             created_at DATETIME,
-            recent_participants_count INTEGER,
-            recent_threads_count INTEGER,
             PRIMARY KEY (name)
         );""", """
         CREATE TABLE `category` (
@@ -222,9 +192,6 @@ CREATES = {
             thread_id VARCHAR(255) NOT NULL,
             date_active DATETIME NOT NULL,
             category_id INTEGER,
-            subject TEXT COLLATE utf8_general_ci,
-            emails_count INTEGER,
-            participants_count INTEGER,
             PRIMARY KEY (list_name, thread_id),
             FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (category_id) REFERENCES category(id)
@@ -270,15 +237,6 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
-        );""", """
-        CREATE TABLE `list_month_activity` (
-            list_name VARCHAR(255) NOT NULL,
-            year INTEGER NOT NULL,
-            month INTEGER NOT NULL,
-            participants_count INTEGER,
-            threads_count INTEGER,
-            PRIMARY KEY (list_name, year, month),
-            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE
         );""",
         'CREATE INDEX `ix_email_list_name` ON `email` (list_name);',
         'CREATE INDEX `ix_email_date` ON `email` (date);',

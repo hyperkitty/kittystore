@@ -6,19 +6,20 @@ import sys
 import threading
 
 import storm.tracer
-from storm.locals import create_database, Store
+from storm.locals import create_database
 
 from .model import List, Email
 from . import schema
 from .store import StormStore
 from .schema.utils import CheckingSchema
+from .utils import StoreWithCache
 from kittystore import SchemaUpgradeNeeded
-from kittystore.caching import CacheManager
+from kittystore.caching import setup_cache
 
 
 def _get_native_store(settings):
     database = create_database(settings.KITTYSTORE_URL)
-    return Store(database)
+    return StoreWithCache(database)
 
 def _get_schema(settings):
     dbtype = settings.KITTYSTORE_URL.partition(":")[0]
@@ -44,7 +45,5 @@ def get_storm_store(settings, search_index=None, debug=False, auto_create=False)
         else:
             store.close()
             raise SchemaUpgradeNeeded()
-    cache_manager = CacheManager()
-    cache_manager.discover()
-    return StormStore(store, search_index, settings, cache_manager,
-                      debug=debug)
+    setup_cache(store.cache, settings)
+    return StormStore(store, search_index, settings, debug=debug)

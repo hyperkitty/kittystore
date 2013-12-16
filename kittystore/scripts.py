@@ -32,6 +32,8 @@ from optparse import OptionParser
 
 from kittystore import get_store, create_store, SchemaUpgradeNeeded
 
+from kittystore.caching import sync_mailman
+
 
 #
 # Helpers
@@ -101,8 +103,8 @@ def updatedb():
                     "ORDER BY version DESC LIMIT 1"
                     ))[0][0]
         print "Done, the current schema version is %d." % version
-        print "Refreshing the cache, this can take some time..."
-        store.refresh_cache(full=True)
+        print "Synchonizing data from Mailman, this can take some time..."
+        sync_mailman(store)
         store.commit()
         print "  ...done!"
     else:
@@ -111,13 +113,11 @@ def updatedb():
 
 
 #
-# Manual cache refresh
+# Manual Mailman sync
 #
 
-def cache_refresh():
+def sync_mailman_cmd():
     parser = OptionParser(usage="%prog -s settings_module [-f]")
-    parser.add_option("-f", "--full", action="store_true",
-                      help="rebuild the whole cache (can be long)")
     parser.add_option("-s", "--settings",
                       help="the Python path to a Django-like settings module")
     parser.add_option("-p", "--pythonpath",
@@ -132,7 +132,7 @@ def cache_refresh():
     else:
         debuglevel = logging.INFO
     logging.basicConfig(format='%(message)s', level=debuglevel)
-    print 'Refreshing the cache...'
+    print 'Synchronizing data from Mailman...'
     try:
         store = get_store_from_options(opts)
     except (StoreFromOptionsError, AttributeError), e:
@@ -141,7 +141,7 @@ def cache_refresh():
         print >>sys.stderr, ("The database schema needs to be upgraded, "
                              "please run kittystore-updatedb first")
         sys.exit(1)
-    store.refresh_cache(full=opts.full)
+    sync_mailman(store)
     store.commit()
     print "  ...done!"
 

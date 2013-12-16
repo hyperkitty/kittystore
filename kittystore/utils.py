@@ -31,6 +31,7 @@ from base64 import b32encode
 from hashlib import sha1 # pylint: disable-msg=E0611
 
 import dateutil.parser, dateutil.tz
+import mailmanclient
 
 
 __all__ = ("get_message_id_hash", "parseaddr", "parsedate",
@@ -144,3 +145,14 @@ def get_ref_and_thread_id(message, list_name, store):
         # re-use parent's thread-id
         thread_id = unicode(ref_msg.thread_id)
     return ref_id, thread_id
+
+
+def get_mailman_client(settings):
+    try:
+        mm_client = mailmanclient.Client('%s/3.0' %
+                        settings.MAILMAN_REST_SERVER,
+                        settings.MAILMAN_API_USER,
+                        settings.MAILMAN_API_PASS)
+    except (HTTPError, mailmanclient.MailmanConnectionError), e:
+        raise HTTPError(e)
+    return mm_client

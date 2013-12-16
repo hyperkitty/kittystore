@@ -19,7 +19,8 @@ from __future__ import absolute_import
 
 import datetime
 
-from storm.locals import And
+from storm.locals import And, Store
+from dogpile.cache import make_region
 
 
 def get_participants_count_between(store, list_name, begin_date, end_date):
@@ -42,3 +43,11 @@ def get_threads_between(store, list_name, begin_date, end_date):
                     Thread.date_active >= begin_date,
                     Thread.date_active < end_date,
                 ))
+
+
+class StoreWithCache(Store):
+    """A storm store with an attribute to store the cache region"""
+
+    def __init__(self, *args, **kwargs):
+        super(StoreWithCache, self).__init__(*args, **kwargs)
+        self.cache = make_region()

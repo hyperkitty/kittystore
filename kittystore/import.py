@@ -39,11 +39,12 @@ from email.utils import unquote
 from urllib2 import HTTPError
 from traceback import print_exc
 
-import mailmanclient
 from mailman.interfaces.archiver import ArchivePolicy
 from storm.exceptions import DatabaseError
 from kittystore import SchemaUpgradeNeeded
 from kittystore.scripts import get_store_from_options, StoreFromOptionsError
+from kittystore.utils import get_mailman_client
+from kittystore.caching import sync_mailman
 from kittystore.test import FakeList
 
 
@@ -97,12 +98,9 @@ class DownloadError(Exception): pass
 def get_mailinglist(list_name, settings, opts):
     mlist = FakeList(list_name)
     try:
-        mm_client = mailmanclient.Client('%s/3.0' %
-                        settings.MAILMAN_REST_SERVER,
-                        settings.MAILMAN_API_USER,
-                        settings.MAILMAN_API_PASS)
+        mm_client = get_mailman_client(settings)
         mm_list = mm_client.get_list(list_name)
-    except (HTTPError, mailmanclient.MailmanConnectionError), e:
+    except HTTPError, e:
         if opts.debug:
             print "Can't get the mailing-list from Mailman: %s" % e
     else:
@@ -284,11 +282,11 @@ def parse_args():
             help="show a whole lot more of output")
     parser.add_option("--no-download", action="store_true",
             help="don't download attachments")
-    parser.add_option("--no-refresh", action="store_true",
-            help="don't refresh the cache after importing")
     parser.add_option("-D", "--duplicates", action="store_true",
             help="do not skip duplicate emails (same Message-ID header), "
                  "import them with a different Message-ID")
+    parser.add_option("--no-sync-mailman", action="store_true",
+            help="don't sync with Mailman after importing")
     opts, args = parser.parse_args()
     if opts.list_name is None:
         parser.error("the list name must be given on the command-line.")
@@ -332,6 +330,6 @@ def main():
         if opts.verbose:
             print '  %s emails are stored into the database' \
                   % store.get_list_size(opts.list_name)
-    if not opts.no_refresh:
-        store.refresh_cache(full=True)
+    if not opts.no_sync_mailman:
+        sync_mailman(store)
     store.commit()

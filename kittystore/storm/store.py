@@ -26,7 +26,7 @@ from storm.expr import And, Or, Count, Alias
 from dateutil.tz import tzutc
 import mailmanclient
 
-from kittystore import MessageNotFound
+from kittystore import MessageNotFound, events
 from kittystore.utils import parseaddr, parsedate
 from kittystore.utils import header_to_unicode
 from kittystore.scrub import Scrubber
@@ -46,7 +46,7 @@ class StormStore(object):
 
     implements(IMessageStore)
 
-    def __init__(self, db, search_index, settings, cache_manager=None, debug=False):
+    def __init__(self, db, search_index, settings, debug=False):
         """ Constructor.
         Create the session using the engine defined in the url.
 
@@ -57,7 +57,6 @@ class StormStore(object):
         self.debug = debug
         self.search_index = search_index
         self.settings = settings
-        self._cache_manager = cache_manager
 
 
     # IMessageStore methods
@@ -182,11 +181,10 @@ class StormStore(object):
         for attachment in attachments:
             self.add_attachment(list_name, msg_id, *attachment)
         self.flush()
-        # caching
-        if self._cache_manager is not None:
-            self._cache_manager.on_new_message(self, mlist, email)
-            if new_thread:
-                self._cache_manager.on_new_thread(self, mlist, thread)
+        # invalidate the cache
+        events.notify(events.NewMessage(self, mlist, email))
+        if new_thread:
+            events.notify(events.NewThread(self, mlist, thread))
         # search indexing
         # do it after caching because we need some list properties (like
         # archive_policy)
@@ -724,14 +722,3 @@ class StormStore(object):
 
     def rollback(self):
         self.db.rollback()
-
-
-    # Caching
-
-    def refresh_cache(self, full=False):
-        if self._cache_manager is None:
-            return
-        if full:
-            self._cache_manager.refresh(self)
-        else:
-            self._cache_manager.daily(self)

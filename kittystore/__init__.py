@@ -19,7 +19,8 @@ __all__ = ("get_store", "create_store", "MessageNotFound",
            "SchemaUpgradeNeeded")
 
 
-from .search import SearchEngine
+from kittystore.search import SearchEngine
+from kittystore.caching import register_events
 
 
 def _check_settings(settings):
@@ -57,6 +58,8 @@ def get_store(settings, debug=None, auto_create=False):
         else:
             store.close()
             raise SchemaUpgradeNeeded()
+
+    register_events()
 
     return store
 

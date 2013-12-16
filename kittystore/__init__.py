@@ -71,7 +71,7 @@ def create_store(settings, debug=None):
     from kittystore.storm import get_storm_store, create_storm_store
     create_storm_store(settings, debug)
     store = get_storm_store(settings, search_index, debug)
-    if search_index is not None:
+    if search_index is not None and search_index.needs_upgrade():
         search_index.upgrade(store)
     return store
 

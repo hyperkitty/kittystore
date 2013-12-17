@@ -77,7 +77,7 @@ class List(Storm):
         store = Store.of(self)
         begin_date, end_date = self.get_recent_dates()
         return store.cache.get_or_create(
-            "list:%s:recent_participants_count" % self.name,
+            str("list:%s:recent_participants_count" % self.name),
             lambda: get_participants_count_between(store, self.name,
                                                    begin_date, end_date),
             86400)
@@ -87,7 +87,7 @@ class List(Storm):
         store = Store.of(self)
         begin_date, end_date = self.get_recent_dates()
         return store.cache.get_or_create(
-            "list:%s:recent_threads_count" % self.name,
+            str("list:%s:recent_threads_count" % self.name),
             lambda: get_threads_between(store, self.name,
                                         begin_date, end_date).count(),
             86400)
@@ -100,12 +100,12 @@ class List(Storm):
         Activity = namedtuple('Activity',
                 ['year', 'month', 'participants_count', 'threads_count'])
         participants_count = store.cache.get_or_create(
-            "list:%s:participants_count:%s:%s" % (self.name, year, month),
+            str("list:%s:participants_count:%s:%s" % (self.name, year, month)),
             lambda: get_participants_count_between(store, self.name,
                                                    begin_date, end_date),
             )
         threads_count = store.cache.get_or_create(
-            "list:%s:threads_count:%s:%s" % (self.name, year, month),
+            str("list:%s:threads_count:%s:%s" % (self.name, year, month)),
             lambda: get_threads_between(store, self.name,
                                         begin_date, end_date).count(),
             )
@@ -118,13 +118,14 @@ class List(Storm):
         # recent activity
         begin_date = l.get_recent_dates()[0]
         if event.message.date >= begin_date:
-            cache.delete("list:%s:recent_participants_count" % l.name)
+            cache.delete(str("list:%s:recent_participants_count" % l.name))
             l.recent_participants_count
-            cache.delete("list:%s:recent_threads_count" % l.name)
+            cache.delete(str("list:%s:recent_threads_count" % l.name))
             l.recent_threads_count
         # month activity
         year, month = event.message.date.year, event.message.date.month
-        cache.delete("list:%s:participants_count:%s:%s" % (l.name, year, month))
+        cache.delete(str("list:%s:participants_count:%s:%s"
+                         % (l.name, year, month)))
         l.get_month_activity(year, month)
 
 
@@ -310,40 +311,41 @@ class Thread(Storm):
     def emails_count(self):
         store = Store.of(self)
         return store.cache.get_or_create(
-            "list:%s:thread:%s:emails_count" % (self.list_name, self.thread_id),
-            self.emails.count())
+            str("list:%s:thread:%s:emails_count"
+                % (self.list_name, self.thread_id)),
+            lambda: self.emails.count())
 
     @property
     def participants_count(self):
         store = Store.of(self)
         return store.cache.get_or_create(
-            "list:%s:thread:%s:participants_count"
-                % (self.list_name, self.thread_id),
+            str("list:%s:thread:%s:participants_count"
+                % (self.list_name, self.thread_id)),
             lambda: len(self.participants))
 
     @property
     def subject(self):
         store = Store.of(self)
         return store.cache.get_or_create(
-            "list:%s:thread:%s:subject"
-                % (self.list_name, self.thread_id),
+            str("list:%s:thread:%s:subject"
+                % (self.list_name, self.thread_id)),
             lambda: self.starting_email.subject)
 
     @events.subscribe_to(events.NewMessage)
     def on_new_message(event): # will be called unbound (no self as 1st argument)
         cache = event.store.db.cache
-        cache.delete("list:%s:thread:%s:emails_count"
-                     % (event.message.list_name, event.message.thread_id))
+        cache.delete(str("list:%s:thread:%s:emails_count"
+                         % (event.message.list_name, event.message.thread_id)))
         event.message.thread.emails_count
-        cache.delete("list:%s:thread:%s:participants_count"
-                     % (event.message.list_name, event.message.thread_id))
+        cache.delete(str("list:%s:thread:%s:participants_count"
+                         % (event.message.list_name, event.message.thread_id)))
         event.message.thread.participants_count
 
     @events.subscribe_to(events.NewThread)
     def on_new_thread(event): # will be called unbound (no self as 1st argument)
         event.store.db.cache.set(
-                "list:%s:thread:%s:subject"
-                % (event.thread.list_name, event.thread.thread_id),
+                str("list:%s:thread:%s:subject"
+                    % (event.thread.list_name, event.thread.thread_id)),
                 event.thread.starting_email.subject)
 
     def __storm_pre_flush__(self):

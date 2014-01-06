@@ -78,16 +78,20 @@ CREATES = {
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
         );""",
+        'CREATE INDEX "ix_sender_user_id" ON "sender" (user_id);',
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
         'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" (list_name, message_id_hash);',
+        'CREATE INDEX "ix_email_sender_email" ON "email" (sender_email);',
         'CREATE INDEX "ix_email_subject" ON "email" (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
+        'CREATE INDEX "ix_email_list_name_thread_id" ON "email" (list_name, thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
         'CREATE INDEX "ix_email_archived_date" ON "email" (archived_date);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
         'CREATE INDEX "ix_thread_list_name" ON "thread" (list_name);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
+        'CREATE INDEX "ix_attachment_list_name_message_id" ON "attachment" (list_name, message_id);',
         ],
 
     "postgres": [ """
@@ -176,16 +180,20 @@ CREATES = {
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
         );""",
+        'CREATE INDEX "ix_sender_user_id" ON "sender" (user_id);',
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
         'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" (list_name, message_id_hash);',
+        'CREATE INDEX "ix_email_sender_email" ON "email" (sender_email);',
         'CREATE INDEX "ix_email_subject" ON "email" (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
+        'CREATE INDEX "ix_email_list_name_thread_id" ON "email" (list_name, thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
         'CREATE INDEX "ix_email_archived_date" ON "email" (archived_date);',
         'CREATE INDEX "ix_thread_date_active" ON "thread" (date_active);',
         'CREATE INDEX "ix_thread_list_name" ON "thread" (list_name);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
+        'CREATE INDEX "ix_attachment_list_name_message_id" ON "attachment" (list_name, message_id);',
         ],
 
     "mysql": [ """
@@ -264,16 +272,20 @@ CREATES = {
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
         );""",
+        'CREATE INDEX `ix_sender_user_id` ON `sender` (user_id);',
         'CREATE INDEX `ix_email_list_name` ON `email` (list_name);',
         'CREATE INDEX `ix_email_date` ON `email` (date);',
         'CREATE UNIQUE INDEX `ix_email_list_name_message_id_hash` ON `email` (list_name, message_id_hash);',
+        'CREATE INDEX `ix_email_sender_email` ON `email` (sender_email(255));',
         'CREATE INDEX `ix_email_subject` ON `email` (subject(255));',
+        'CREATE INDEX `ix_email_list_name_thread_id` ON `email` (list_name, thread_id);',
         'CREATE INDEX `ix_email_thread_id` ON `email` (thread_id);',
         'CREATE INDEX `ix_email_thread_order` ON `email` (thread_order);',
         'CREATE INDEX `ix_email_archived_date` ON `email` (archived_date);',
         'CREATE INDEX `ix_thread_date_active` ON `thread` (date_active);',
         'CREATE INDEX `ix_thread_list_name` ON `thread` (list_name);',
         'CREATE UNIQUE INDEX `ix_category_name` ON `category` (name);',
+        'CREATE INDEX `ix_attachment_list_name_message_id` ON `attachment` (list_name, message_id);',
         ],
 
 }

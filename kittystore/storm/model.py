@@ -140,10 +140,14 @@ class User(Storm):
 
     id = Unicode()
     senders = ReferenceSet(id, "Sender.user_id")
-    addresses = Proxy(senders, "Sender.email")
 
     def __init__(self, user_id):
         self.id = unicode(user_id)
+
+    @property
+    def addresses(self):
+        store = Store.of(self)
+        return list(store.find(Sender.email, Sender.user_id == self.id))
 
 
 

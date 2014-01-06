@@ -33,7 +33,8 @@ from kittystore.scrub import Scrubber
 from kittystore.utils import get_ref_and_thread_id
 from kittystore.analysis import compute_thread_order_and_depth
 
-from .model import List, Email, Attachment, Thread, EmailFull, Category, Sender
+from .model import List, Email, Attachment, Thread, EmailFull, Category
+from .model import Sender, User
 
 import logging
 logger = logging.getLogger(__name__)
@@ -542,6 +543,10 @@ class StormStore(object):
                     )).order_by(Email.archived_date
                     ).config(limit=1).one()
         return result
+
+    def get_user(self, user_id):
+        """ Returns a user given his user_id """
+        return self.db.find(User, User.id == unicode(user_id)).one()
 
     def get_sender_name(self, user_id):
         """ Returns a user's fullname when given his user_id """

@@ -24,17 +24,17 @@ from dogpile.cache import make_region
 
 
 def get_participants_count_between(store, list_name, begin_date, end_date):
-        from .model import Email, Sender
-        # We count emails instead of thread participants because that would
+        from .model import Email
+        # We filter on emails dates instead of threads dates because that would
         # also include last month's participants when threads carry from one
         # month to the next
-        result = store.find(Sender, And(
-                        Sender.email == Email.sender_email,
+        result = store.find(Email.sender_email, And(
                         Email.list_name == list_name,
                         Email.date >= begin_date,
                         Email.date < end_date,
                         )).config(distinct=True)
-        return result.count()
+        #return result.count() # generates a sub-query
+        return len(list(result))
 
 def get_threads_between(store, list_name, begin_date, end_date):
         from .model import Thread

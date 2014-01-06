@@ -73,7 +73,7 @@ def get_store_from_options(opts):
 
 def updatedb():
     parser = OptionParser(usage="%prog -s settings_module")
-    parser.add_option("-s", "--settings",
+    parser.add_option("-s", "--settings", default="settings",
                       help="the Python path to a Django-like settings module")
     parser.add_option("-p", "--pythonpath",
                       help="a directory to add to the Python path")
@@ -118,7 +118,7 @@ def updatedb():
 
 def sync_mailman_cmd():
     parser = OptionParser(usage="%prog -s settings_module [-f]")
-    parser.add_option("-s", "--settings",
+    parser.add_option("-s", "--settings", default="settings",
                       help="the Python path to a Django-like settings module")
     parser.add_option("-p", "--pythonpath",
                       help="a directory to add to the Python path")

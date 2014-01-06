@@ -269,7 +269,7 @@ def parse_args():
     parser = OptionParser(usage=usage)
     parser.add_option("-l", "--list-name", help="the fully-qualified list "
             "name (including the '@' symbol and the domain name")
-    parser.add_option("-s", "--settings",
+    parser.add_option("-s", "--settings", default="settings",
                       help="the Python path to a Django settings module")
     parser.add_option("-p", "--pythonpath",
                       help="a directory to add to the Python path")

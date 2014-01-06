@@ -9,7 +9,7 @@ from datetime import datetime
 from mailman.email.message import Message
 
 from kittystore.storm import get_storm_store
-from kittystore.storm.model import Email, Thread
+from kittystore.storm.model import Email, Thread, Sender
 from kittystore.analysis import compute_thread_order_and_depth
 
 from kittystore.test import FakeList, SettingsModule
@@ -18,7 +18,6 @@ from kittystore.test import FakeList, SettingsModule
 def make_fake_email(num=1, list_name="example-list", date=None):
     msg = Email(list_name, "<msg%d>" % num)
     msg.thread_id = u"<msg%d>" % num
-    msg.sender_name = u"sender%d" % num
     msg.sender_email = u"sender%d@example.com" % num
     msg.subject = u"subject %d" % num
     msg.content = u"message %d" % num

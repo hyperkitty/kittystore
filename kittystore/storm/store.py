@@ -33,7 +33,7 @@ from kittystore.scrub import Scrubber
 from kittystore.utils import get_ref_and_thread_id
 from kittystore.analysis import compute_thread_order_and_depth
 
-from .model import List, Email, Attachment, Thread, EmailFull, Category
+from .model import List, Email, Attachment, Thread, EmailFull, Category, Sender
 
 import logging
 logger = logging.getLogger(__name__)
@@ -134,9 +134,14 @@ class StormStore(object):
         email.in_reply_to = ref
 
         from_name, from_email = parseaddr(message['From'])
-        from_name = header_to_unicode(from_name)
-        email.sender_name = from_name.strip()
+        from_name = header_to_unicode(from_name).strip()
         email.sender_email = unicode(from_email).strip()
+        sender = self.db.find(Sender, Sender.email == email.sender_email).one()
+        if sender is None:
+            sender = Sender(email.sender_email, from_name)
+            self.db.add(sender)
+        else:
+            sender.name = from_name # update the name if needed
         email.subject = header_to_unicode(message.get('Subject'))
         if email.subject is not None:
             # limit subject size to 2000 chars or PostgreSQL may complain
@@ -510,12 +515,13 @@ class StormStore(object):
         """
         number = Alias(Count(Email.sender_email), "number")
         part = self.db.find(
-                (Email.sender_name, Email.sender_email, number),
+                (Sender.name, Email.sender_email, number),
                 And(
+                    Sender.email == Email.sender_email,
                     Email.list_name == unicode(list_name),
                     Email.date >= start,
                     Email.date < end,
-                )).group_by(Email.sender_email, Email.sender_name).order_by(Desc(number))
+                )).group_by(Email.sender_email, Sender.name).order_by(Desc(number))
         if limit is not None:
             part = part.config(limit=limit)
         return list(part)
@@ -531,47 +537,41 @@ class StormStore(object):
         """ Returns a user's first post on a list """
         result = self.db.find(Email, And(
                     Email.list_name == unicode(list_name),
-                    Email.user_id == unicode(user_id),
+                    Email.sender_email == Sender.email,
+                    Sender.user_id == unicode(user_id),
                     )).order_by(Email.archived_date
                     ).config(limit=1).one()
         return result
 
     def get_sender_name(self, user_id):
         """ Returns a user's fullname when given his user_id """
-        result = self.db.find(Email.sender_name,
-                              Email.user_id == unicode(user_id)
+        result = self.db.find(Sender.name,
+                              Sender.user_id == unicode(user_id)
                     ).config(limit=1).one()
         return result
 
-    def get_message_hashes_by_user_id(self, user_id, list_name=None):
+    def _get_messages_by_user_id(self, user_id, list_name=None):
         """ Returns a user's email hashes """
         if list_name is None:
-            clause = Email.user_id == unicode(user_id)
+            clause = And(Email.sender_email == Sender.email,
+                         Sender.user_id == unicode(user_id))
         else:
-            clause = And(Email.user_id == unicode(user_id),
+            clause = And(Email.sender_email == Sender.email,
+                         Sender.user_id == unicode(user_id),
                          Email.list_name == unicode(list_name))
-        result = self.db.find(Email.message_id_hash, clause)
-        return list(result)
+        return self.db.find(Email, clause)
+
+    def get_message_hashes_by_user_id(self, user_id, list_name=None):
+        query = self._get_messages_by_user_id(user_id, list_name)
+        return list(query.values(Email.message_id_hash))
 
     def get_message_count_by_user_id(self, user_id, list_name=None):
-        """ Returns a user's email hashes """
-        if list_name is None:
-            clause = Email.user_id == unicode(user_id)
-        else:
-            clause = And(Email.user_id == unicode(user_id),
-                         Email.list_name == unicode(list_name))
-        result = self.db.find(Email.message_id_hash, clause)
-        return result.count()
+        return self._get_messages_by_user_id(user_id, list_name).count()
 
     def get_messages_by_user_id(self, user_id, list_name=None):
-        """ Returns a user's email hashes """
-        if list_name is None:
-            clause = Email.user_id == unicode(user_id)
-        else:
-            clause = And(Email.user_id == unicode(user_id),
-                         Email.list_name == unicode(list_name))
-        result = self.db.find(Email, clause).order_by(Desc(Email.date))
-        return result
+        """ Returns a user's emails"""
+        query = self._get_messages_by_user_id(user_id, list_name)
+        return query.order_by(Desc(Email.date))
 
     def get_all_messages(self):
         return self.db.find(Email).order_by(Email.archived_date)

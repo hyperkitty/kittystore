@@ -26,12 +26,21 @@ CREATES = {
             FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (category_id) REFERENCES category(id)
         );""", """
+        CREATE TABLE "user" (
+            id VARCHAR(255) NOT NULL,
+            PRIMARY KEY (id)
+        );""", """
+        CREATE TABLE "sender" (
+            email VARCHAR(255) NOT NULL,
+            name VARCHAR(255),
+            user_id VARCHAR(255),
+            PRIMARY KEY (email),
+            FOREIGN KEY (user_id) REFERENCES user(id)
+        );""", """
         CREATE TABLE "email" (
             list_name VARCHAR(255) NOT NULL,
             message_id VARCHAR(255) NOT NULL,
-            sender_name VARCHAR(255) NOT NULL,
             sender_email VARCHAR(255) NOT NULL,
-            user_id VARCHAR(255),
             subject TEXT NOT NULL,
             content TEXT NOT NULL,
             date DATETIME NOT NULL,
@@ -45,7 +54,8 @@ CREATES = {
             PRIMARY KEY (list_name, message_id),
             FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (list_name, thread_id)
-                REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
+                REFERENCES thread(list_name, thread_id) ON DELETE CASCADE,
+            FOREIGN KEY (sender_email) REFERENCES sender(email)
         );""", """
         CREATE TABLE "email_full" (
             list_name VARCHAR(255) NOT NULL,
@@ -71,8 +81,6 @@ CREATES = {
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
         'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" (list_name, message_id_hash);',
-        'CREATE INDEX "ix_email_sender_email" ON "email" (sender_email);',
-        'CREATE INDEX "ix_email_user_id" ON "email" (user_id);',
         'CREATE INDEX "ix_email_subject" ON "email" (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
@@ -116,12 +124,21 @@ CREATES = {
             FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (category_id) REFERENCES category(id)
         );""", """
+        CREATE TABLE "user" (
+            id VARCHAR(255) NOT NULL,
+            PRIMARY KEY (id)
+        );""", """
+        CREATE TABLE "sender" (
+            email VARCHAR(255) NOT NULL,
+            name VARCHAR(255),
+            user_id VARCHAR(255),
+            PRIMARY KEY (email),
+            FOREIGN KEY (user_id) REFERENCES user(id)
+        );""", """
         CREATE TABLE "email" (
             list_name VARCHAR(255) NOT NULL,
             message_id VARCHAR(255) NOT NULL,
-            sender_name VARCHAR(255) NOT NULL,
             sender_email VARCHAR(255) NOT NULL,
-            user_id VARCHAR(255),
             subject TEXT NOT NULL,
             content TEXT NOT NULL,
             date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
@@ -135,7 +152,8 @@ CREATES = {
             PRIMARY KEY (list_name, message_id),
             FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (list_name, thread_id)
-                REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
+                REFERENCES thread(list_name, thread_id) ON DELETE CASCADE,
+            FOREIGN KEY (sender_email) REFERENCES sender(email),
         );""", """
         CREATE TABLE "email_full" (
             list_name VARCHAR(255) NOT NULL,
@@ -161,8 +179,6 @@ CREATES = {
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
         'CREATE INDEX "ix_email_date" ON "email" (date);',
         'CREATE UNIQUE INDEX "ix_email_list_name_message_id_hash" ON "email" (list_name, message_id_hash);',
-        'CREATE INDEX "ix_email_sender_email" ON "email" (sender_email);',
-        'CREATE INDEX "ix_email_user_id" ON "email" (user_id);',
         'CREATE INDEX "ix_email_subject" ON "email" (subject);',
         'CREATE INDEX "ix_email_thread_id" ON "email" (thread_id);',
         'CREATE INDEX "ix_email_thread_order" ON "email" (thread_order);',
@@ -196,12 +212,21 @@ CREATES = {
             FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (category_id) REFERENCES category(id)
         );""", """
+        CREATE TABLE `user` (
+            id VARCHAR(255) NOT NULL,
+            PRIMARY KEY (id)
+        );""", """
+        CREATE TABLE `sender` (
+            email VARCHAR(255) NOT NULL,
+            name VARCHAR(255) COLLATE utf8_general_ci,
+            user_id VARCHAR(255),
+            PRIMARY KEY (email),
+            FOREIGN KEY (user_id) REFERENCES user(id)
+        );""", """
         CREATE TABLE `email` (
             list_name VARCHAR(255) NOT NULL,
             message_id VARCHAR(255) NOT NULL,
-            sender_name VARCHAR(255) NOT NULL COLLATE utf8_general_ci,
             sender_email VARCHAR(255) NOT NULL,
-            user_id VARCHAR(255),
             subject TEXT NOT NULL COLLATE utf8_general_ci,
             content TEXT NOT NULL COLLATE utf8_general_ci,
             date DATETIME NOT NULL,
@@ -215,7 +240,8 @@ CREATES = {
             PRIMARY KEY (list_name, message_id),
             FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (list_name, thread_id)
-                REFERENCES thread(list_name, thread_id) ON DELETE CASCADE
+                REFERENCES thread(list_name, thread_id) ON DELETE CASCADE,
+            FOREIGN KEY (sender_email) REFERENCES sender(email)
         );""", """
         CREATE TABLE `email_full` (
             list_name VARCHAR(255) NOT NULL,
@@ -241,8 +267,6 @@ CREATES = {
         'CREATE INDEX `ix_email_list_name` ON `email` (list_name);',
         'CREATE INDEX `ix_email_date` ON `email` (date);',
         'CREATE UNIQUE INDEX `ix_email_list_name_message_id_hash` ON `email` (list_name, message_id_hash);',
-        'CREATE INDEX `ix_email_sender_email` ON `email` (sender_email(255));',
-        'CREATE INDEX `ix_email_user_id` ON `email` (user_id(255));',
         'CREATE INDEX `ix_email_subject` ON `email` (subject(255));',
         'CREATE INDEX `ix_email_thread_id` ON `email` (thread_id);',
         'CREATE INDEX `ix_email_thread_order` ON `email` (thread_order);',

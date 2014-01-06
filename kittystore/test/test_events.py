@@ -58,7 +58,7 @@ class TestNotifyStore(unittest.TestCase):
     def tearDown(self):
         self.store.close()
 
-    def test_on_new_message(self):
+    def test_on_new_message_invalidate(self):
         # Check that the cache is invalidated on new message
         msg = Message()
         msg["From"] = "dummy@example.com"
@@ -96,7 +96,7 @@ class TestNotifyStore(unittest.TestCase):
         #self.assertEqual(l.recent_participants_count, 1)
         #self.assertEqual(l.recent_threads_count, 2)
 
-    def test_on_new_thread(self):
+    def test_on_new_thread_invalidate(self):
         # Check that the cache is invalidated on new message
         msg = Message()
         msg["From"] = "dummy@example.com"

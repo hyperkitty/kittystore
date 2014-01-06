@@ -15,50 +15,57 @@ logger = logging.getLogger(__name__)
 
 
 _MAILMAN_CLIENT = None
-_USER_ID_CACHE = {}
 
 
-def get_user_id(store, message):
-    global _MAILMAN_CLIENT, _USER_ID_CACHE
-    address = message.sender_email
-    if address not in _USER_ID_CACHE:
-        if _MAILMAN_CLIENT is None:
-            _MAILMAN_CLIENT = get_mailman_client(store.settings)
-        try:
-            mm_user = _MAILMAN_CLIENT.get_user(address)
-        except HTTPError, e:
-            if e.code == 404:
-                _USER_ID_CACHE[address] = None
-            else:
-                raise
+def get_user_id(store, sender):
+    global _MAILMAN_CLIENT
+    if _MAILMAN_CLIENT is None:
+        _MAILMAN_CLIENT = get_mailman_client(store.settings)
+    try:
+        mm_user = _MAILMAN_CLIENT.get_user(sender.email)
+    except HTTPError, e:
+        if e.code == 404:
+            return None
         else:
-            _USER_ID_CACHE[address] = unicode(mm_user.user_id)
-    return _USER_ID_CACHE[address]
+            raise
+    else:
+        return unicode(mm_user.user_id)
 
 
 @events.subscribe_to(events.NewMessage)
 def on_new_message(event):
+    if event.message.user_id is not None:
+        return
     try:
-        event.message.user_id = get_user_id(event.store, event.message)
+        user_id = get_user_id(event.store, event.message.sender)
     except (HTTPError, mailmanclient.MailmanConnectionError):
         return # Can't refresh at this time
+    # XXX: Storm-specific
+    from kittystore.storm.model import User
+    user = event.store.db.find(User, User.id == user_id).one()
+    if user is None:
+        event.store.db.add(User(user_id))
+    event.message.user_id = user_id
 
 
 def sync_mailman_user(store):
     """Sync the user ID from Mailman"""
-    # There can be millions of emails, break into smaller chuncks to avoid
+    # There can be thousands of senders, break into smaller chuncks to avoid
     # hogging up the memory
-    buffer_size = 50000
+    buffer_size = 1000
     # XXX: Storm-specific
-    from kittystore.storm.model import Email
-    prev_count = store.db.find(Email, Email.user_id == None).count()
+    from kittystore.storm.model import Sender, User
+    prev_count = store.db.find(Sender, Sender.user_id == None).count()
     try:
         while True:
-            for message in store.db.find(Email,
-                        Email.user_id == None)[:buffer_size]:
-                message.user_id = get_user_id(store, message)
+            for sender in store.db.find(Sender,
+                        Sender.user_id == None)[:buffer_size]:
+                sender.user_id = user_id = get_user_id(store, sender)
+                user = store.db.find(User, User.id == user_id).one()
+                if user is None:
+                    store.db.add(User(user_id))
             store.commit()
-            count = store.db.find(Email, Email.user_id == None).count()
+            count = store.db.find(Sender, Sender.user_id == None).count()
             if count == 0 or count == prev_count:
                 break # done, or no improvement (former members)
             prev_count = count

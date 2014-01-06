@@ -36,7 +36,7 @@ from .hack_datetime import DateTime
 # R0903: Too few public methods (X/2)
 
 
-__all__ = ("List", "Email", "EmailFull", "Attachment", "Thread", "Category")
+__all__ = ("List", "User", "Sender", "Email", "EmailFull", "Attachment", "Thread", "Category")
 
 
 class List(Storm):
@@ -129,6 +129,43 @@ class List(Storm):
         l.get_month_activity(year, month)
 
 
+class User(Storm):
+    """
+    A user with a definition similar to Mailman's (it may have multiple email
+    adresses)
+    """
+
+    __storm_table__ = "user"
+    __storm_primary__ = "id"
+
+    id = Unicode()
+    senders = ReferenceSet(id, "Sender.user_id")
+    addresses = Proxy(senders, "Sender.email")
+
+    def __init__(self, user_id):
+        self.id = unicode(user_id)
+
+
+
+class Sender(Storm):
+    """
+    Link between an email address and a User object
+    """
+
+    __storm_table__ = "sender"
+    __storm_primary__ = "email"
+
+    email = Unicode()
+    name = Unicode()
+    user_id = Unicode()
+    user = Reference(user_id, "User.id")
+
+    def __init__(self, email, name=None):
+        self.email = unicode(email)
+        if name is not None:
+            self.name = unicode(name)
+
+
 class Email(Storm):
     """
     An archived email, from a mailing-list. It is identified by both the list
@@ -141,9 +178,7 @@ class Email(Storm):
 
     list_name = Unicode()
     message_id = Unicode()
-    sender_name = Unicode()
     sender_email = Unicode()
-    user_id = Unicode()
     subject = Unicode()
     content = Unicode()
     date = DateTime()
@@ -170,6 +205,9 @@ class Email(Storm):
                      ("EmailFull.list_name", "EmailFull.message_id"))
     full = Proxy(full_email, "EmailFull.full")
     mlist = Reference(list_name, "List.name")
+    sender = Reference(sender_email, "Sender.email")
+    sender_name = Proxy(sender, "Sender.name")
+    user_id = Proxy(sender, "Sender.user_id")
 
     def __init__(self, list_name, message_id):
         self.list_name = unicode(list_name)
@@ -267,14 +305,27 @@ class Thread(Storm):
     def last_email(self):
         return self.emails.order_by(Desc(Email.date)).first()
 
+    def _get_participants(self):
+        """Email senders in this thread"""
+        store = Store.of(self)
+        return store.find(Sender,
+            And(Sender.email == Email.sender_email,
+                Email.list_name == self.list_name,
+                Email.thread_id == self.thread_id,
+            )).config(distinct=True)
+
     @property
     def participants(self):
         """Set of email senders in this thread"""
-        p = []
-        for sender in self.emails.find().config(distinct=True
-                        ).order_by().values(Email.sender_name, Email.sender_email):
-            p.append(sender)
-        return p
+        return list(self._get_participants())
+
+    @property
+    def participants_count(self):
+        store = Store.of(self)
+        return store.cache.get_or_create(
+            str("list:%s:thread:%s:participants_count"
+                % (self.list_name, self.thread_id)),
+            lambda: self._get_participants().count())
 
     @property
     def email_ids(self):
@@ -314,14 +365,6 @@ class Thread(Storm):
             str("list:%s:thread:%s:emails_count"
                 % (self.list_name, self.thread_id)),
             lambda: self.emails.count())
-
-    @property
-    def participants_count(self):
-        store = Store.of(self)
-        return store.cache.get_or_create(
-            str("list:%s:thread:%s:participants_count"
-                % (self.list_name, self.thread_id)),
-            lambda: len(self.participants))
 
     @property
     def subject(self):

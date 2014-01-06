@@ -11,6 +11,13 @@ def get_test_file(*fileparts):
 get_test_file.__test__ = False
 
 
+#def drop_all_tables(db):
+#    # http://stackoverflow.com/questions/525512/drop-all-tables-command
+#    db.rollback()
+#    db.execute("PRAGMA writable_schema = 1")
+#    db.execute("DELETE FROM sqlite_master WHERE type = 'table' OR type = 'index'")
+#    db.execute("PRAGMA writable_schema = 0")
+
 class FakeList(object):
     """
     This is a fake Mailman list (implementing the IMailingList interface).

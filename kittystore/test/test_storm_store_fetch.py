@@ -48,39 +48,3 @@ class TestStormStoreFetch(unittest.TestCase):
         self.assertIsNotNone(t)
         self.assertEqual(t.thread_id, m.thread_id)
         self.assertEqual(t.list_name, self.listname)
-
-    def test_search_list_for_sender(self):
-        """Search for a Message in a List by Sender """
-        email = self.store.search_list_for_sender(self.listname, "dummy@example").one()
-        self.assertIsNotNone(email)
-        self.assertEqual(email.sender_email, "dummy@example.com")
-
-    def test_search_list_for_content(self):
-        """Search for a Message in a List by Content """
-        email = self.store.search_list_for_content(self.listname, "Message").one()
-        self.assertIsNotNone(email)
-        self.assertEqual(email.sender_email, "dummy@example.com")
-
-    def test_search_list_for_content_case_false(self):
-        """Search for a Message in a List by Content (case insensitive)"""
-        email = self.store.search_list_for_content(self.listname, "MESSAGE").one()
-        self.assertIsNotNone(email)
-        self.assertEqual(email.sender_email, "dummy@example.com")
-
-    def test_search_list_for_subject(self):
-        """Search for a Message in a List by Subject """
-        email = self.store.search_list_for_subject(self.listname, "Subject").one()
-        self.assertIsNotNone(email)
-        self.assertEqual(email.sender_email, "dummy@example.com")
-
-    def test_search_list_for_content_subject_subject(self):
-        """Search for a Message in a List by Content or Subject. Match for Subject """
-        email = self.store.search_list_for_content_subject(self.listname, "Subject").one()
-        self.assertIsNotNone(email)
-        self.assertEqual(email.sender_email, "dummy@example.com")
-
-    def test_search_list_for_content_subject_content(self):
-        """Search for a Message in a List by Content or Subject. Match for Content"""
-        email = self.store.search_list_for_content_subject(self.listname, "Message").one()
-        self.assertIsNotNone(email)
-        self.assertEqual(email.sender_email, "dummy@example.com")

@@ -318,67 +318,6 @@ class StormStore(object):
                                for r in results["results"] ]
         return results
 
-    def search_list_for_content(self, list_name, keyword):
-        """ Returns a list of email containing the specified keyword in
-        their content.
-
-        :param list_name: name of the mailing list in which this email
-        should be searched.
-        :param keyword: keyword to search in the content of the emails.
-        """
-        emails = self.db.find(Email, And(
-                    Email.list_name == unicode(list_name),
-                    Email.content.like(u'%{0}%'.format(keyword), case_sensitive = False)
-                )).order_by(Desc(Email.date))
-        return emails
-
-    def search_list_for_content_subject(self, list_name, keyword):
-        """ Returns a list of email containing the specified keyword in
-        their content or their subject.
-
-        :param list_name: name of the mailing list in which this email
-            should be searched.
-        :param keyword: keyword to search in the content or subject of
-            the emails.
-        """
-        emails = self.db.find(Email, And(
-                    Email.list_name == unicode(list_name),
-                    Or(
-                        Email.content.like(u'%{0}%'.format(keyword), case_sensitive = False),
-                        Email.subject.like(u'%{0}%'.format(keyword), case_sensitive = False),
-                ))).order_by(Desc(Email.date))
-        return emails
-
-    def search_list_for_sender(self, list_name, keyword):
-        """ Returns a list of email containing the specified keyword in
-        the name or email address of the sender of the email.
-
-        :param list_name: name of the mailing list in which this email
-            should be searched.
-        :param keyword: keyword to search in the database.
-        """
-        emails = self.db.find(Email, And(
-                    Email.list_name == unicode(list_name),
-                    Or(
-                        Email.sender_name.like(u'%{0}%'.format(keyword), case_sensitive = False),
-                        Email.sender_email.like(u'%{0}%'.format(keyword), case_sensitive = False),
-                ))).order_by(Desc(Email.date))
-        return emails
-
-    def search_list_for_subject(self, list_name, keyword):
-        """ Returns a list of email containing the specified keyword in
-        their subject.
-
-        :param list_name: name of the mailing list in which this email
-            should be searched.
-        :param keyword: keyword to search in the subject of the emails.
-        """
-        emails = self.db.find(Email, And(
-                    Email.list_name == unicode(list_name),
-                    Email.subject.like(u'%{0}%'.format(keyword), case_sensitive = False),
-                )).order_by(Desc(Email.date))
-        return emails
-
     @property
     def messages(self):
         """An iterator over all messages in this message store."""

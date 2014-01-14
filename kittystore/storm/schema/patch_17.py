@@ -32,7 +32,7 @@ SQL_step_1 = {
             name VARCHAR(255),
             user_id VARCHAR(255),
             PRIMARY KEY (email),
-            FOREIGN KEY (user_id) REFERENCES user(id)
+            FOREIGN KEY (user_id) REFERENCES "user"(id)
         );""",
         'CREATE INDEX "ix_sender_user_id" ON "sender" (user_id);',
         'CREATE INDEX "ix_email_list_name_thread_id" ON "email" (list_name, thread_id);',
@@ -48,7 +48,7 @@ SQL_step_1 = {
             name VARCHAR(255) COLLATE utf8_general_ci,
             user_id VARCHAR(255),
             PRIMARY KEY (email),
-            FOREIGN KEY (user_id) REFERENCES user(id)
+            FOREIGN KEY (user_id) REFERENCES `user`(id)
         );""",
         'CREATE INDEX `ix_sender_user_id` ON `sender` (user_id);',
         'CREATE INDEX `ix_email_list_name_thread_id` ON `email` (list_name, thread_id);',

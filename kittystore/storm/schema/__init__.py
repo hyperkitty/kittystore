@@ -137,7 +137,7 @@ CREATES = {
             name VARCHAR(255),
             user_id VARCHAR(255),
             PRIMARY KEY (email),
-            FOREIGN KEY (user_id) REFERENCES user(id)
+            FOREIGN KEY (user_id) REFERENCES "user"(id)
         );""", """
         CREATE TABLE "email" (
             list_name VARCHAR(255) NOT NULL,
@@ -157,7 +157,7 @@ CREATES = {
             FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
             FOREIGN KEY (list_name, thread_id)
                 REFERENCES thread(list_name, thread_id) ON DELETE CASCADE,
-            FOREIGN KEY (sender_email) REFERENCES sender(email),
+            FOREIGN KEY (sender_email) REFERENCES sender(email)
         );""", """
         CREATE TABLE "email_full" (
             list_name VARCHAR(255) NOT NULL,
@@ -229,7 +229,7 @@ CREATES = {
             name VARCHAR(255) COLLATE utf8_general_ci,
             user_id VARCHAR(255),
             PRIMARY KEY (email),
-            FOREIGN KEY (user_id) REFERENCES user(id)
+            FOREIGN KEY (user_id) REFERENCES `user`(id)
         );""", """
         CREATE TABLE `email` (
             list_name VARCHAR(255) NOT NULL,

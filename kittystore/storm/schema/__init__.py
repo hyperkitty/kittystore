@@ -77,6 +77,17 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE "vote" (
+            list_name VARCHAR(255) NOT NULL,
+            message_id VARCHAR(255) NOT NULL,
+            user_id VARCHAR(255) NOT NULL,
+            value TINYINT NOT NULL,
+            PRIMARY KEY (list_name, message_id, user_id),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
+            FOREIGN KEY (list_name, message_id)
+                REFERENCES email(list_name, message_id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES user(id)
         );""",
         'CREATE INDEX "ix_sender_user_id" ON "sender" (user_id);',
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
@@ -92,6 +103,9 @@ CREATES = {
         'CREATE INDEX "ix_thread_list_name" ON "thread" (list_name);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
         'CREATE INDEX "ix_attachment_list_name_message_id" ON "attachment" (list_name, message_id);',
+        'CREATE INDEX "ix_vote_list_name_message_id" ON "vote" (list_name, message_id);',
+        'CREATE INDEX "ix_vote_user_id" ON "vote" (user_id);',
+        'CREATE INDEX "ix_vote_value" ON "vote" (value);',
         ],
 
     "postgres": [ """
@@ -179,6 +193,17 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE "vote" (
+            list_name VARCHAR(255) NOT NULL,
+            message_id VARCHAR(255) NOT NULL,
+            user_id VARCHAR(255) NOT NULL,
+            value SMALLINT NOT NULL,
+            PRIMARY KEY (list_name, message_id, user_id),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
+            FOREIGN KEY (list_name, message_id)
+                REFERENCES email(list_name, message_id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES "user"(id)
         );""",
         'CREATE INDEX "ix_sender_user_id" ON "sender" (user_id);',
         'CREATE INDEX "ix_email_list_name" ON "email" (list_name);',
@@ -194,6 +219,9 @@ CREATES = {
         'CREATE INDEX "ix_thread_list_name" ON "thread" (list_name);',
         'CREATE UNIQUE INDEX "ix_category_name" ON "category" (name);',
         'CREATE INDEX "ix_attachment_list_name_message_id" ON "attachment" (list_name, message_id);',
+        'CREATE INDEX "ix_vote_list_name_message_id" ON "vote" (list_name, message_id);',
+        'CREATE INDEX "ix_vote_user_id" ON "vote" (user_id);',
+        'CREATE INDEX "ix_vote_value" ON "vote" (value);',
         ],
 
     "mysql": [ """
@@ -271,6 +299,17 @@ CREATES = {
             PRIMARY KEY (list_name, message_id, counter),
             FOREIGN KEY (list_name, message_id)
                 REFERENCES email(list_name, message_id) ON DELETE CASCADE
+        );""", """
+        CREATE TABLE `vote` (
+            list_name VARCHAR(255) NOT NULL,
+            message_id VARCHAR(255) NOT NULL,
+            user_id VARCHAR(255) NOT NULL,
+            value TINYINT NOT NULL,
+            PRIMARY KEY (list_name, message_id, user_id),
+            FOREIGN KEY (list_name) REFERENCES list(name) ON DELETE CASCADE,
+            FOREIGN KEY (list_name, message_id)
+                REFERENCES email(list_name, message_id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES `user`(id)
         );""",
         'CREATE INDEX `ix_sender_user_id` ON `sender` (user_id);',
         'CREATE INDEX `ix_email_list_name` ON `email` (list_name);',
@@ -286,6 +325,9 @@ CREATES = {
         'CREATE INDEX `ix_thread_list_name` ON `thread` (list_name);',
         'CREATE UNIQUE INDEX `ix_category_name` ON `category` (name);',
         'CREATE INDEX `ix_attachment_list_name_message_id` ON `attachment` (list_name, message_id);',
+        'CREATE INDEX `ix_vote_list_name_message_id` ON `vote` (list_name, message_id);',
+        'CREATE INDEX `ix_vote_user_id" ON "vote` (user_id);',
+        'CREATE INDEX `ix_vote_value" ON "vote` (value);',
         ],
 
 }

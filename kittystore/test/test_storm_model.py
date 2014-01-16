@@ -11,7 +11,7 @@ import random
 from mailman.email.message import Message
 
 from kittystore.storm import get_storm_store
-from kittystore.storm.model import Email, Thread
+from kittystore.storm.model import Email, Thread, User
 
 from kittystore.test import get_test_file, FakeList, SettingsModule
 
@@ -120,3 +120,85 @@ class TestStormModel(unittest.TestCase):
         msg_db = self.store.db.find(Email).one()
         self.assertTrue(len(msg_db.subject) < 2712,
                 "Very long subjects are not trimmed")
+
+
+class TestStormModelVoting(unittest.TestCase):
+
+    def setUp(self):
+        self.store = get_storm_store(SettingsModule(), auto_create=True, debug=True)
+        self.store.db.add(User(u"userid"))
+        self.store.db.flush()
+
+    def tearDown(self):
+        self.store.db.find(Thread).remove()
+        self.store.db.find(Email).remove()
+        self.store.db.find(User).remove()
+        self.store.close()
+
+    def _create_email(self, num, reply_to=None):
+        ml = FakeList("example-list")
+        msg = Message()
+        msg["From"] = "sender%d@example.com" % num
+        msg["Message-ID"] = "<msg%d>" % num
+        msg.set_payload("message %d" % num)
+        if reply_to is not None:
+            msg["In-Reply-To"] = "<msg%d>" % reply_to
+        self.store.add_to_list(ml, msg)
+
+    def test_msg_1(self):
+        # First message in thread is voted for
+        self._create_email(1)
+        self._create_email(2, reply_to=1)
+        self._create_email(3, reply_to=2)
+        msg1 = self.store.db.find(Email, Email.message_id == u"msg1").one()
+        msg1.vote(1, u"userid")
+        thread = self.store.db.find(Thread).one()
+        self.assertEqual(thread.likes, 1)
+        self.assertEqual(thread.dislikes, 0)
+        self.assertEqual(thread.likestatus, "like")
+
+    def test_msg2(self):
+        # Second message in thread is voted against
+        self._create_email(1)
+        self._create_email(2, reply_to=1)
+        self._create_email(3, reply_to=2)
+        msg2 = self.store.db.find(Email, Email.message_id == u"msg2").one()
+        msg2.vote(-1, u"userid")
+        thread = self.store.db.find(Thread).one()
+        self.assertEqual(thread.likes, 0)
+        self.assertEqual(thread.dislikes, 1)
+        self.assertEqual(thread.likestatus, "neutral")
+
+    def test_likealot(self):
+        # All messages in thread are voted for
+        for num in range(1, 11):
+            if num == 1:
+                reply_to = None
+            else:
+                reply_to = num - 1
+            self._create_email(num, reply_to=reply_to)
+            msg = self.store.db.find(Email,
+                    Email.message_id == u"msg%d" % num).one()
+            msg.vote(1, u"userid")
+        thread = self.store.db.find(Thread).one()
+        self.assertEqual(thread.likes, 10)
+        self.assertEqual(thread.dislikes, 0)
+        self.assertEqual(thread.likestatus, "likealot")
+
+    def test_same_msgid_different_lists(self):
+        # Vote on messages with the same msgid but on different lists
+        ml1 = FakeList("example-list-1")
+        ml2 = FakeList("example-list-2")
+        msg = Message()
+        msg["From"] = "sender@example.com"
+        msg["Message-ID"] = "<msg>"
+        msg.set_payload("message")
+        self.store.add_to_list(ml1, msg)
+        self.store.add_to_list(ml2, msg)
+        self.assertEqual(self.store.db.find(Email).count(), 2)
+        for msg in self.store.db.find(Email):
+            msg.vote(1, u"userid")
+        self.assertEqual(self.store.db.find(Thread).count(), 2)
+        for thread in self.store.db.find(Thread):
+            self.assertEqual(thread.likes, 1)
+            self.assertEqual(thread.dislikes, 0)

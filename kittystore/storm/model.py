@@ -36,7 +36,8 @@ from .hack_datetime import DateTime
 # R0903: Too few public methods (X/2)
 
 
-__all__ = ("List", "User", "Sender", "Email", "EmailFull", "Attachment", "Thread", "Category")
+__all__ = ("List", "User", "Sender", "Email", "EmailFull", "Attachment",
+           "Thread", "Category", "Vote")
 
 
 class List(Storm):
@@ -140,6 +141,7 @@ class User(Storm):
 
     id = Unicode()
     senders = ReferenceSet(id, "Sender.user_id")
+    votes = ReferenceSet(id, "Vote.user_id")
 
     def __init__(self, user_id):
         self.id = unicode(user_id)
@@ -149,6 +151,22 @@ class User(Storm):
         store = Store.of(self)
         return list(store.find(Sender.email, Sender.user_id == self.id))
 
+    @property
+    def messages(self):
+        store = Store.of(self)
+        return store.find(Email, And(
+                Email.sender_email == Sender.email,
+                Sender.user_id == self.id,
+        ))
+
+    def get_votes_in_list(self, list_name):
+        def getvotes():
+            req = self.votes.find(Vote.list_name == unicode(list_name))
+            likes = req.find(Vote.value == 1).count()
+            dislikes = req.find(Vote.value == -1).count()
+            return likes, dislikes
+        cache_key = str("user:%s:list:%s:votes" % (self.id, list_name))
+        return self.cache.get_or_create(cache_key, getvotes)
 
 
 class Sender(Storm):
@@ -163,6 +181,7 @@ class Sender(Storm):
     name = Unicode()
     user_id = Unicode()
     user = Reference(user_id, "User.id")
+    messages = ReferenceSet(email, "Email.sender_email")
 
     def __init__(self, email, name=None):
         self.email = unicode(email)
@@ -212,11 +231,81 @@ class Email(Storm):
     sender = Reference(sender_email, "Sender.email")
     sender_name = Proxy(sender, "Sender.name")
     user_id = Proxy(sender, "Sender.user_id")
+    votes = ReferenceSet((list_name, message_id),
+                         ("Vote.list_name", "Vote.message_id"))
 
     def __init__(self, list_name, message_id):
         self.list_name = unicode(list_name)
         self.message_id = unicode(message_id)
         self.message_id_hash = unicode(get_message_id_hash(self.message_id))
+
+    @property
+    def likes(self):
+        store = Store.of(self)
+        return store.cache.get_or_create(
+            str("list:%s:email:%s:likes" % (self.list_name, self.message_id)),
+            lambda: self.votes.find(Vote.value == 1).count()
+            )
+
+    @property
+    def dislikes(self):
+        store = Store.of(self)
+        return store.cache.get_or_create(
+            str("list:%s:email:%s:dislikes" % (self.list_name, self.message_id)),
+            lambda: self.votes.find(Vote.value == -1).count()
+            )
+
+    @property
+    def likestatus(self):
+        likes, dislikes = self.likes, self.dislikes
+        # XXX: use an Enum?
+        if likes - dislikes >= 10:
+            return "likealot"
+        if likes - dislikes > 0:
+            return "like"
+        return "neutral"
+
+    def get_user_vote(self, user_id):
+        store = Store.of(self)
+        return store.cache.get_or_create(
+            str("list:%s:email:%s:dislikes" % (self.list_name, self.message_id)),
+            lambda: self.votes.find(Vote.value == -1).count()
+            )
+
+    def vote(self, value, user_id):
+        store = Store.of(self)
+        # Checks if the user has already voted for this message.
+        existing = self.votes.find(Vote.user_id == user_id).one()
+        if existing is not None and existing.value == value:
+            return # Vote already recorded (should I raise an exception?)
+        if value not in (0, 1, -1):
+            raise ValueError("A vote can only be +1 or -1 (or 0 to cancel)")
+        # The vote can be added, changed or cancelled. Keep it simple and
+        # delete likes and dislikes cached values.
+        store.cache.delete_multi((
+            # this message's (dis)likes count
+            str("list:%s:email:%s:likes" % (self.list_name, self.message_id)),
+            str("list:%s:email:%s:dislikes" % (self.list_name, self.message_id)),
+            # this thread (dis)likes count
+            str("list:%s:thread:%s:likes" % (self.list_name, self.thread_id)),
+            str("list:%s:thread:%s:dislikes" % (self.list_name, self.thread_id)),
+            # the user's vote count on this list
+            str("user:%s:list:%s:votes" % (user_id, self.list_name)),
+            ))
+        if existing is not None:
+            # vote changed or cancelled
+            if value == 0:
+                store.remove(existing)
+            else:
+                existing.value = value
+        else:
+            # new vote
+            store.add(Vote(self.list_name, self.message_id, user_id, value))
+
+    def get_vote_by_user_id(self, user_id):
+        if user_id is None:
+            return None
+        return self.votes.find(Vote.user_id == user_id).one()
 
 
 class EmailFull(Storm):
@@ -378,6 +467,44 @@ class Thread(Storm):
                 % (self.list_name, self.thread_id)),
             lambda: self.starting_email.subject)
 
+    def _getvotes(self):
+        store = Store.of(self)
+        return store.find(Vote, And(
+                Vote.list_name == self.list_name,
+                Vote.message_id == Email.message_id,
+                Email.thread_id == self.thread_id,
+                # yes, the following line is necessary, even with the
+                # Vote.list_name selection. See the
+                # test_same_msgid_different_lists unit test.
+                Email.list_name == self.list_name,
+                ))
+
+    @property
+    def likes(self):
+        store = Store.of(self)
+        return store.cache.get_or_create(
+            str("list:%s:thread:%s:likes" % (self.list_name, self.thread_id)),
+            lambda: self._getvotes().find(Vote.value == 1).count()
+            )
+
+    @property
+    def dislikes(self):
+        store = Store.of(self)
+        return store.cache.get_or_create(
+            str("list:%s:thread:%s:dislikes" % (self.list_name, self.thread_id)),
+            lambda: self._getvotes().find(Vote.value == -1).count()
+            )
+
+    @property
+    def likestatus(self):
+        likes, dislikes = self.likes, self.dislikes
+        # XXX: use an Enum?
+        if likes - dislikes >= 10:
+            return "likealot"
+        if likes - dislikes > 0:
+            return "like"
+        return "neutral"
+
     @events.subscribe_to(events.NewMessage)
     def on_new_message(event): # will be called unbound (no self as 1st argument)
         cache = event.store.db.cache
@@ -420,3 +547,26 @@ class Category(Storm):
 
     def __init__(self, name):
         self.name = unicode(name)
+
+
+class Vote(Storm):
+    """
+    A User's vote on a message
+    """
+
+    __storm_table__ = "vote"
+    __storm_primary__ = "list_name", "message_id", "user_id"
+
+    list_name = Unicode()
+    message_id = Unicode()
+    user_id = Unicode()
+    value = Int()
+    user = Reference(user_id, "User.id")
+    message = Reference((list_name, message_id),
+                        ("Email.list_name", "Email.message_id"))
+
+    def __init__(self, list_name, message_id, user_id, value):
+        self.list_name = list_name
+        self.message_id = message_id
+        self.user_id = user_id
+        self.value = value

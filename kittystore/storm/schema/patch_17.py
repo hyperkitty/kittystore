@@ -84,6 +84,11 @@ def apply(store):
     # create the new tables
     for statement in SQL_step_1[dbtype]:
         store.execute(statement)
+    # escape the user table name, it's usually a reserved sql word
+    if dbtype == "mysql":
+        user_table_name = '`user`'
+    else:
+        user_table_name = '"user"'
     # migrate the data
     store.execute("INSERT INTO sender(email) SELECT DISTINCT sender_email FROM email")
     for addr in store.execute("SELECT email FROM sender"):
@@ -97,9 +102,9 @@ def apply(store):
         if name is not None:
             store.execute("UPDATE sender SET name = ? WHERE email = ?", (name, addr))
         if user_id is not None:
-            if store.execute("SELECT COUNT(*) FROM user WHERE id = ?",
-                             [user_id]).get_one() == 0:
-                store.execute("INSERT INTO user VALUES (?)", [user_id])
+            if store.execute("SELECT COUNT(*) FROM %s WHERE id = ?" % user_table_name,
+                             [user_id]).get_one()[0] == 0:
+                store.execute("INSERT INTO %s VALUES (?)" % user_table_name, [user_id])
             store.execute("UPDATE sender SET user_id = ? WHERE email = ?", (user_id, addr))
     # drop the old columns
     for statement in SQL_step_2[dbtype]:

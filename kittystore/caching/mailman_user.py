@@ -60,7 +60,10 @@ def sync_mailman_user(store):
         while True:
             for sender in store.db.find(Sender,
                         Sender.user_id == None)[:buffer_size]:
-                sender.user_id = user_id = get_user_id(store, sender)
+                user_id = get_user_id(store, sender)
+                if user_id is None:
+                    continue
+                sender.user_id = user_id
                 user = store.db.find(User, User.id == user_id).one()
                 if user is None:
                     store.db.add(User(user_id))

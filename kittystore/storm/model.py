@@ -300,6 +300,8 @@ class Email(Storm):
                 existing.value = value
         else:
             # new vote
+            if store.get(User, user_id) is None:
+                store.add(User(user_id))
             store.add(Vote(self.list_name, self.message_id, user_id, value))
 
     def get_vote_by_user_id(self, user_id):

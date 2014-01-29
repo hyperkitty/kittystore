@@ -41,6 +41,7 @@ from traceback import print_exc
 
 from mailman.interfaces.archiver import ArchivePolicy
 from storm.exceptions import DatabaseError
+from mailmanclient import MailmanConnectionError
 from kittystore import SchemaUpgradeNeeded
 from kittystore.scripts import get_store_from_options, StoreFromOptionsError
 from kittystore.utils import get_mailman_client
@@ -100,7 +101,7 @@ def get_mailinglist(list_name, settings, opts):
     try:
         mm_client = get_mailman_client(settings)
         mm_list = mm_client.get_list(list_name)
-    except HTTPError, e:
+    except (HTTPError, MailmanConnectionError), e:
         if opts.debug:
             print "Can't get the mailing-list from Mailman: %s" % e
     else:
@@ -299,6 +300,8 @@ def parse_args():
         if not os.path.exists(mbfile):
             parser.error("No such mbox file: %s" % mbfile)
     if opts.since is not None:
+        if opts.cont:
+            parser.error("--since and --continue are mutually exclusive")
         try:
             opts.since = parse(opts.since)
         except ValueError, e:

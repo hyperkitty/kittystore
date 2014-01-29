@@ -141,7 +141,6 @@ class User(Storm):
 
     id = Unicode()
     senders = ReferenceSet(id, "Sender.user_id")
-    votes = ReferenceSet(id, "Vote.user_id")
 
     def __init__(self, user_id):
         self.id = unicode(user_id)
@@ -158,6 +157,12 @@ class User(Storm):
                 Email.sender_email == Sender.email,
                 Sender.user_id == self.id,
         ))
+
+    @property
+    def votes(self):
+        # Don't use a ReferenceSet or HyperKitty won't know how to paginate it
+        store = Store.of(self)
+        return store.find(Vote, Vote.user_id == self.id)
 
     def get_votes_in_list(self, list_name):
         def getvotes():

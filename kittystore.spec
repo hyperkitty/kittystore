@@ -1,5 +1,5 @@
 %global pypi_name KittyStore
-%global prerel 1
+#%%global prerel 1
 
 Name:           kittystore
 Version:        0.1.7

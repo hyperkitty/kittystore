@@ -29,7 +29,10 @@ def get_user_id(store, sender):
         else:
             raise
     else:
-        return unicode(mm_user.user_id)
+        if mm_user.user_id is None:
+            return None
+        else:
+            return unicode(mm_user.user_id)
 
 
 @events.subscribe_to(events.NewMessage)
@@ -40,9 +43,11 @@ def on_new_message(event):
         user_id = get_user_id(event.store, event.message.sender)
     except (HTTPError, mailmanclient.MailmanConnectionError):
         return # Can't refresh at this time
+    if user_id is None:
+        return
     # XXX: Storm-specific
     from kittystore.storm.model import User
-    user = event.store.db.find(User, User.id == user_id).one()
+    user = event.store.db.get(User, user_id)
     if user is None:
         event.store.db.add(User(user_id))
     event.message.user_id = user_id

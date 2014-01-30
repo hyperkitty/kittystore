@@ -190,3 +190,22 @@ class SearchEngine(object):
                 logger.info("Adding field %s to the search index" % field_name)
                 writer.add_field(field_name, field_type)
         writer.commit(optimize=True)
+
+
+
+class DelayedSearchEngine(SearchEngine):
+
+    def __init__(self, *args, **kw):
+        super(DelayedSearchEngine, self).__init__(*args, **kw)
+        self._add_buffer = []
+
+    def add(self, doc):
+        self._add_buffer.append(doc)
+
+    def flush(self):
+        self.add_batch(self._add_buffer)
+        self._add_buffer = []
+
+
+def make_delayed(engine):
+    return DelayedSearchEngine(engine.location)

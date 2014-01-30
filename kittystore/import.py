@@ -46,6 +46,7 @@ from kittystore import SchemaUpgradeNeeded
 from kittystore.scripts import get_store_from_options, StoreFromOptionsError
 from kittystore.utils import get_mailman_client
 from kittystore.caching import sync_mailman
+from kittystore.search import make_delayed
 from kittystore.test import FakeList
 
 
@@ -140,6 +141,7 @@ class DbImporter(object):
         upload to the database.
         :arg list_name, the fully qualified list name.
         """
+        self.store.search_index = make_delayed(self.store.search_index)
         cnt_imported = 0
         cnt_read = 0
         for message in mailbox.mbox(mbfile):
@@ -211,6 +213,7 @@ class DbImporter(object):
             cnt_imported += 1
             # Commit every time to be able to rollback on error
             self.store.commit()
+        self.store.search_index.flush() # Now commit to the search index
         if self.verbose:
             print '  %s email read' % cnt_read
             print '  %s email added to the database' % cnt_imported

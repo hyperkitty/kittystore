@@ -3,7 +3,6 @@
 Cached values concerning mailing-lists
 """
 
-import datetime
 from urllib2 import HTTPError
 
 import mailmanclient

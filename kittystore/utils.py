@@ -29,6 +29,7 @@ from email.header import decode_header
 from datetime import timedelta
 from base64 import b32encode
 from hashlib import sha1 # pylint: disable-msg=E0611
+from urllib2 import HTTPError
 
 import dateutil.parser, dateutil.tz
 import mailmanclient

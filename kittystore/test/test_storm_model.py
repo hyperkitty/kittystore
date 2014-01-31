@@ -4,7 +4,6 @@
 # - Invalid name XXX (should match YYY)
 
 import unittest
-import email
 import string
 import random
 
@@ -13,7 +12,7 @@ from mailman.email.message import Message
 from kittystore.storm import get_storm_store
 from kittystore.storm.model import Email, Thread, User
 
-from kittystore.test import get_test_file, FakeList, SettingsModule
+from kittystore.test import FakeList, SettingsModule
 
 
 class TestStormModel(unittest.TestCase):

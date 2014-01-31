@@ -13,7 +13,7 @@ from mailman.interfaces.archiver import ArchivePolicy
 
 from kittystore import get_store
 from kittystore.caching import mailman_user
-from kittystore.test import get_test_file, FakeList, SettingsModule
+from kittystore.test import FakeList, SettingsModule
 
 
 class ListCacheTestCase(unittest.TestCase):

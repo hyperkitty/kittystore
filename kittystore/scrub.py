@@ -23,8 +23,6 @@ import binascii
 from types import IntType
 from mimetypes import guess_all_extensions
 
-from email.utils import unquote
-
 from mailman.utilities.string import oneline
 
 # Path characters for common platforms

@@ -5,7 +5,6 @@ import unittest
 import email
 import datetime
 import dateutil
-from mock import Mock
 
 from mailman.email.message import Message
 
@@ -72,8 +71,8 @@ class TestUtils(unittest.TestCase):
         msg["References"] = " "
         msg.set_payload("Dummy message")
         try:
-            ref_id = kittystore.utils.get_ref(msg)
-        except IndexError, e:
+            kittystore.utils.get_ref(msg)
+        except IndexError:
             self.fail("Empty 'References' tag should be handled")
 
     def test_non_ascii_headers(self):

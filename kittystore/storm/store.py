@@ -16,15 +16,13 @@ from __future__ import absolute_import
 
 import datetime
 from email.utils import unquote
-from urllib2 import HTTPError
 
 from zope.interface import implements
 from mailman.interfaces.messages import IMessageStore
 from mailman.interfaces.archiver import ArchivePolicy
 from storm.locals import Desc
-from storm.expr import And, Or, Count, Alias
+from storm.expr import And, Count, Alias
 from dateutil.tz import tzutc
-import mailmanclient
 
 from kittystore import MessageNotFound, events
 from kittystore.utils import parseaddr, parsedate
@@ -33,7 +31,7 @@ from kittystore.scrub import Scrubber
 from kittystore.utils import get_ref_and_thread_id
 from kittystore.analysis import compute_thread_order_and_depth
 
-from .model import List, Email, Attachment, Thread, EmailFull, Category
+from .model import List, Email, Attachment, Thread, Category
 from .model import Sender, User
 
 import logging

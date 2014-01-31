@@ -17,8 +17,6 @@ license.
 
 from __future__ import absolute_import
 
-import datetime
-
 from storm.locals import And, Store
 from dogpile.cache import make_region
 

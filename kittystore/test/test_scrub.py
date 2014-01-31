@@ -7,7 +7,6 @@ import unittest
 import email
 from traceback import format_exc
 
-from mock import Mock
 from mailman.email.message import Message
 
 from kittystore.scrub import Scrubber

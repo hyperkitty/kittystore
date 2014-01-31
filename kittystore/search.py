@@ -16,9 +16,7 @@ from __future__ import absolute_import
 
 import os
 import shutil
-import sys
 
-from zope.interface import providedBy
 from whoosh.index import create_in, exists_in, open_dir
 from whoosh.fields import Schema, ID, TEXT, DATETIME, KEYWORD, BOOLEAN
 from whoosh.analysis import StemmingAnalyzer

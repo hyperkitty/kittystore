@@ -9,7 +9,7 @@ from datetime import datetime
 from mailman.email.message import Message
 
 from kittystore.storm import get_storm_store
-from kittystore.storm.model import Email, Thread, Sender
+from kittystore.storm.model import Email, Thread
 from kittystore.analysis import compute_thread_order_and_depth
 
 from kittystore.test import FakeList, SettingsModule

@@ -44,7 +44,6 @@ class TestNotify(unittest.TestCase):
 from mailman.email.message import Message
 from kittystore.storm import get_storm_store
 from kittystore.test import FakeList, SettingsModule
-from kittystore.storm.model import Email, List
 
 class TestNotifyStore(unittest.TestCase):
     def setUp(self):
@@ -102,7 +101,6 @@ class TestNotifyStore(unittest.TestCase):
         msg["From"] = "dummy@example.com"
         msg["Message-ID"] = "<dummy>"
         msg.set_payload("Dummy message")
-        today = datetime.date.today()
         self.store.add_to_list(FakeList("example-list"), msg)
         msg.replace_header("Message-ID", "<dummy2>")
         msg["In-Reply-To"] = "<dummy>"

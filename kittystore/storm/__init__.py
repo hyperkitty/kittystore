@@ -3,12 +3,10 @@
 from __future__ import absolute_import, with_statement
 
 import sys
-import threading
 
 import storm.tracer
 from storm.locals import create_database
 
-from .model import List, Email
 from . import schema
 from .store import StormStore
 from .schema.utils import CheckingSchema

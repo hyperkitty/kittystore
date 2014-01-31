@@ -17,7 +17,7 @@ from mailman.interfaces.archiver import ArchivePolicy
 
 from kittystore import get_store
 from kittystore.storm import get_storm_store
-from kittystore.storm.model import Email, Attachment, List, Thread
+from kittystore.storm.model import Email, Attachment, Thread
 from kittystore.utils import get_message_id_hash
 
 from kittystore.test import get_test_file, FakeList, SettingsModule

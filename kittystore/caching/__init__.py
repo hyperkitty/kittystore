@@ -12,9 +12,6 @@ The computation is done in this module instead of in the model because it is
 (mostly) ORM-agnostic.
 """
 
-import datetime
-from urllib2 import HTTPError
-import mailmanclient
 from pkg_resources import resource_listdir
 
 import logging

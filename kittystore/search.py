@@ -142,13 +142,16 @@ class SearchEngine(object):
             except AttributeError:
                 continue
         try:
+            total = len(documents)
+        except TypeError: # it's a ResultSet
+            total = documents.count()
+        try:
             for num, doc in enumerate(documents):
                 if IMessage.providedBy(doc):
                     doc = email_to_search_doc(doc)
                 writer.add_document(**doc)
                 if num % 1000 == 0:
-                    logger.info("...still indexing (%d/%d)..."
-                                 % (num, len(documents)))
+                    logger.info("...still indexing (%d/%d)..." % (num, total))
         except Exception:
             writer.cancel()
             raise

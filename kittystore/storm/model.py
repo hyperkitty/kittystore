@@ -165,13 +165,14 @@ class User(Storm):
         return store.find(Vote, Vote.user_id == self.id)
 
     def get_votes_in_list(self, list_name):
+        store = Store.of(self)
         def getvotes():
             req = self.votes.find(Vote.list_name == unicode(list_name))
             likes = req.find(Vote.value == 1).count()
             dislikes = req.find(Vote.value == -1).count()
             return likes, dislikes
         cache_key = str("user:%s:list:%s:votes" % (self.id, list_name))
-        return self.cache.get_or_create(cache_key, getvotes)
+        return store.cache.get_or_create(cache_key, getvotes)
 
 
 class Sender(Storm):

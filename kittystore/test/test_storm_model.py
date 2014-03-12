@@ -124,7 +124,7 @@ class TestStormModel(unittest.TestCase):
 class TestStormModelVoting(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store(SettingsModule(), auto_create=True, debug=True)
+        self.store = get_storm_store(SettingsModule(), auto_create=True, debug=False)
         self.store.db.add(User(u"userid"))
         self.store.db.flush()
 
@@ -201,3 +201,15 @@ class TestStormModelVoting(unittest.TestCase):
         for thread in self.store.db.find(Thread):
             self.assertEqual(thread.likes, 1)
             self.assertEqual(thread.dislikes, 0)
+
+    def test_votes_in_list(self):
+        # Count the number of votes in a list
+        self._create_email(1)
+        self._create_email(2, reply_to=1)
+        self._create_email(3, reply_to=2)
+        msg1 = self.store.db.find(Email, Email.message_id == u"msg1").one()
+        msg1.vote(1, u"userid")
+        msg2 = self.store.db.find(Email, Email.message_id == u"msg2").one()
+        msg2.vote(-1, u"userid")
+        user = self.store.db.find(User).one()
+        self.assertEqual(user.get_votes_in_list("example-list"), (1, 1))

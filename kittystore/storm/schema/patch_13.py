@@ -7,7 +7,8 @@ from .utils import get_db_type
 
 SQL = {
     "sqlite": [
-        'ALTER TABLE "list" ADD COLUMN description TEXT;',
+        # no adding of the "description" column because it couln't have been
+        # remove in the past (SQLite has no REMOVE COLUMN statement)
         'ALTER TABLE "list" ADD COLUMN recent_participants_count INTEGER;',
         'ALTER TABLE "list" ADD COLUMN recent_threads_count INTEGER;',
         'ALTER TABLE "thread" ADD COLUMN emails_count INTEGER;',

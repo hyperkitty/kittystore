@@ -25,7 +25,7 @@ def reqfile(filepath):
 
 setup(
     name="KittyStore",
-    version="0.1.7",
+    version="1.0",
     description="A storage engine for GNU Mailman v3 archives",
     long_description=open('README.rst').read(),
     author='HyperKitty Developers',

@@ -1,8 +1,8 @@
 %global pypi_name KittyStore
-#%%global prerel 1
+%global prerel 1
 
 Name:           kittystore
-Version:        1.0
+Version:        1.0.0
 Release:        %{?prerel:0.}1%{?dist}
 Summary:        A storage engine for GNU Mailman v3 archives
 

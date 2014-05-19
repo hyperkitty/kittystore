@@ -546,6 +546,17 @@ class StormStore(object):
         """ Returns a user given his user_id """
         return self.db.find(User, User.id == unicode(user_id)).one()
 
+    def create_user(self, email, user_id, name=None):
+        """
+        Create a user with the given user_id.
+        Only used by unittests for now.
+        """
+        user = User(user_id)
+        self.db.add(user)
+        sender = Sender(email, name)
+        sender.user_id = user_id
+        self.db.add(sender)
+
     def get_sender_name(self, user_id):
         """ Returns a user's fullname when given his user_id """
         result = self.db.find(Sender.name,

@@ -27,6 +27,8 @@ def get_user_id(store, sender):
             return None
         else:
             raise
+    except ValueError:
+        return None
     else:
         if mm_user.user_id is None:
             return None

@@ -143,3 +143,18 @@ class UserIdCacheTestCase(unittest.TestCase):
         self.assertEqual(dbmsg.sender.user.id, "DUMMY-USER-ID")
         self.assertEqual(1,
                 self.store.get_message_count_by_user_id("DUMMY-USER-ID"))
+
+    def test_on_new_message_bad_reply_from_mailman(self):
+        # Check that errors from mailmanclient are handled gracefully
+        self.mm_client.get_user.side_effect = ValueError
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg.set_payload("Dummy message")
+        try:
+            self.store.add_to_list(FakeList("example-list"), msg)
+        except ValueError, e:
+            self.fail("Errors from mailmanclient should be handled gracefully")
+        dbmsg = self.store.get_message_by_id_from_list(
+                "example-list", "dummy")
+        self.assertEqual(dbmsg.sender.user_id, None)

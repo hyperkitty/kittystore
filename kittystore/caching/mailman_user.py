@@ -69,10 +69,10 @@ def sync_mailman_user(store):
                 user_id = get_user_id(store, sender)
                 if user_id is None:
                     continue
-                sender.user_id = user_id
                 user = store.db.find(User, User.id == user_id).one()
                 if user is None:
                     store.db.add(User(user_id))
+                sender.user_id = user_id
             store.commit()
             count = store.db.find(Sender, Sender.user_id == None).count()
             if count == 0 or count == prev_count:

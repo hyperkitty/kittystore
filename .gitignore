@@ -3,5 +3,6 @@ static_files/
 *~
 *.egg-info
 dist
+.coverage
 
 lists/

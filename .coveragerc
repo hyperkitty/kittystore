@@ -1,0 +1,7 @@
+[run]
+omit =
+    setup.py
+    distribute_setup.py
+    kittystore/test/*
+    kittystore/storm/schema/patch_*
+    kittystore/storm/schema/__init__.py

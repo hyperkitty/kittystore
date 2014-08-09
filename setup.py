@@ -49,7 +49,7 @@ setup(
     test_suite = "kittystore.test",
     entry_points={
         'console_scripts': [
-            'kittystore-import = kittystore.import:main',
+            'kittystore-import = kittystore.importer:main',
             'kittystore-updatedb = kittystore.scripts:updatedb',
             'kittystore-download21 = kittystore.scripts:dl_archives',
             'kittystore-sync-mailman = kittystore.scripts:sync_mailman_cmd',

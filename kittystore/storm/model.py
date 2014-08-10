@@ -271,13 +271,6 @@ class Email(Storm):
             return "like"
         return "neutral"
 
-    def get_user_vote(self, user_id):
-        store = Store.of(self)
-        return store.cache.get_or_create(
-            str("list:%s:email:%s:dislikes" % (self.list_name, self.message_id)),
-            lambda: self.votes.find(Vote.value == -1).count()
-            )
-
     def vote(self, value, user_id):
         store = Store.of(self)
         # Checks if the user has already voted for this message.

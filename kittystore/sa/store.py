@@ -20,6 +20,7 @@ from email.utils import unquote
 from zope.interface import implements
 from mailman.interfaces.messages import IMessageStore
 from mailman.interfaces.archiver import ArchivePolicy
+from sqlalchemy import desc
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from dateutil.tz import tzutc
@@ -93,9 +94,8 @@ class SAStore(object):
         """
         list_name = mlist.fqdn_listname
         # Create the list if it does not exist
-        try:
-            l = self.db.query(List).get(list_name).one()
-        except NoResultFound:
+        l = self.db.query(List).get(list_name)
+        if l is None:
             l = List(name=list_name)
             # Don't wait for the cache to set those properties
             for propname in l.mailman_props:
@@ -114,7 +114,7 @@ class SAStore(object):
         email = Email(list_name=list_name, message_id=msg_id)
         if self.is_message_in_list(list_name, email.message_id):
             logger.info("Duplicate email from %s: %s" %
-                   (message['From'], message.get('Subject', '""')))
+                   (message['From'], message.get(('Subject', '""'))))
             return email.message_id_hash
 
         #if not getattr(settings.KITTYSTORE_FULL_EMAIL):
@@ -136,9 +136,8 @@ class SAStore(object):
         from_name, from_email = parseaddr(message['From'])
         from_name = header_to_unicode(from_name).strip()
         email.sender_email = unicode(from_email).strip()
-        try:
-            sender = self.db.query(Sender).get(email.sender_email).one()
-        except NoResultFound:
+        sender = self.db.query(Sender).get(email.sender_email)
+        if sender is None:
             sender = Sender(email=email.sender_email, name=from_name)
             self.db.add(sender)
         else:
@@ -175,11 +174,12 @@ class SAStore(object):
         if new_thread:
             thread = Thread(list_name=list_name, thread_id=thread_id)
         else:
-            thread = self.db.query(Thread).get(list_name, thread_id)
+            thread = self.db.query(Thread).get((list_name, thread_id))
         thread.date_active = email.date
         self.db.add(thread)
 
         self.db.add(email)
+        self.db.flush()
         compute_thread_order_and_depth(thread)
         for attachment in attachments:
             self.add_attachment(list_name, msg_id, *attachment)
@@ -286,7 +286,7 @@ class SAStore(object):
         :param message_id: The Message-ID header contents to search for.
         :returns: The message, or None if no matching message was found.
         """
-        return self.db.query(Email).get(list_name, message_id[:254])
+        return self.db.query(Email).get((list_name, message_id[:254]))
 
     def search(self, query, list_name=None, page=None, limit=10,
                sortedby=None, reverse=False):
@@ -328,8 +328,8 @@ class SAStore(object):
         :param message_id: The Message-ID header contents to search for.
         :returns: True of False
         """
-        return self.db.query(Email.message_id).get(
-                    list_name, message_id[:254]) is not None
+        return self.db.query(Email).get(
+                    (list_name, message_id[:254])) is not None
 
     def get_list_names(self):
         """Return the names of the archived lists.
@@ -360,7 +360,7 @@ class SAStore(object):
                     Email.list_name == list_name,
                     Email.date >= start,
                     Email.date < end,
-                )).desc(Email.date).all()
+                )).order_by(desc(Email.date)).all()
 
     def get_thread(self, list_name, thread_id):
         """ Return the specified thread.
@@ -371,7 +371,7 @@ class SAStore(object):
             uniquely identify the thread in the database.
         :returns: The thread object.
         """
-        return self.db.query(Thread).get(list_name, thread_id)
+        return self.db.query(Thread).get((list_name, thread_id))
 
     def get_threads(self, list_name, start, end):
         """ Return all the threads active between two given dates.
@@ -388,7 +388,7 @@ class SAStore(object):
                     Thread.list_name == list_name,
                     Thread.date_active >= start,
                     Thread.date_active < end,
-                )).desc(Thread.date_active)
+                )).order_by(desc(Thread.date_active))
 
     def get_start_date(self, list_name):
         """ Get the date of the first archived email in a list.
@@ -410,7 +410,7 @@ class SAStore(object):
         """
         return self.db.query(Email.date).filter(
                 Email.list_name == list_name
-                ).desc(Email.date).first()
+                ).order_by(desc(Email.date)).first()
 
     def get_thread_neighbors(self, list_name, thread_id):
         """ Return the previous and the next threads of the specified thread,
@@ -431,7 +431,7 @@ class SAStore(object):
                 ).order_by(Thread.date_active).first()
         prev_thread = threads_query.filter(
                     Thread.date_active < thread.date_active
-                ).desc(Thread.date_active).first()
+                ).order_by(desc(Thread.date_active)).first()
         return (prev_thread, next_thread)
 
     def delete_thread(self, list_name, thread_id):
@@ -476,12 +476,13 @@ class SAStore(object):
         """
         number = aliased(func.count(Email.sender_email))
         part = self.db.query(Sender.name, Email.sender_email, number
-                ).join(Sender).join(Email)
+                ).join(Sender).join(Email
                 ).filter(and_(
                     Email.list_name == list_name,
                     Email.date >= start,
                     Email.date < end,
-                )).group_by(Email.sender_email, Sender.name).desc(number))
+                )).group_by(Email.sender_email, Sender.name
+                ).order_by(desc(number))
         if limit is not None:
             part = part.limit(limit)
         return part.all()
@@ -505,21 +506,31 @@ class SAStore(object):
         """ Returns a user given his user_id """
         return self.db.query(User).get(user_id)
 
+    def get_users_count(self):
+        return self.db.query(User).count()
+
     def create_user(self, email, user_id, name=None):
         """
         Create a user with the given user_id.
-        Only used by unittests for now.
         """
         user = User(id=user_id)
         self.db.add(user)
-        sender = Sender(email=email, name=name)
+        sender = self.db.query(Sender).get(email)
+        if sender is None:
+            sender = Sender(email=email, name=name)
+            self.db.add(sender)
         sender.user_id = user_id
-        self.db.add(sender)
 
     def get_sender_name(self, user_id):
         """ Returns a user's fullname when given his user_id """
         return self.db.query(Sender.name).filter(
                               Sender.user_id == user_id).first()
+
+    def get_senders_without_user(self, limit=None):
+        q = self.db.query(Sender).filter(Sender.user_id == None)
+        if limit:
+            q = q.limit(limit)
+        return q
 
     def _get_messages_by_user_id(self, user_id, list_name=None):
         """ Returns a user's email hashes """
@@ -540,7 +551,7 @@ class SAStore(object):
     def get_messages_by_user_id(self, user_id, list_name=None):
         """ Returns a user's emails"""
         query = self._get_messages_by_user_id(user_id, list_name)
-        return query.desc(Email.date).all()
+        return query.order_by(desc(Email.date)).all()
 
     def get_all_messages(self):
         return self.db.query(Email).order_by(Email.archived_date).all()
@@ -560,7 +571,7 @@ class SAStore(object):
                     Email.list_name == list_name,
                     Email.date >= start,
                     Email.date < end,
-                )).desc(Email.date).all()
+                )).order_by(desc(Email.date)).all()
 
     # Attachments
 
@@ -607,7 +618,8 @@ class SAStore(object):
         :param counter: The position in the MIME-multipart email.
         :returns: The corresponding attachment
         """
-        return self.db.query(Attachment).get(list_name, message_id[:254], counter)
+        return self.db.query(Attachment).get(
+                    (list_name, message_id[:254], counter))
 
     # Generic database operations
 

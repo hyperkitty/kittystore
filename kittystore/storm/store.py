@@ -546,16 +546,20 @@ class StormStore(object):
         """ Returns a user given his user_id """
         return self.db.find(User, User.id == unicode(user_id)).one()
 
+    def get_users_count(self):
+        return self.db.find(User).count()
+
     def create_user(self, email, user_id, name=None):
         """
         Create a user with the given user_id.
-        Only used by unittests for now.
         """
         user = User(user_id)
         self.db.add(user)
-        sender = Sender(email, name)
+        sender = self.db.find(Sender, Sender.email == email).one()
+        if sender is None:
+            sender = Sender(email, name)
+            self.db.add(sender)
         sender.user_id = user_id
-        self.db.add(sender)
 
     def get_sender_name(self, user_id):
         """ Returns a user's fullname when given his user_id """
@@ -563,6 +567,12 @@ class StormStore(object):
                               Sender.user_id == unicode(user_id)
                     ).config(limit=1).one()
         return result
+
+    def get_senders_without_user(self, limit=None):
+        q = self.db.find(Sender, Sender.user_id == None)
+        if limit:
+            q = q[:limit]
+        return q
 
     def _get_messages_by_user_id(self, user_id, list_name=None):
         """ Returns a user's email hashes """

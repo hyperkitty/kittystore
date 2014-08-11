@@ -49,8 +49,10 @@ def get_store(settings, debug=None, auto_create=False):
 
     search_index = _get_search_index(settings)
 
-    from kittystore.storm import get_storm_store
-    store = get_storm_store(settings, search_index, debug, auto_create)
+    #from kittystore.storm import get_storm_store
+    #store = get_storm_store(settings, search_index, debug, auto_create)
+    from kittystore.sa import get_sa_store
+    store = get_sa_store(settings, search_index, debug, auto_create)
 
     if search_index is not None and search_index.needs_upgrade():
         if auto_create:

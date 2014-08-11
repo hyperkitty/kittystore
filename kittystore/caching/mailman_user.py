@@ -38,7 +38,7 @@ def get_user_id(store, sender):
 
 @events.subscribe_to(events.NewMessage)
 def on_new_message(event):
-    if event.message.user_id is not None:
+    if event.message.sender.user_id is not None:
         return
     try:
         user_id = get_user_id(event.store, event.message.sender)
@@ -46,12 +46,10 @@ def on_new_message(event):
         return # Can't refresh at this time
     if user_id is None:
         return
-    # XXX: Storm-specific
-    from kittystore.storm.model import User
-    user = event.store.db.get(User, user_id)
+    user = event.store.get_user(user_id)
     if user is None:
-        event.store.db.add(User(user_id))
-    event.message.user_id = user_id
+        event.store.create_user(event.message.sender_email, user_id)
+    event.message.sender.user_id = user_id
 
 
 def sync_mailman_user(store):
@@ -59,22 +57,18 @@ def sync_mailman_user(store):
     # There can be thousands of senders, break into smaller chuncks to avoid
     # hogging up the memory
     buffer_size = 1000
-    # XXX: Storm-specific
-    from kittystore.storm.model import Sender, User
-    prev_count = store.db.find(Sender, Sender.user_id == None).count()
+    prev_count = store.get_senders_without_user().count()
     try:
         while True:
-            for sender in store.db.find(Sender,
-                        Sender.user_id == None)[:buffer_size]:
+            for sender in store.get_senders_without_user(limit=buffer_size):
                 user_id = get_user_id(store, sender)
                 if user_id is None:
                     continue
-                user = store.db.find(User, User.id == user_id).one()
+                user = store.get_user(user_id)
                 if user is None:
-                    store.db.add(User(user_id))
-                sender.user_id = user_id
+                    store.create_user(sender.email, user_id)
             store.commit()
-            count = store.db.find(Sender, Sender.user_id == None).count()
+            count = store.get_senders_without_user().count()
             if count == 0 or count == prev_count:
                 break # done, or no improvement (former members)
             prev_count = count

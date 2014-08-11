@@ -104,9 +104,7 @@ class UserIdCacheTestCase(unittest.TestCase):
         self.assertEqual(dbmsg.sender.user.id, "DUMMY-USER-ID")
         self.assertEqual(1,
                 self.store.get_message_count_by_user_id("DUMMY-USER-ID"))
-        # XXX: Storm-specific
-        from kittystore.storm.model import User
-        self.assertEqual(self.store.db.find(User).count(), 1)
+        self.assertEqual(self.store.get_users_count(), 1)
 
     def test_on_new_message_no_reply_from_mailman(self):
         # Check that the user_id is set on a new message

@@ -14,6 +14,8 @@ license.
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import datetime
+from collections import namedtuple
 
 from zope.interface import implements
 from mailman.interfaces.archiver import ArchivePolicy
@@ -21,15 +23,19 @@ from mailman.interfaces.messages import IMessage
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy import and_
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy import and_, desc
 from sqlalchemy import Column, ForeignKey, Integer, Unicode, DateTime, UnicodeText, LargeBinary, Enum
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import relationship, backref, object_session
 from sqlalchemy.sql import expression
 from sqlalchemy.schema import ForeignKeyConstraint, Index
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import event as sa_event
 
 from kittystore import events
+from kittystore.utils import get_message_id_hash
+from .utils import get_participants_count_between, get_threads_between
 
 Base = declarative_base()
 
@@ -81,8 +87,8 @@ class List(Base):
     emails = relationship("Email", backref="mlist")
     threads = relationship("Thread", backref="mlist", cascade="all, delete-orphan")
 
-    def __repr__(self):
-        return "<List('{}')>".format(self.name)
+    #def __repr__(self):
+    #    return "<List('{}')>".format(self.name)
 
     def get_recent_dates(self):
         today = datetime.datetime.utcnow()
@@ -105,6 +111,7 @@ class List(Base):
     @property
     def recent_threads_count(self):
         begin_date, end_date = self.get_recent_dates()
+        session = object_session(self)
         return session.cache.get_or_create(
             str("list:%s:recent_threads_count" % self.name),
             lambda: get_threads_between(session, self.name,
@@ -159,22 +166,14 @@ class User(Base):
 
     id = Column(Unicode(255), primary_key=True, nullable=False)
     senders = relationship("Sender", backref="user", cascade="all, delete-orphan")
-    # TODO: rename messages to emails
-    messages = relationship("Email", secondary="Sender")
     votes = relationship("Vote", backref="user", cascade="all, delete-orphan")
+    addresses = association_proxy('senders', 'email')
 
     @property
-    def addresses(self):
-        return [ s.email for s in self.senders ]
-
-    #@property
-    #def messages(self):
-    #    return self.senders.emails
-    #    #store = Store.of(self)
-    #    #return store.find(Email, And(
-    #    #        Email.sender_email == Sender.email,
-    #    #        Sender.user_id == self.id,
-    #    #))
+    def messages(self):
+        # TODO: rename messages to emails
+        return object_session(self).query(Email).join(Sender
+                    ).with_parent(self).order_by(Email.date).all()
 
     def get_votes_in_list(self, list_name):
         session = object_session(self)
@@ -230,7 +229,6 @@ class Email(Base):
     path = None
     # References
     attachments = relationship("Attachment", order_by="Attachment.counter", backref="email", cascade="all, delete-orphan")
-    #thread = relationship("Thread") # backref
     full_email = relationship("EmailFull", uselist=False, backref="email", cascade="all, delete-orphan")
     # TODO: rename to "email"
     votes = relationship("Vote", backref="message", cascade="all, delete-orphan")
@@ -253,8 +251,8 @@ class Email(Base):
     def _get_votes_query(self):
         session = object_session(self)
         return session.query(Vote).filter(
-                    Vote.list_name == list_name).filter(
-                    Vote.message_id == message_id)
+                    Vote.list_name == self.list_name).filter(
+                    Vote.message_id == self.message_id)
 
     @property
     def likes(self):
@@ -285,7 +283,7 @@ class Email(Base):
     def vote(self, value, user_id):
         session = object_session(self)
         # Checks if the user has already voted for this message.
-        existing = self._get_votes_query.filter(Vote.user_id == user_id).first()
+        existing = self._get_votes_query().filter(Vote.user_id == user_id).first()
         # TODO: make sure this is covered by unit tests
         if existing is not None and existing.value == value:
             return # Vote already recorded (should I raise an exception?)
@@ -293,7 +291,7 @@ class Email(Base):
             raise ValueError("A vote can only be +1 or -1 (or 0 to cancel)")
         # The vote can be added, changed or cancelled. Keep it simple and
         # delete likes and dislikes cached values.
-        store.cache.delete_multi((
+        session.cache.delete_multi((
             # this message's (dis)likes count
             str("list:%s:email:%s:likes" % (self.list_name, self.message_id)),
             str("list:%s:email:%s:dislikes" % (self.list_name, self.message_id)),
@@ -408,25 +406,24 @@ class Thread(Base):
         message_id = session.cache.get_or_create(
             str("list:%s:thread:%s:starting_email_id" % (self.list_name, self.thread_id)),
             lambda: session.query(Email.message_id).with_parent(self).order_by(
-                        Email.in_reply_to != None, Email.date).first(),
+                        Email.in_reply_to != None, Email.date).limit(1).scalar(),
             should_cache_fn=lambda val: val is not None
             )
         if message_id is not None:
-            return session.query(Email).get(message_id)
+            return session.query(Email).get((self.list_name, message_id))
 
     @property
     def last_email(self):
         return object_session(self).query(Email).with_parent(self
-                    ).desc(Email.date).first()
+                    ).order_by(desc(Email.date)).first()
 
     def _get_participants(self):
         """Email senders in this thread"""
         session = object_session(self)
-        return session.query(Sender).join(Email).with_parent(self).distinct()
-        #return session.query(Sender).join(Email).filter(and_(
-        #            Email.list_name == self.list_name,
-        #            Email.thread_id == self.thread_id,
-        #        )).distinct()
+        return session.query(Sender).join(Email).filter(and_(
+                    Email.list_name == self.list_name,
+                    Email.thread_id == self.thread_id,
+                )).distinct()
 
     @property
     def participants(self):
@@ -512,7 +509,10 @@ class Thread(Base):
             lambda: self.starting_email.subject)
 
     def _getvotes(self):
-        return object_session(self).query(Vote).join(Email).with_parent(self)
+        return object_session(self).query(Vote).join(Email).filter(and_(
+                    Email.list_name == self.list_name,
+                    Email.thread_id == self.thread_id,
+                ))
 
     @property
     def likes(self):
@@ -558,17 +558,17 @@ class Thread(Base):
                     % (event.thread.list_name, event.thread.thread_id)),
                 event.thread.starting_email.subject)
 
-    def __storm_pre_flush__(self):
-        """Auto-set the active date from the last email in thread"""
-        # TODO: Do this on thread creation in the Store class
-        if self.date_active is not None:
-            return
-        email_dates = list(self.emails.order_by(Desc(Email.date)
-                                ).config(limit=1).values(Email.date))
-        if email_dates:
-            self.date_active = email_dates[0]
-        else:
-            self.date_active = datetime.datetime.now()
+@sa_event.listens_for(Thread, 'before_insert')
+def Thread_before_insert(mapper, connection, target):
+    """Auto-set the active date from the last email in thread"""
+    if target.date_active is not None:
+        return
+    session = object_session(target)
+    last_email_date = session.query(Email.date).order_by(desc(Email.date)).limit(1).scalar()
+    if last_email_date:
+        target.date_active = last_email_date
+    else:
+        target.date_active = datetime.datetime.now()
 
 
 

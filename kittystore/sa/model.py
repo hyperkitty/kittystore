@@ -236,7 +236,7 @@ class Email(Base):
     def __init__(self, *args, **kw):
         Base.__init__(self, *args, **kw)
         if "message_id_hash" not in kw:
-            self.message_id_hash = get_message_id_hash(self.message_id)
+            self.message_id_hash = unicode(get_message_id_hash(self.message_id))
 
     @hybrid_property
     def full(self):

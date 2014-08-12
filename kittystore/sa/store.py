@@ -20,7 +20,7 @@ from email.utils import unquote
 from zope.interface import implements
 from mailman.interfaces.messages import IMessageStore
 from mailman.interfaces.archiver import ArchivePolicy
-from sqlalchemy import desc
+from sqlalchemy import desc, and_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from dateutil.tz import tzutc
@@ -173,13 +173,12 @@ class SAStore(object):
 
         if new_thread:
             thread = Thread(list_name=list_name, thread_id=thread_id)
+            self.db.add(thread)
         else:
             thread = self.db.query(Thread).get((list_name, thread_id))
         thread.date_active = email.date
-        self.db.add(thread)
 
-        self.db.add(email)
-        self.db.flush()
+        thread.emails.append(email)
         compute_thread_order_and_depth(thread)
         for attachment in attachments:
             self.add_attachment(list_name, msg_id, *attachment)

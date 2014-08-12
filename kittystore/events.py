@@ -43,5 +43,9 @@ def subscribe_to(eventclass):
         return f
     return wrapper
 
+def reset():
+    for eventclass in subscribers.keys():
+        del subscribers[eventclass]
+
 NewMessage = namedtuple("NewMessage", ["store", "mlist", "message"])
 NewThread = namedtuple("NewThread", ["store", "mlist", "thread"])

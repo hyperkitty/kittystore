@@ -5,15 +5,15 @@ import unittest
 
 from mailman.email.message import Message
 
-from kittystore.storm import get_storm_store
+from kittystore import get_store
 
 from kittystore.test import FakeList, SettingsModule
 
 
-class TestStormStoreFetch(unittest.TestCase):
+class TestStoreFetch(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store(SettingsModule(), auto_create=True)
+        self.store = get_store(SettingsModule(), auto_create=True)
         self.listname, self.m_hash = self.add_fetch_data()
 
     def tearDown(self):

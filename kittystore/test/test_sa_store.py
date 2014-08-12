@@ -3,6 +3,8 @@
 # - Too many public methods
 # - Invalid name XXX (should match YYY)
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import unittest
 import email
 import datetime
@@ -10,23 +12,21 @@ from shutil import rmtree
 from tempfile import mkdtemp
 #from traceback import format_exc
 
-from storm.exceptions import IntegrityError
-#from storm.exceptions import DatabaseError
 from mailman.email.message import Message
 from mailman.interfaces.archiver import ArchivePolicy
 
 from kittystore import _get_search_index
-from kittystore.storm import get_storm_store
-from kittystore.storm.model import Email, Attachment, Thread
+from kittystore.sa import get_sa_store
+from kittystore.sa.model import Email, Attachment, Thread
 from kittystore.utils import get_message_id_hash
 
 from kittystore.test import get_test_file, FakeList, SettingsModule
 
 
-class TestStormStore(unittest.TestCase):
+class TestSAStore(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store(SettingsModule(), auto_create=True)
+        self.store = get_sa_store(SettingsModule(), auto_create=True)#, debug=True)
 
     def tearDown(self):
         self.store.close()
@@ -46,7 +46,7 @@ class TestStormStore(unittest.TestCase):
             self.store.add_to_list(FakeList("example-list"), msg)
         except IntegrityError, e:
             self.fail(e)
-        stored_msg = self.store.db.find(Email).one()
+        stored_msg = self.store.db.query(Email).one()
         self.assertTrue(stored_msg.date >= now)
 
     def test_date_naive(self):
@@ -59,7 +59,7 @@ class TestStormStore(unittest.TestCase):
             self.store.add_to_list(FakeList("example-list"), msg)
         except IntegrityError, e:
             self.fail(e)
-        stored_msg = self.store.db.find(Email).one()
+        stored_msg = self.store.db.query(Email).one()
         expected = datetime.datetime(2012, 11, 2, 16, 7, 54)
         self.assertEqual(stored_msg.date, expected)
         self.assertEqual(stored_msg.timezone, 0)
@@ -74,7 +74,7 @@ class TestStormStore(unittest.TestCase):
             self.store.add_to_list(FakeList("example-list"), msg)
         except IntegrityError, e:
             self.fail(e)
-        stored_msg = self.store.db.find(Email).one()
+        stored_msg = self.store.db.query(Email).one()
         expected = datetime.datetime(2012, 11, 2, 15, 7, 54)
         self.assertEqual(stored_msg.date, expected)
         self.assertEqual(stored_msg.timezone, 60)
@@ -82,20 +82,20 @@ class TestStormStore(unittest.TestCase):
     def test_attachment_insert_order(self):
         """Attachments must not be inserted in the DB before the email"""
         # Re-activate foreign key support in sqlite
-        if SettingsModule.KITTYSTORE_URL.startswith("sqlite:"):
-            self.store.db._connection._raw_connection.isolation_level = 'IMMEDIATE'
-            self.store.db.execute("PRAGMA foreign_keys = ON")
-            self.store.db._connection._raw_connection.execute("PRAGMA foreign_keys = ON")
-        #print "*"*10, list(self.store.db.execute("PRAGMA foreign_keys"))
-        #self.store = get_storm_store("postgres://kittystore:kittystore@localhost/kittystore_test")
+        #if SettingsModule.KITTYSTORE_URL.startswith("sqlite:"):
+        #    self.store.db._connection._raw_connection.isolation_level = 'IMMEDIATE'
+        #    self.store.db.execute("PRAGMA foreign_keys = ON")
+        #    self.store.db._connection._raw_connection.execute("PRAGMA foreign_keys = ON")
+        ##print "*"*10, list(self.store.db.execute("PRAGMA foreign_keys"))
+        ##self.store = get_sa_store("postgres://kittystore:kittystore@localhost/kittystore_test")
         with open(get_test_file("attachment-1.txt")) as email_file:
             msg = email.message_from_file(email_file, _class=Message)
         try:
             self.store.add_to_list(FakeList("example-list"), msg)
         except IntegrityError, e:
             self.fail(e)
-        self.assertEqual(self.store.db.find(Email).count(), 1)
-        self.assertEqual(self.store.db.find(Attachment).count(), 1)
+        self.assertEqual(self.store.db.query(Email).count(), 1)
+        self.assertEqual(self.store.db.query(Attachment).count(), 1)
 
     def test_thread_neighbors(self):
         ml = FakeList("example-list")
@@ -159,7 +159,7 @@ class TestStormStore(unittest.TestCase):
             self.store.add_to_list(FakeList("example-list"), msg)
         except IntegrityError, e:
             self.fail(e)
-        stored_msg = self.store.db.find(Email).one()
+        stored_msg = self.store.db.query(Email).one()
         self.assertTrue(len(stored_msg.message_id) <= 255,
                 "Very long message-id headers are not truncated")
 
@@ -175,16 +175,14 @@ class TestStormStore(unittest.TestCase):
         msg2["Message-ID"] = "<Y>"
         msg2["References"] = "<" + ("X" * 260) + ">"
         msg2.set_payload("Dummy message")
-        try:
-            self.store.add_to_list(FakeList("example-list"), msg1)
-            self.store.add_to_list(FakeList("example-list"), msg2)
-        except IntegrityError, e:
-            self.fail(e)
-        stored_msg2 = self.store.db.find(Email, Email.message_id == u"Y").one()
+        self.store.add_to_list(FakeList("example-list"), msg1)
+        self.store.add_to_list(FakeList("example-list"), msg2)
+        stored_msg2 = self.store.db.query(Email).filter(
+                            Email.message_id == u"Y").one()
         self.assertEqual(stored_msg2.in_reply_to, "X" * 254)
         self.assertEqual(stored_msg2.thread_order, 1)
         self.assertEqual(stored_msg2.thread_depth, 1)
-        thread = self.store.db.find(Thread).one()
+        thread = self.store.db.query(Thread).one()
         self.assertTrue(thread is not None)
         self.assertEqual(len(thread), 2)
 
@@ -243,7 +241,7 @@ class TestStormStoreWithSearch(unittest.TestCase):
         settings = SettingsModule()
         settings.KITTYSTORE_SEARCH_INDEX = self.tmpdir
         search_index = _get_search_index(settings)
-        self.store = get_storm_store(settings, search_index=search_index, auto_create=True)
+        self.store = get_sa_store(settings, search_index=search_index, auto_create=True)
         search_index.upgrade(self.store)
 
     def tearDown(self):

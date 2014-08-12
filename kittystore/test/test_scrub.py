@@ -3,6 +3,8 @@
 # R0904: Too many public methods (X/20)
 # C0103: Invalid name "xX" (should match [a-z_][a-z0-9_]{2,30}$)
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import unittest
 import email
 from traceback import format_exc
@@ -22,7 +24,7 @@ class TestScrubber(unittest.TestCase):
         contents, attachments = scrubber.scrub()
         self.assertEqual(len(attachments), 1)
         self.assertEqual(attachments[0], (
-                2, 'puntogil.vcf', 'text/x-vcard', "utf-8",
+                2, u'puntogil.vcf', u'text/x-vcard', u"utf-8",
                 'begin:vcard\r\nfn:gil\r\nn:;gil\r\nversion:2.1\r\n'
                 'end:vcard\r\n\r\n'))
         self.assertEqual(contents,
@@ -38,7 +40,7 @@ class TestScrubber(unittest.TestCase):
         contents, attachments = scrubber.scrub()
         self.assertEqual(len(attachments), 1)
         self.assertEqual(attachments[0], (
-                3, 'signature.asc', 'application/pgp-signature', None,
+                3, u'signature.asc', u'application/pgp-signature', None,
                 '-----BEGIN PGP SIGNATURE-----\r\nVersion: GnuPG v1.4.12 '
                 '(GNU/Linux)\r\nComment: Using GnuPG with Mozilla - '
                 'http://www.enigmail.net/\r\n\r\niEYEARECAAYFAlBhm3oACgkQhmBj'
@@ -112,7 +114,7 @@ class TestScrubber(unittest.TestCase):
             contents, attachments = scrubber.scrub()
         except LookupError, e:
             import traceback;
-            print traceback.format_exc()
+            print(traceback.format_exc())
             self.fail(e) # codec not found
         self.assertTrue(isinstance(contents, unicode))
 
@@ -156,16 +158,16 @@ class TestScrubber(unittest.TestCase):
         msg = email.message.Message()
         msg["From"] = "dummy@example.com"
         msg["Message-ID"] = "<dummy>"
-        msg.set_payload("Dummy content")
-        msg.add_header('Content-Disposition', 'attachment', filename='non-ascii-\xb8\xb1\xb1\xbe.jpg')
+        msg.set_payload(b"Dummy content")
+        msg.add_header(b'Content-Disposition', b'attachment', filename=b'non-ascii-\xb8\xb1\xb1\xbe.jpg')
         scrubber = Scrubber("testlist@example.com", msg)
         try:
             contents, attachments = scrubber.scrub()
         except UnicodeDecodeError:
-            print format_exc()
+            print(format_exc())
             self.fail("Could not decode the filename")
         self.assertEqual(attachments,
-                [(0, 'attachment.bin', 'text/plain', None, 'Dummy content')])
+                [(0, 'attachment.bin', 'text/plain', None, b'Dummy content')])
 
     def test_remove_next_part_from_content(self):
         with open(get_test_file("pipermail_nextpart.txt")) as email_file:

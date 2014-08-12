@@ -55,7 +55,7 @@ def get_message_id_hash(msg_id):
 
     """
     msg_id = email.utils.unquote(msg_id)
-    return b32encode(sha1(msg_id).digest())
+    return unicode(b32encode(sha1(msg_id).digest()))
 
 
 def parseaddr(address):

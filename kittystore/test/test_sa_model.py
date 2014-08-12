@@ -17,10 +17,10 @@ from kittystore.sa.model import Email, Thread, User
 from kittystore.test import FakeList, SettingsModule
 
 
-class TestStormModel(unittest.TestCase):
+class TestSAModel(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_sa_store(SettingsModule(), auto_create=True)#, debug=True)
+        self.store = get_sa_store(SettingsModule(), auto_create=True)
         #self.store = get_sa_store("postgres://kittystore:kittystore@localhost/kittystore_test", True)
         #self.store = get_sa_store("mysql://kittystore:kittystore@localhost/kittystore_test", True)
 

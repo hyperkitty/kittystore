@@ -3,20 +3,22 @@
 # - Too many public methods
 # - Invalid name XXX (should match YYY)
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import unittest
 from datetime import datetime
 
 from mailman.email.message import Message
 
-from kittystore.storm import get_storm_store
-from kittystore.storm.model import Email, Thread
+from kittystore.sa import get_sa_store
+from kittystore.sa.model import Email, Thread
 from kittystore.analysis import compute_thread_order_and_depth
 
 from kittystore.test import FakeList, SettingsModule
 
 
 def make_fake_email(num=1, list_name="example-list", date=None):
-    msg = Email(list_name, "<msg%d>" % num)
+    msg = Email(list_name=list_name, message_id="<msg%d>" % num)
     msg.thread_id = u"<msg%d>" % num
     msg.sender_email = u"sender%d@example.com" % num
     msg.subject = u"subject %d" % num
@@ -32,7 +34,7 @@ def make_fake_email(num=1, list_name="example-list", date=None):
 class TestThreadOrderDepth(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_storm_store(SettingsModule(), auto_create=True)
+        self.store = get_sa_store(SettingsModule(), auto_create=True)
 
     def tearDown(self):
         self.store.flush()
@@ -41,7 +43,7 @@ class TestThreadOrderDepth(unittest.TestCase):
 
     def test_simple_thread(self):
         # A basic thread: msg2 replies to msg1
-        thread = Thread("example-list", "<msg1>")
+        thread = Thread(list_name="example-list", thread_id="<msg1>")
         self.store.db.add(thread)
         msg1 = make_fake_email(1)
         msg1.thread_order = msg1.thread_depth = 42
@@ -63,7 +65,7 @@ class TestThreadOrderDepth(unittest.TestCase):
         # |-msg2
         # | `-msg4
         # `-msg3
-        thread = Thread("example-list", "<msg1>")
+        thread = Thread(list_name="example-list", thread_id="<msg1>")
         self.store.db.add(thread)
         msg1 = make_fake_email(1)
         msg2 = make_fake_email(2)
@@ -129,7 +131,7 @@ class TestThreadOrderDepth(unittest.TestCase):
 
     def test_reply_to_oneself(self):
         # A message replying to itself (yes, it's been spotted in the wild)
-        thread = Thread("example-list", "<msg1>")
+        thread = Thread(list_name="example-list", thread_id="<msg1>")
         self.store.db.add(thread)
         msg1 = make_fake_email(1)
         msg1.in_reply_to = u"<msg1>"
@@ -145,7 +147,7 @@ class TestThreadOrderDepth(unittest.TestCase):
         """Loops in message replies"""
         # This implies that someone replies to a message not yet sent, but you
         # never know, Dr Who can be on your mailing-list.
-        thread = Thread("example-list", "<msg1>")
+        thread = Thread(list_name="example-list", thread_id="<msg1>")
         self.store.db.add(thread)
         msg1 = make_fake_email(1)
         msg1.in_reply_to = u"<msg2>"

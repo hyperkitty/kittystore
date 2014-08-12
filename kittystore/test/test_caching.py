@@ -3,6 +3,8 @@
 # - Too many public methods
 # - Invalid name XXX (should match YYY)
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import unittest
 import datetime
 from urllib2 import HTTPError
@@ -71,7 +73,7 @@ class FakeMMUser(object):
 class UserIdCacheTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.store = get_store(SettingsModule(), auto_create=True)
+        self.store = get_store(SettingsModule(), auto_create=True)#, debug=True)
         self.mm_client = Mock()
         mailman_user._MAILMAN_CLIENT = self.mm_client
         self.mm_client.get_user.side_effect = HTTPError(

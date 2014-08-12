@@ -55,14 +55,14 @@ def get_charset(message, default="ascii", guess=False):
     From: http://ginstrom.com/scribbles/2007/11/19/parsing-multilingual-email-with-python/
     """
     if message.get_content_charset():
-        return message.get_content_charset()
+        return unicode(message.get_content_charset())
     if message.get_charset():
-        return message.get_charset()
+        return unicode(message.get_charset())
+    charset = unicode(default) if default is not None else None
     if not guess:
-        return default
+        return charset
     # Try to guess the encoding (best effort mode)
     text = message.get_payload(decode=True)
-    charset = default
     for encoding in ["ascii", "utf-8", "iso-8859-15"]:
         try:
             text.decode(encoding)
@@ -70,7 +70,7 @@ def get_charset(message, default="ascii", guess=False):
             continue
         else:
             #print encoding, payload
-            charset = encoding
+            charset = unicode(encoding)
             break
     return charset
 

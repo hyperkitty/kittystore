@@ -42,14 +42,14 @@ class TestNotify(unittest.TestCase):
 
 
 from mailman.email.message import Message
-from kittystore.storm import get_storm_store
+from kittystore.sa import get_sa_store
 from kittystore.test import FakeList, SettingsModule
 
 class TestNotifyStore(unittest.TestCase):
     def setUp(self):
-        self.store = get_storm_store(SettingsModule(), auto_create=True)
+        self.store = get_sa_store(SettingsModule(), auto_create=True)
         self.store.db.cache.get_or_create = Mock()
-        self.store.db.cache.get_or_create.side_effect = lambda *a: a[1]()
+        self.store.db.cache.get_or_create.side_effect = lambda *a, **kw: a[1]()
         self.store.db.cache.set = Mock()
         # cache.delete() will be called if the cache is invalidated
         self.store.db.cache.delete = Mock()
@@ -86,7 +86,8 @@ class TestNotifyStore(unittest.TestCase):
             u'list:example-list:participants_count:%d:%d' % (today.year, today.month),
             u'list:example-list:threads_count:%d:%d' % (today.year, today.month),
             u'list:example-list:thread:QKODQBCADMDSP5YPOPKECXQWEQAMXZL3:emails_count',
-            u'list:example-list:thread:QKODQBCADMDSP5YPOPKECXQWEQAMXZL3:participants_count'
+            u'list:example-list:thread:QKODQBCADMDSP5YPOPKECXQWEQAMXZL3:participants_count',
+            u'list:example-list:thread:QKODQBCADMDSP5YPOPKECXQWEQAMXZL3:starting_email_id',
             ]))
         #self.assertEqual(l.recent_participants_count, 1)
         #self.assertEqual(l.recent_threads_count, 1)
@@ -106,6 +107,11 @@ class TestNotifyStore(unittest.TestCase):
         msg["In-Reply-To"] = "<dummy>"
         self.store.add_to_list(FakeList("example-list"), msg)
         call_args = [ call[0][0] for call in self.store.db.cache.set.call_args_list ]
+        # we have duplicates because both the Storm and the SQLAlchemy model
+        # subscribe to the event, so we must deduplicate
+        call_args = set(call_args)
         #from pprint import pprint; pprint(call_args)
-        self.assertEqual(call_args,
-            [u'list:example-list:thread:QKODQBCADMDSP5YPOPKECXQWEQAMXZL3:subject'])
+        #print(repr(call_args))
+        self.assertEqual(call_args, set([
+            u'list:example-list:thread:QKODQBCADMDSP5YPOPKECXQWEQAMXZL3:subject'
+            ]))

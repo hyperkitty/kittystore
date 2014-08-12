@@ -19,6 +19,7 @@ from email.utils import unquote
 
 from mailman.interfaces.archiver import ArchivePolicy
 from sqlalchemy import desc, and_
+from sqlalchemy.sql import func
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from dateutil.tz import tzutc
@@ -253,7 +254,7 @@ class SAStore(Store):
         """
         return self.db.query(Email.date).filter(
                 Email.list_name == list_name
-                ).order_by(Email.date).first()
+                ).order_by(Email.date).limit(1).scalar()
 
     def get_last_date(self, list_name):
         """ Get the date of the last archived email in a list.
@@ -328,15 +329,15 @@ class SAStore(Store):
             not supplied, return them all.
         :returns: The list of thread-starting messages.
         """
-        number = aliased(func.count(Email.sender_email))
-        part = self.db.query(Sender.name, Email.sender_email, number
-                ).join(Sender).join(Email
+        part = self.db.query(Sender.name, Email.sender_email,
+                             func.count(Email.sender_email)
+                ).join(Email
                 ).filter(and_(
                     Email.list_name == list_name,
                     Email.date >= start,
                     Email.date < end,
                 )).group_by(Email.sender_email, Sender.name
-                ).order_by(desc(number))
+                ).order_by(desc(func.count(Email.sender_email)))
         if limit is not None:
             part = part.limit(limit)
         return part.all()
@@ -421,11 +422,11 @@ class SAStore(Store):
             the interval to query.
         :returns: The list of messages.
         """
-        return self.db.query(Email.date).filter(and_(
+        return [ e.date for e in self.db.query(Email.date).filter(and_(
                     Email.list_name == list_name,
                     Email.date >= start,
                     Email.date < end,
-                )).order_by(desc(Email.date)).all()
+                 )).order_by(desc(Email.date)) ]
 
     # Attachments
 

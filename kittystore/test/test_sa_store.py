@@ -186,6 +186,25 @@ class TestSAStore(unittest.TestCase):
         self.assertTrue(thread is not None)
         self.assertEqual(len(thread), 2)
 
+    def test_top_participants(self):
+        ml = FakeList("example-list")
+        expected = [
+            ("name3", "email3", 3),
+            ("name2", "email2", 2),
+            ("name1", "email1", 1),
+            ]
+        for name, email, count in expected:
+            for num in range(count):
+                msg = Message()
+                msg["From"] = "%s <%s>" % (name, email)
+                msg["Message-ID"] = "<%s_%s>" % (name, num)
+                msg.set_payload("Dummy message")
+                self.store.add_to_list(ml, msg)
+        now = datetime.datetime.now()
+        yesterday = now - datetime.timedelta(days=1)
+        self.assertEqual(expected,
+            self.store.get_top_participants("example-list", yesterday, now))
+
 
     #def test_payload_invalid_unicode(self):
     #    # Python2 won't mind, but PostgreSQL will refuse the data

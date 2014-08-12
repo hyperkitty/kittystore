@@ -438,39 +438,32 @@ class Thread(Base):
                 % (self.list_name, self.thread_id)),
             lambda: self._get_participants().count())
 
-    @property
-    def emails_by_reply(self):
-        return object_session(self).query(Email).with_parent(self)\
-                    .order_by(Email.thread_order).all()
+    def get_emails(self, sort="date", limit=None, offset=None):
+        q = object_session(self).query(Email).with_parent(self)
+        if sort == "date":
+            q = q.order_by(Email.date)
+        elif sort == "thread":
+            q = q.order_by(Email.thread_order)
+        if limit is not None:
+            q = q.limit(limit)
+        if offset is not None:
+            q = q.offset(offset)
+        return q.all()
 
     @property
     def email_ids(self):
         return object_session(self).query(Email.message_id
                     ).with_parent(self).all()
-        #session = object_session(self)
-        #return session.query(Email.message_id).filter(and_(
-        #            Email.list_name == list_name,
-        #            Email.thread_id == thread_id)
-        #       ).all()
 
     @property
     def email_id_hashes(self):
         return object_session(self).query(Email.message_id_hash
                     ).with_parent(self).all()
-        #session = object_session(self)
-        #return session.query(Email.message_id_hash).filter(and_(
-        #            Email.list_name == list_name,
-        #            Email.thread_id == thread_id)
-        #       ).all()
 
     def replies_after(self, date):
-        return object_session(self).query(Email).filter(
-                    Email.date > date).all()
-        #session = object_session(self)
-        #return session.query(Email).filter(and_(
-        #                Email.list_name == list_name,
-        #                Email.thread_id == thread_id)
-        #            ).filter(Email.date > date).all()
+        # no .all() because HK will call .count() on it.
+        return object_session(self).query(Email).with_parent(self
+                    ).filter(Email.date > date)
 
     def _get_category(self):
         if not self.category_id:

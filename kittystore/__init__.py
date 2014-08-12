@@ -15,9 +15,10 @@ See http://www.gnu.org/copyleft/gpl.html  for the full text of the
 license.
 """
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 __all__ = ("get_store", "create_store", "MessageNotFound",
            "SchemaUpgradeNeeded")
-
 
 from kittystore.search import SearchEngine
 from kittystore.caching import register_events

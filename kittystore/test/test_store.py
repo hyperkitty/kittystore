@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=R0904,C0103
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import unittest
 
 from mailman.email.message import Message

@@ -5,6 +5,8 @@
 #
 # pylint: disable=C,W,R
 
+from __future__ import absolute_import, print_function
+
 import datetime
 import re
 from storm.locals import *

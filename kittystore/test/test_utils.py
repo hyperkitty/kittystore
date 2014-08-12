@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=R0904
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import unittest
 import email
 import datetime
@@ -97,7 +99,7 @@ class TestUtils(unittest.TestCase):
         utils.header_to_unicode must handle badly encoded non-ascii headers
         """
         testdata = [
-            ("Guillermo G\xf3mez", u"Guillermo G\ufffdmez"),
+            (b"Guillermo G\xf3mez", u"Guillermo G\ufffdmez"),
             ("=?gb2312?B?UmU6IFJlOl9bQW1iYXNzYWRvcnNdX01hdGVyaWFfc29icmVfb19DRVNvTF8oRGnhcmlvX2RlX2JvcmRvKQ==?=",
                 u"Re: Re:_[Ambassadors]_Materia_sobre_o_CESoL_(Di\ufffdrio_de_bordo)"),
         ]

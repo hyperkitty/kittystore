@@ -3,6 +3,8 @@
 # - Too many public methods
 # - Invalid name XXX (should match YYY)
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import unittest
 import string
 import random

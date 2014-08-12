@@ -23,6 +23,8 @@ Misc helper functions.
 Author: Aurelien Bompard <abompard@fedoraproject.org>
 """
 
+from __future__ import absolute_import, print_function
+
 import email.utils
 import re
 from email.header import decode_header

@@ -17,6 +17,8 @@
 
 """Cleanse a message for archiving."""
 
+from __future__ import absolute_import, print_function
+
 import os
 import re
 import binascii

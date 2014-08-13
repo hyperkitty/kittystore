@@ -259,7 +259,7 @@ class Email(Base):
         session = object_session(self)
         return session.cache.get_or_create(
             str("list:%s:email:%s:likes" % (self.list_name, self.message_id)),
-            lambda: self._get_votes_query.filter(Vote.value == 1).count()
+            lambda: self._get_votes_query().filter(Vote.value == 1).count()
             )
 
     @property
@@ -267,7 +267,7 @@ class Email(Base):
         session = object_session(self)
         return session.cache.get_or_create(
             str("list:%s:email:%s:dislikes" % (self.list_name, self.message_id)),
-            lambda: self._get_votes_query.filter(Vote.value == -1).count()
+            lambda: self._get_votes_query().filter(Vote.value == -1).count()
             )
 
     @property
@@ -310,7 +310,7 @@ class Email(Base):
         else:
             # new vote
             if session.query(User).get(user_id) is None:
-                session.add(User(user_id=user_id))
+                session.add(User(id=user_id))
             session.add(Vote(list_name=self.list_name,
                              message_id=self.message_id,
                              user_id=user_id, value=value))
@@ -318,7 +318,7 @@ class Email(Base):
     def get_vote_by_user_id(self, user_id):
         if user_id is None:
             return None
-        return self._get_votes_query.filter(Vote.user_id == user_id).first()
+        return self._get_votes_query().filter(Vote.user_id == user_id).first()
 
 # composite foreign key, no other way to declare it
 Email.__table__.append_constraint(

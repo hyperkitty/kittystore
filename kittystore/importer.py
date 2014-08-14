@@ -269,7 +269,7 @@ class DbImporter(object):
 
 
 def parse_args():
-    usage = "%prog -s store_url -l list_name mbox_file [mbox_file ...]"
+    usage = "%prog -l list_name [-s settings] [-p pythonpath] mbox_file [mbox_file ...]"
     parser = OptionParser(usage=usage)
     parser.add_option("-l", "--list-name", help="the fully-qualified list "
             "name (including the '@' symbol and the domain name")

@@ -25,7 +25,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import and_, desc
-from sqlalchemy import Column, ForeignKey, Integer, Unicode, DateTime, UnicodeText, LargeBinary, Enum
+from sqlalchemy import Column, ForeignKey, Integer, Unicode, UnicodeText
+from sqlalchemy import DateTime, LargeBinary, Enum
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import relationship, backref, object_session
 from sqlalchemy.sql import expression
@@ -85,7 +86,8 @@ class List(Base):
     archive_policy = Column(IntegerEnum(enum=ArchivePolicy))
     created_at = Column(DateTime)
     emails = relationship("Email", backref="mlist")
-    threads = relationship("Thread", backref="mlist", cascade="all, delete-orphan")
+    threads = relationship("Thread", backref="mlist",
+                           cascade="all, delete-orphan")
 
     #def __repr__(self):
     #    return "<List('{}')>".format(self.name)
@@ -138,7 +140,7 @@ class List(Base):
         return Activity(year, month, participants_count, threads_count)
 
     @events.subscribe_to(events.NewMessage)
-    def on_new_message(event): # will be called unbound (no self as 1st argument)
+    def on_new_message(event): # will be called unbound (no self as 1st arg)
         cache = event.store.db.cache
         l = event.store.get_list(event.mlist.fqdn_listname)
         # recent activity
@@ -165,7 +167,8 @@ class User(Base):
     __tablename__ = "user"
 
     id = Column(Unicode(255), primary_key=True, nullable=False)
-    senders = relationship("Sender", backref="user", cascade="all, delete-orphan")
+    senders = relationship("Sender", backref="user",
+                           cascade="all, delete-orphan")
     votes = relationship("Vote", backref="user", cascade="all, delete-orphan")
     addresses = association_proxy('senders', 'email')
 
@@ -211,27 +214,37 @@ class Email(Base):
     implements(IMessage)
     __tablename__ = "email"
 
-    list_name = Column(Unicode(255), ForeignKey("list.name", ondelete="CASCADE"), primary_key=True, nullable=False, index=True)
+    list_name = Column(Unicode(255),
+                       ForeignKey("list.name", ondelete="CASCADE"),
+                       primary_key=True, nullable=False, index=True)
     message_id = Column(Unicode(255), primary_key=True, nullable=False)
     # TODO: rename to sender_address
-    sender_email = Column(Unicode(255), ForeignKey("sender.email"), nullable=False, index=True)
+    sender_email = Column(Unicode(255), ForeignKey("sender.email"),
+                          nullable=False, index=True)
     subject = Column(UnicodeText, nullable=False, index=True)
     content = Column(UnicodeText, nullable=False)
     date = Column(DateTime, index=True, nullable=False)
     timezone = Column(Integer, nullable=False)
-    in_reply_to = Column(Unicode(255)) # no foreign key to handle replies from an email not in the archives. But should we have the list-id too, for replies from another list?
+    # in_reply_to: no foreign key to handle replies from an email not in the
+    # archives. But should we have the list-id too, for replies from another
+    # list?
+    in_reply_to = Column(Unicode(255))
     message_id_hash = Column(Unicode(255), nullable=False)
     thread_id = Column(Unicode(255), nullable=False, index=True)
-    archived_date = Column(DateTime, nullable=False, server_default=expression.text("CURRENT_TIMESTAMP"), index=True)
-    thread_depth = Column(Integer, default=0, nullable=False) # TODO: index this?
+    archived_date = Column(DateTime, nullable=False, index=True,
+                           server_default=expression.text("CURRENT_TIMESTAMP"))
+    thread_depth = Column(Integer, default=0, nullable=False) # TODO: index?
     thread_order = Column(Integer, default=0, nullable=False, index=True)
     # path is required by IMessage, but it makes no sense here
     path = None
     # References
-    attachments = relationship("Attachment", order_by="Attachment.counter", backref="email", cascade="all, delete-orphan")
-    full_email = relationship("EmailFull", uselist=False, backref="email", cascade="all, delete-orphan")
+    attachments = relationship("Attachment", order_by="Attachment.counter",
+                               backref="email", cascade="all, delete-orphan")
+    full_email = relationship("EmailFull", uselist=False, backref="email",
+                              cascade="all, delete-orphan")
     # TODO: rename to "email"
-    votes = relationship("Vote", backref="message", cascade="all, delete-orphan")
+    votes = relationship("Vote", backref="message",
+                         cascade="all, delete-orphan")
 
     def __init__(self, *args, **kw):
         Base.__init__(self, *args, **kw)
@@ -283,7 +296,8 @@ class Email(Base):
     def vote(self, value, user_id):
         session = object_session(self)
         # Checks if the user has already voted for this message.
-        existing = self._get_votes_query().filter(Vote.user_id == user_id).first()
+        existing = self._get_votes_query().filter(
+                        Vote.user_id == user_id).first()
         # TODO: make sure this is covered by unit tests
         if existing is not None and existing.value == value:
             return # Vote already recorded (should I raise an exception?)
@@ -391,11 +405,13 @@ class Thread(Base):
 
     __tablename__ = "thread"
 
-    list_name = Column(Unicode(255), ForeignKey("list.name", ondelete="CASCADE"), primary_key=True, nullable=False, index=True)
+    list_name = Column(Unicode(255), ForeignKey("list.name", ondelete="CASCADE"),
+                       primary_key=True, nullable=False, index=True)
     thread_id = Column(Unicode(255), primary_key=True, nullable=False)
     date_active = Column(DateTime, nullable=False, index=True)
     category_id = Column(Integer, ForeignKey("category.id"))
-    emails = relationship("Email", order_by="Email.date", backref="thread", cascade="all, delete-orphan")
+    emails = relationship("Email", order_by="Email.date", backref="thread",
+                          cascade="all, delete-orphan")
     category_obj = relationship("Category", backref="threads")
     _starting_email = None
 
@@ -404,9 +420,10 @@ class Thread(Base):
         """Return (and cache) the email starting this thread"""
         session = object_session(self)
         message_id = session.cache.get_or_create(
-            str("list:%s:thread:%s:starting_email_id" % (self.list_name, self.thread_id)),
+            str("list:%s:thread:%s:starting_email_id"
+                % (self.list_name, self.thread_id)),
             lambda: session.query(Email.message_id).with_parent(self).order_by(
-                        Email.in_reply_to != None, Email.date).limit(1).scalar(),
+                    Email.in_reply_to != None, Email.date).limit(1).scalar(),
             should_cache_fn=lambda val: val is not None
             )
         if message_id is not None:
@@ -519,7 +536,8 @@ class Thread(Base):
     def dislikes(self):
         session = object_session(self)
         return session.cache.get_or_create(
-            str("list:%s:thread:%s:dislikes" % (self.list_name, self.thread_id)),
+            str("list:%s:thread:%s:dislikes"
+                % (self.list_name, self.thread_id)),
             lambda: self._getvotes().filter(Vote.value == -1).count()
             )
 
@@ -557,7 +575,8 @@ def Thread_before_insert(mapper, connection, target):
     if target.date_active is not None:
         return
     session = object_session(target)
-    last_email_date = session.query(Email.date).order_by(desc(Email.date)).limit(1).scalar()
+    last_email_date = session.query(Email.date).order_by(
+                            desc(Email.date)).limit(1).scalar()
     if last_email_date:
         target.date_active = last_email_date
     else:
@@ -584,9 +603,12 @@ class Vote(Base):
 
     __tablename__ = "vote"
 
-    list_name = Column(Unicode(255), ForeignKey("list.name", ondelete="CASCADE"), nullable=False, primary_key=True)
+    list_name = Column(Unicode(255),
+                       ForeignKey("list.name", ondelete="CASCADE"),
+                       nullable=False, primary_key=True)
     message_id = Column(Unicode(255), nullable=False, primary_key=True)
-    user_id = Column(Unicode(255), ForeignKey("user.id"), nullable=False, primary_key=True, index=True)
+    user_id = Column(Unicode(255), ForeignKey("user.id"),
+                     nullable=False, primary_key=True, index=True)
     value = Column(Integer, nullable=False, index=True)
     mlist = relationship("List")
 

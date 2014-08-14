@@ -76,12 +76,17 @@ def create_store(settings, debug=None):
         debug = getattr(settings, "KITTYSTORE_DEBUG", False)
 
     search_index = _get_search_index(settings)
-    from kittystore.storm import get_storm_store, create_storm_store
-    create_storm_store(settings, debug)
-    store = get_storm_store(settings, search_index, debug)
+    if getattr(settings, "KITTYSTORE_USE_STORM", False):
+        from kittystore.storm import get_storm_store, create_storm_db
+        version = create_storm_db(settings, debug)
+        store = get_storm_store(settings, search_index, debug)
+    else:
+        from kittystore.sa import create_sa_db, get_sa_store
+        version = create_sa_db(settings, debug)
+        store = get_sa_store(settings, search_index, debug)
     if search_index is not None and search_index.needs_upgrade():
         search_index.upgrade(store)
-    return store
+    return store, version
 
 
 class SchemaUpgradeNeeded(Exception):

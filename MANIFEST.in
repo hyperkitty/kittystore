@@ -1,2 +1,4 @@
 include AUTHORS.txt COPYING.txt pylintrc ez_setup.py requirements.txt kittystore.spec .coveragerc
 graft kittystore/test/testdata
+include kittystore/sa/alembic.ini kittystore/sa/alembic/script.py.mako
+recursive-include kittystore/sa/alembic *.py

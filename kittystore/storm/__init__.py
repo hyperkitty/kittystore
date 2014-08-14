@@ -24,12 +24,17 @@ def _get_schema(settings):
     return CheckingSchema(schema.CREATES[dbtype], [], [], schema)
 
 
-def create_storm_store(settings, debug=False):
+def create_storm_db(settings, debug=False):
     if debug:
         storm.tracer.debug(True, stream=sys.stdout)
     store = _get_native_store(settings)
     dbschema = _get_schema(settings)
     dbschema.upgrade(store)
+    version = list(store.execute(
+                "SELECT patch.version FROM patch "
+                "ORDER BY version DESC LIMIT 1"
+                ))[0][0]
+    return version
 
 
 def get_storm_store(settings, search_index=None, debug=False, auto_create=False):

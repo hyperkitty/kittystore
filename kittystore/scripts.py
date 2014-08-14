@@ -97,11 +97,7 @@ def updatedb():
         store = get_store(settings, debug=opts.debug)
     except SchemaUpgradeNeeded:
         print "Upgrading the schema..."
-        store = create_store(settings, debug=opts.debug)
-        version = list(store.db.execute(
-                    "SELECT patch.version FROM patch "
-                    "ORDER BY version DESC LIMIT 1"
-                    ))[0][0]
+        store, version = create_store(settings, debug=opts.debug)
         print "Done, the current schema version is %d." % version
         print "Synchonizing data from Mailman, this can take some time..."
         sync_mailman(store)

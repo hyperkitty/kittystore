@@ -132,9 +132,12 @@ class StormStore(object):
         email.thread_id = thread_id
         email.in_reply_to = ref
 
-        from_name, from_email = parseaddr(message['From'])
-        from_name = header_to_unicode(from_name).strip()
-        email.sender_email = unicode(from_email).strip()
+        try:
+            from_name, from_email = parseaddr(message['From'])
+            from_name = header_to_unicode(from_name).strip()
+            email.sender_email = unicode(from_email).strip()
+        except UnicodeDecodeError:
+            raise ValueError("Non-ascii sender address", message)
         sender = self.db.find(Sender, Sender.email == email.sender_email).one()
         if sender is None:
             sender = Sender(email.sender_email, from_name)

@@ -193,8 +193,12 @@ class DbImporter(object):
             except ValueError, e:
                 if len(e.args) != 2:
                     raise # Regular ValueError exception
-                print "%s from %s about %s" % (e.args[0],
-                        e.args[1].get("From"), e.args[1].get("Subject"))
+                try:
+                    print "%s from %s about %s" % (e.args[0],
+                            e.args[1].get("From"), e.args[1].get("Subject"))
+                except UnicodeDecodeError:
+                    print "%s with message-id %s" % (
+                            e.args[0], e.args[1].get("Message-ID"))
                 continue
             except DatabaseError:
                 print_exc()

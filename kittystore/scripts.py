@@ -98,7 +98,7 @@ def updatedb():
     except SchemaUpgradeNeeded:
         print "Upgrading the schema..."
         store, version = create_store(settings, debug=opts.debug)
-        print "Done, the current schema version is %d." % version
+        print "Done, the current schema version is %s." % version
         print "Synchonizing data from Mailman, this can take some time..."
         sync_mailman(store)
         store.commit()

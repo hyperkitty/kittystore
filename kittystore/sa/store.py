@@ -67,7 +67,7 @@ class SAStore(Store):
         email = Email(list_name=list_name, message_id=msg_id)
         if self.is_message_in_list(list_name, email.message_id):
             logger.info("Duplicate email from %s: %s" %
-                   (message['From'], message.get(('Subject', '""'))))
+                   (message['From'], message.get('Subject', '""')))
             return email.message_id_hash
 
         #if not getattr(settings.KITTYSTORE_FULL_EMAIL):
@@ -265,7 +265,7 @@ class SAStore(Store):
         """
         return self.db.query(Email.date).filter(
                 Email.list_name == list_name
-                ).order_by(desc(Email.date)).first()
+                ).order_by(desc(Email.date)).limit(1).scalar()
 
     def get_thread_neighbors(self, list_name, thread_id):
         """ Return the previous and the next threads of the specified thread,

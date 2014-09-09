@@ -590,6 +590,14 @@ class StormStore(object):
         query = self._get_messages_by_user_id(user_id, list_name)
         return query.order_by(Desc(Email.date))
 
+    def get_threads_user_posted_to(self, user_id, list_name=None):
+        clause = And(Email.thread_id == Thread.thread_id,
+                     Email.sender_email == Sender.email,
+                     Sender.user_id == unicode(user_id))
+        if list_name is not None:
+            clause = And(clause, Thread.list_name == unicode(list_name))
+        return self.db.find(Thread, clause).config(distinct=True)
+
     def get_all_messages(self):
         return self.db.find(Email).order_by(Email.archived_date)
 

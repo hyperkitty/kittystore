@@ -2,7 +2,7 @@
 #%%global prerel 1
 
 Name:           kittystore
-Version:        0.9.3
+Version:        0.9.4
 Release:        %{?prerel:0.}1%{?dist}
 Summary:        A storage engine for GNU Mailman v3 archives
 

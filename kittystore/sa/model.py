@@ -55,13 +55,17 @@ class IntegerEnum(TypeDecorator):
         TypeDecorator.__init__(self, *args, **kw)
 
     def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
         if not isinstance(value, self.enum):
             raise ValueError("{} must be a value of the {} enum".format(
-                             self.value, self.enum.__name__))
+                             value, self.enum.__name__))
         return value.value
 
 
     def process_result_value(self, value, dialect):
+        if value is None:
+            return None
         return self.enum(value)
 
 

@@ -193,8 +193,12 @@ class DbImporter(object):
             except ValueError, e:
                 if len(e.args) != 2:
                     raise # Regular ValueError exception
-                print "%s from %s about %s" % (e.args[0],
-                        e.args[1].get("From"), e.args[1].get("Subject"))
+                try:
+                    print "%s from %s about %s" % (e.args[0],
+                            e.args[1].get("From"), e.args[1].get("Subject"))
+                except UnicodeDecodeError:
+                    print "%s with message-id %s" % (
+                            e.args[0], e.args[1].get("Message-ID"))
                 continue
             except DatabaseError:
                 print_exc()
@@ -269,7 +273,7 @@ class DbImporter(object):
 
 
 def parse_args():
-    usage = "%prog -s store_url -l list_name mbox_file [mbox_file ...]"
+    usage = "%prog -l list_name [-s settings] [-p pythonpath] mbox_file [mbox_file ...]"
     parser = OptionParser(usage=usage)
     parser.add_option("-l", "--list-name", help="the fully-qualified list "
             "name (including the '@' symbol and the domain name")

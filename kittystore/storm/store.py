@@ -84,9 +84,12 @@ class StormStore(Store):
         email.thread_id = thread_id
         email.in_reply_to = ref
 
-        from_name, from_email = parseaddr(message['From'])
-        from_name = header_to_unicode(from_name).strip()
-        email.sender_email = unicode(from_email).strip()
+        try:
+            from_name, from_email = parseaddr(message['From'])
+            from_name = header_to_unicode(from_name).strip()
+            email.sender_email = unicode(from_email).strip()
+        except UnicodeDecodeError:
+            raise ValueError("Non-ascii sender address", message)
         sender = self.db.find(Sender, Sender.email == email.sender_email).one()
         if sender is None:
             sender = Sender(email.sender_email, from_name)
@@ -451,6 +454,14 @@ class StormStore(Store):
         """ Returns a user's emails"""
         query = self._get_messages_by_user_id(user_id, list_name)
         return query.order_by(Desc(Email.date))
+
+    def get_threads_user_posted_to(self, user_id, list_name=None):
+        clause = And(Email.thread_id == Thread.thread_id,
+                     Email.sender_email == Sender.email,
+                     Sender.user_id == unicode(user_id))
+        if list_name is not None:
+            clause = And(clause, Thread.list_name == unicode(list_name))
+        return self.db.find(Thread, clause).config(distinct=True)
 
     def get_all_messages(self):
         return self.db.find(Email).order_by(Email.archived_date)

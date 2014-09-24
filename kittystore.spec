@@ -16,7 +16,8 @@ BuildRequires:  python-devel
 BuildRequires:  python-nose
 BuildRequires:  python-mock
 BuildRequires:  python-dateutil < 2.0
-BuildRequires:  python-storm
+BuildRequires:  python-sqlalchemy
+BuildRequires:  python-alembic
 BuildRequires:  python-zope-interface
 BuildRequires:  python-networkx
 #BuildRequires:  mailman >= 3:3.0.0
@@ -24,9 +25,12 @@ BuildRequires:  mailman3
 BuildRequires:  python-whoosh
 BuildRequires:  python-mailman-client
 BuildRequires:  python-dogpile-cache
+# For tue unit tests
+BuildRequires:  python-storm
 Requires:  python-mock
 Requires:  python-dateutil < 2.0
-Requires:  python-storm
+Requires:  python-sqlalchemy
+Requires:  python-alembic
 Requires:  python-zope-interface
 Requires:  python-networkx
 #Requires:  mailman >= 3:3.0.0
@@ -37,9 +41,6 @@ Requires:  python-dogpile-cache
 
 %description
 KittyStore is the archiving library for HyperKitty, the Mailman 3 archiver.
-It provides an interface to different storage systems. Currently only the
-Storm ORM system is supported.
-
 The code is available from:
 https://github.com/hyperkitty/kittystore
 

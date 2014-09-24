@@ -192,20 +192,17 @@ class TestStormStore(unittest.TestCase):
 
     def test_non_ascii_email_address(self):
         """Non-ascii email addresses should raise a ValueError exception"""
-        def check(msg):
-            try:
-                self.store.add_to_list(FakeList("example-list"), msg)
-            except ValueError, e:
-                self.assertEqual(e.__class__.__name__, "ValueError")
-            else:
-                self.fail("No ValueError was raised")
-            self.assertEqual(self.store.db.find(Email).count(), 0)
         msg = Message()
         msg["From"] = "dummy-non-ascii-\xc3\xa9@example.com"
         msg["Message-ID"] = "<dummy>"
-        check(msg)
-        msg.replace_header("From", "Dummy <dummy-non-ascii-\xc3\xa9@example.com>")
-        check(msg)
+        msg.set_payload("Dummy message")
+        try:
+            self.store.add_to_list(FakeList("example-list"), msg)
+        except ValueError, e:
+            self.assertEqual(e.__class__.__name__, "ValueError")
+        else:
+            self.fail("No ValueError was raised")
+        self.assertEqual(self.store.db.find(Email).count(), 0)
 
 
     #def test_payload_invalid_unicode(self):

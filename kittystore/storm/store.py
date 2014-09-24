@@ -88,7 +88,7 @@ class StormStore(Store):
             from_name, from_email = parseaddr(message['From'])
             from_name = header_to_unicode(from_name).strip()
             email.sender_email = unicode(from_email).strip()
-        except UnicodeDecodeError:
+        except (UnicodeDecodeError, UnicodeEncodeError):
             raise ValueError("Non-ascii sender address", message)
         sender = self.db.find(Sender, Sender.email == email.sender_email).one()
         if sender is None:

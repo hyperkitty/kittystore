@@ -20,13 +20,14 @@ from collections import namedtuple
 from zope.interface import implements
 from mailman.interfaces.archiver import ArchivePolicy
 from mailman.interfaces.messages import IMessage
+from mailman.database.types import Enum
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import and_, desc
 from sqlalchemy import Column, ForeignKey, Integer, Unicode, UnicodeText
-from sqlalchemy import DateTime, LargeBinary, Enum
+from sqlalchemy import DateTime, LargeBinary
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import relationship, backref, object_session
 from sqlalchemy.sql import expression
@@ -39,34 +40,6 @@ from kittystore.utils import get_message_id_hash
 from .utils import get_participants_count_between, get_threads_between
 
 Base = declarative_base()
-
-
-
-class IntegerEnum(TypeDecorator):
-    """
-    Stores an integer-based Enum as an integer in the database, and converts it
-    on-the-fly.
-    """
-
-    impl = Integer
-
-    def __init__(self, *args, **kw):
-        self.enum = kw.pop("enum")
-        TypeDecorator.__init__(self, *args, **kw)
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return None
-        if not isinstance(value, self.enum):
-            raise ValueError("{} must be a value of the {} enum".format(
-                             value, self.enum.__name__))
-        return value.value
-
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return None
-        return self.enum(value)
 
 
 
@@ -87,7 +60,7 @@ class List(Base):
     display_name = Column(UnicodeText)
     description = Column(UnicodeText)
     subject_prefix = Column(UnicodeText)
-    archive_policy = Column(IntegerEnum(enum=ArchivePolicy))
+    archive_policy = Column(Enum(enum=ArchivePolicy))
     created_at = Column(DateTime)
     emails = relationship("Email", backref="mlist")
     threads = relationship("Thread", backref="mlist",

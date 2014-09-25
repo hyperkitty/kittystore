@@ -408,6 +408,13 @@ class SAStore(Store):
         query = self._get_messages_by_user_id(user_id, list_name)
         return query.order_by(desc(Email.date)).all()
 
+    def get_threads_user_posted_to(self, user_id, list_name=None):
+        req = self.db.query(Thread).join(Email).join(Sender).filter(
+                Sender.user_id == user_id)
+        if list_name is not None:
+            req = req.filter(Thread.list_name == list_name)
+        return req.distinct()
+
     def get_all_messages(self):
         return self.db.query(Email).order_by(Email.archived_date).all()
 

@@ -36,7 +36,7 @@ class FakeList(object):
 
 
 class SettingsModule:
-    KITTYSTORE_URL = "sqlite:///"
+    KITTYSTORE_URL = "sqlite://"
     KITTYSTORE_SEARCH_INDEX = None
     MAILMAN_REST_SERVER = "http://localhost:8001"
     MAILMAN_API_USER = "testrestuser"

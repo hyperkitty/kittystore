@@ -190,20 +190,6 @@ class TestStormStore(unittest.TestCase):
         self.assertTrue(thread is not None)
         self.assertEqual(len(thread), 2)
 
-    def test_non_ascii_email_address(self):
-        """Non-ascii email addresses should raise a ValueError exception"""
-        msg = Message()
-        msg["From"] = "dummy-non-ascii-\xc3\xa9@example.com"
-        msg["Message-ID"] = "<dummy>"
-        msg.set_payload("Dummy message")
-        try:
-            self.store.add_to_list(FakeList("example-list"), msg)
-        except ValueError, e:
-            self.assertEqual(e.__class__.__name__, "ValueError")
-        else:
-            self.fail("No ValueError was raised")
-        self.assertEqual(self.store.db.find(Email).count(), 0)
-
 
     #def test_payload_invalid_unicode(self):
     #    # Python2 won't mind, but PostgreSQL will refuse the data

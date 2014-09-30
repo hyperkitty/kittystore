@@ -86,9 +86,12 @@ class SAStore(Store):
         email.thread_id = thread_id
         email.in_reply_to = ref
 
-        from_name, from_email = parseaddr(message['From'])
-        from_name = header_to_unicode(from_name).strip()
-        email.sender_email = unicode(from_email).strip()
+        try:
+            from_name, from_email = parseaddr(message['From'])
+            from_name = header_to_unicode(from_name).strip()
+            email.sender_email = unicode(from_email).strip()
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            raise ValueError("Non-ascii sender address", message)
         sender = self.db.query(Sender).get(email.sender_email)
         if sender is None:
             sender = Sender(email=email.sender_email, name=from_name)

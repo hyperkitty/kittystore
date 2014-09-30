@@ -50,3 +50,27 @@ class TestStoreFetch(unittest.TestCase):
         self.assertIsNotNone(t)
         self.assertEqual(t.thread_id, m.thread_id)
         self.assertEqual(t.list_name, self.listname)
+
+
+
+class TestStoreAdd(unittest.TestCase):
+
+    def setUp(self):
+        self.store = get_store(SettingsModule(), auto_create=True)
+
+    def tearDown(self):
+        self.store.close()
+
+    def test_non_ascii_email_address(self):
+        """Non-ascii email addresses should raise a ValueError exception"""
+        msg = Message()
+        msg["From"] = b"dummy-non-ascii-\xc3\xa9@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg.set_payload("Dummy message")
+        try:
+            self.store.add_to_list(FakeList("example-list"), msg)
+        except ValueError, e:
+            self.assertEqual(e.__class__.__name__, "ValueError")
+        else:
+            self.fail("No ValueError was raised")
+        self.assertEqual(self.store.get_list_size("example-list"), 0)

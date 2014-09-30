@@ -61,6 +61,17 @@ class TestStoreAdd(unittest.TestCase):
     def tearDown(self):
         self.store.close()
 
+    def test_duplicate(self):
+        msg = Message()
+        msg["From"] = "dummy@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg.set_payload("Dummy message")
+        self.store.add_to_list(FakeList("example-list"), msg)
+        self.assertEqual(self.store.get_list_size("example-list"), 1)
+        self.assertTrue(self.store.is_message_in_list("example-list", "dummy"))
+        self.store.add_to_list(FakeList("example-list"), msg)
+        self.assertEqual(self.store.get_list_size("example-list"), 1)
+
     def test_non_ascii_email_address(self):
         """Non-ascii email addresses should raise a ValueError exception"""
         msg = Message()

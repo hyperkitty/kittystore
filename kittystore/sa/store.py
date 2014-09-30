@@ -66,8 +66,12 @@ class SAStore(Store):
             msg_id = msg_id[:254]
         email = Email(list_name=list_name, message_id=msg_id)
         if self.is_message_in_list(list_name, email.message_id):
-            logger.info("Duplicate email from %s: %s" %
-                   (message['From'], message.get('Subject', '""')))
+            try:
+                logger.info("Duplicate email from %s: %s" %
+                       (message['From'], message.get('Subject', '""')))
+            except UnicodeDecodeError:
+                logger.info("Duplicate email with message-id %s" %
+                       message.get('Message-ID', '""'))
             return email.message_id_hash
 
         #if not getattr(settings.KITTYSTORE_FULL_EMAIL):

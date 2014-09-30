@@ -74,3 +74,18 @@ class TestStoreAdd(unittest.TestCase):
         else:
             self.fail("No ValueError was raised")
         self.assertEqual(self.store.get_list_size("example-list"), 0)
+
+    def test_duplicate_nonascii(self):
+        msg = Message()
+        msg["From"] = b"dummy-ascii@example.com"
+        msg["Message-ID"] = "<dummy>"
+        msg.set_payload("Dummy message")
+        self.store.add_to_list(FakeList("example-list"), msg)
+        self.assertEqual(self.store.get_list_size("example-list"), 1)
+        self.assertTrue(self.store.is_message_in_list("example-list", "dummy"))
+        msg.replace_header("From", b"dummy-non-ascii\xc3\xa9@example.com")
+        try:
+            self.store.add_to_list(FakeList("example-list"), msg)
+        except UnicodeDecodeError, e:
+            self.fail("Died on a non-ascii header message: %s" % unicode(e))
+        self.assertEqual(self.store.get_list_size("example-list"), 1)

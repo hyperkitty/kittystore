@@ -65,7 +65,7 @@ class TestNotifyStore(unittest.TestCase):
         msg["From"] = "dummy@example.com"
         msg["Message-ID"] = "<dummy>"
         msg.set_payload("Dummy message")
-        today = datetime.date.today()
+        today = datetime.datetime.utcnow().date() # don't use datetime.date.today(), we need UTC
         self.store.add_to_list(FakeList("example-list"), msg)
         # calls to cache.delete() -- invalidation
         delete_args = [ call[0][0] for call in

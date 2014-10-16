@@ -60,11 +60,11 @@ class TestScrubber(unittest.TestCase):
         self.assertEqual(len(attachments), 2)
         # HTML part
         self.assertEqual(attachments[0][0:4],
-                (3, "attachment.html", "text/html", "iso-8859-1"))
+                (3, u"attachment.html", "text/html", "iso-8859-1"))
         self.assertEqual(len(attachments[0][4]), 3134)
         # Image attachment
         self.assertEqual(attachments[1][0:4],
-                (4, "GeoffreyRoucourt.jpg", "image/jpeg", None))
+                (4, u"GeoffreyRoucourt.jpg", "image/jpeg", None))
         self.assertEqual(len(attachments[1][4]), 282180)
         # Scrubbed content
         self.assertEqual(contents, u"This is a test message\r\n")
@@ -77,7 +77,7 @@ class TestScrubber(unittest.TestCase):
         self.assertEqual(len(attachments), 1)
         # HTML part
         self.assertEqual(attachments[0][0:4],
-                (2, "attachment.html", "text/html", "iso-8859-1"))
+                (2, u"attachment.html", "text/html", "iso-8859-1"))
         self.assertEqual(len(attachments[0][4]), 2723)
         # Scrubbed content
         self.assertEqual(contents,
@@ -126,7 +126,7 @@ class TestScrubber(unittest.TestCase):
         self.assertEqual(len(attachments), 2)
         # HTML part
         self.assertEqual(attachments[0][0:4],
-                (3, "attachment.html", "text/html", "iso-8859-1"))
+                (3, u"attachment.html", "text/html", "iso-8859-1"))
         self.assertEqual(len(attachments[0][4]), 114)
         # text attachment
         self.assertEqual(attachments[1][0:4],
@@ -167,7 +167,7 @@ class TestScrubber(unittest.TestCase):
             print(format_exc())
             self.fail("Could not decode the filename")
         self.assertEqual(attachments,
-                [(0, 'attachment.bin', 'text/plain', None, b'Dummy content')])
+                [(0, u'attachment.bin', 'text/plain', None, b'Dummy content')])
 
     def test_remove_next_part_from_content(self):
         with open(get_test_file("pipermail_nextpart.txt")) as email_file:
@@ -176,3 +176,14 @@ class TestScrubber(unittest.TestCase):
         contents, attachments = scrubber.scrub()
 
         self.failIf("-------------- next part --------------" in contents)
+
+    def test_name_unicode(self):
+        for num in range(1, 6):
+            with open(get_test_file("attachment-%d.txt" % num)) as email_file:
+                msg = email.message_from_file(email_file, _class=Message)
+            scrubber = Scrubber("testlist@example.com", msg)
+            contents, attachments = scrubber.scrub()
+            for attachment in attachments:
+                name = attachment[1]
+                self.assertTrue(isinstance(name, unicode),
+                                "attachment %r must be unicode" % name)

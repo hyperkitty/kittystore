@@ -241,7 +241,7 @@ class Scrubber(object):
         except (TypeError, UnicodeDecodeError):
             # Workaround for https://bugs.launchpad.net/mailman/+bug/1060951
             # (accented filenames)
-            filename = "attachment.bin"
+            filename = u"attachment.bin"
         filename, fnext = os.path.splitext(filename)
         # For safety, we should confirm this is valid ext for content-type
         # but we can use fnext if we introduce fnext filtering
@@ -266,7 +266,7 @@ class Scrubber(object):
         # Now base the filename on what's in the attachment, uniquifying it if
         # necessary.
         if not filename:
-            filebase = 'attachment'
+            filebase = u'attachment'
         else:
             # Sanitize the filename given in the message headers
             parts = pre.split(filename)

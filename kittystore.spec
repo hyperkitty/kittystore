@@ -29,7 +29,8 @@ BuildRequires:  python-dogpile-cache
 BuildRequires:  python-storm
 Requires:  python-mock
 Requires:  python-dateutil < 2.0
-Requires:  python-sqlalchemy
+# sqlalchemy 0.9.8 because this needs to be fixed: https://bitbucket.org/zzzeek/sqlalchemy/issue/3199/
+Requires:  python-sqlalchemy >= 0.9.8
 Requires:  python-alembic
 Requires:  python-zope-interface
 Requires:  python-networkx

@@ -1,6 +1,7 @@
 mailman>=3.0.0b2
 zope.interface
-sqlalchemy
+# sqlalchemy 0.9.8 because this needs to be fixed: https://bitbucket.org/zzzeek/sqlalchemy/issue/3199/
+sqlalchemy>=0.9.8
 alembic
 # python-dateutil 2.0+ is for Python 3
 python-dateutil < 2.0

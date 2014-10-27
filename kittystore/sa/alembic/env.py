@@ -1,6 +1,6 @@
 from __future__ import with_statement
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, create_engine
 import logging
 import logging.config
 
@@ -18,7 +18,7 @@ if not root_logger.handlers:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 #target_metadata = None
-import kittystore
+import kittystore.sa
 target_metadata = kittystore.sa.model.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -38,7 +38,9 @@ def run_migrations_offline():
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = context.get_x_argument(as_dictionary=True).get('url')
+    if not url:
+        url = config.get_main_option("sqlalchemy.url")
     context.configure(url=url, target_metadata=target_metadata)
 
     with context.begin_transaction():
@@ -51,10 +53,14 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    engine = engine_from_config(
-                config.get_section(config.config_ini_section),
-                prefix='sqlalchemy.',
-                poolclass=pool.NullPool)
+    url = context.get_x_argument(as_dictionary=True).get('url')
+    if url:
+        engine = create_engine(url)
+    else:
+        engine = engine_from_config(
+                    config.get_section(config.config_ini_section),
+                    prefix='sqlalchemy.',
+                    poolclass=pool.NullPool)
 
     connection = engine.connect()
     context.configure(

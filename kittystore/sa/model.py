@@ -20,7 +20,7 @@ from collections import namedtuple
 from zope.interface import implements
 from mailman.interfaces.archiver import ArchivePolicy
 from mailman.interfaces.messages import IMessage
-from mailman.database.types import Enum
+from mailman.database.types import Enum, UUID
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -143,7 +143,7 @@ class User(Base):
 
     __tablename__ = "user"
 
-    id = Column(Unicode(255), primary_key=True, nullable=False)
+    id = Column(UUID, primary_key=True, nullable=False)
     senders = relationship("Sender", backref="user",
                            cascade="all, delete-orphan")
     votes = relationship("Vote", backref="user", cascade="all, delete-orphan")
@@ -162,7 +162,7 @@ class User(Base):
             likes = req.filter(Vote.value == 1).count()
             dislikes = req.filter(Vote.value == -1).count()
             return likes, dislikes # TODO: optimize with a Union statement?
-        cache_key = str("user:%s:list:%s:votes" % (self.id, list_name))
+        cache_key = str("user:%s:list:%s:votes" % (self.id.int, list_name))
         return session.cache.get_or_create(cache_key, getvotes)
 
 
@@ -177,7 +177,7 @@ class Sender(Base):
     # TODO: rename "email" to "address"
     email = Column(Unicode(255), primary_key=True, nullable=False)
     name = Column(Unicode(255))
-    user_id = Column(Unicode(255), ForeignKey("user.id"), index=True)
+    user_id = Column(UUID, ForeignKey("user.id"), index=True)
     emails = relationship("Email", backref="sender", cascade="all, delete-orphan")
 
 
@@ -290,7 +290,7 @@ class Email(Base):
             str("list:%s:thread:%s:likes" % (self.list_name, self.thread_id)),
             str("list:%s:thread:%s:dislikes" % (self.list_name, self.thread_id)),
             # the user's vote count on this list
-            str("user:%s:list:%s:votes" % (user_id, self.list_name)),
+            str("user:%s:list:%s:votes" % (user_id.int, self.list_name)),
             ))
         if existing is not None:
             # vote changed or cancelled
@@ -584,7 +584,7 @@ class Vote(Base):
                        ForeignKey("list.name", ondelete="CASCADE"),
                        nullable=False, primary_key=True)
     message_id = Column(Unicode(255), nullable=False, primary_key=True)
-    user_id = Column(Unicode(255), ForeignKey("user.id"),
+    user_id = Column(UUID, ForeignKey("user.id"),
                      nullable=False, primary_key=True, index=True)
     value = Column(Integer, nullable=False, index=True)
     mlist = relationship("List")

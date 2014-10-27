@@ -8,6 +8,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import unittest
 import string
 import random
+import uuid
 
 from mailman.email.message import Message
 
@@ -127,7 +128,8 @@ class TestStormModelVoting(unittest.TestCase):
 
     def setUp(self):
         self.store = get_sa_store(SettingsModule(), auto_create=True, debug=False)
-        self.store.db.add(User(id="userid"))
+        self.user = User(id=uuid.uuid1())
+        self.store.db.add(self.user)
         self.store.db.flush()
 
     def tearDown(self):
@@ -152,7 +154,7 @@ class TestStormModelVoting(unittest.TestCase):
         self._create_email(2, reply_to=1)
         self._create_email(3, reply_to=2)
         msg1 = self.store.db.query(Email).filter(Email.message_id == "msg1").one()
-        msg1.vote(1, "userid")
+        msg1.vote(1, self.user.id)
         thread = self.store.db.query(Thread).one()
         self.assertEqual(thread.likes, 1)
         self.assertEqual(thread.dislikes, 0)
@@ -164,7 +166,7 @@ class TestStormModelVoting(unittest.TestCase):
         self._create_email(2, reply_to=1)
         self._create_email(3, reply_to=2)
         msg2 = self.store.db.query(Email).filter(Email.message_id == "msg2").one()
-        msg2.vote(-1, "userid")
+        msg2.vote(-1, self.user.id)
         thread = self.store.db.query(Thread).one()
         self.assertEqual(thread.likes, 0)
         self.assertEqual(thread.dislikes, 1)
@@ -180,7 +182,7 @@ class TestStormModelVoting(unittest.TestCase):
             self._create_email(num, reply_to=reply_to)
             msg = self.store.db.query(Email).filter(
                     Email.message_id == "msg%d" % num).one()
-            msg.vote(1, "userid")
+            msg.vote(1, self.user.id)
         thread = self.store.db.query(Thread).one()
         self.assertEqual(thread.likes, 10)
         self.assertEqual(thread.dislikes, 0)
@@ -198,7 +200,7 @@ class TestStormModelVoting(unittest.TestCase):
         self.store.add_to_list(ml2, msg)
         self.assertEqual(self.store.db.query(Email).count(), 2)
         for msg in self.store.db.query(Email):
-            msg.vote(1, "userid")
+            msg.vote(1, self.user.id)
         self.assertEqual(self.store.db.query(Thread).count(), 2)
         for thread in self.store.db.query(Thread):
             self.assertEqual(thread.likes, 1)
@@ -210,8 +212,8 @@ class TestStormModelVoting(unittest.TestCase):
         self._create_email(2, reply_to=1)
         self._create_email(3, reply_to=2)
         msg1 = self.store.db.query(Email).filter(Email.message_id == "msg1").one()
-        msg1.vote(1, "userid")
+        msg1.vote(1, self.user.id)
         msg2 = self.store.db.query(Email).filter(Email.message_id == "msg2").one()
-        msg2.vote(-1, "userid")
+        msg2.vote(-1, self.user.id)
         user = self.store.db.query(User).one()
         self.assertEqual(user.get_votes_in_list("example-list"), (1, 1))

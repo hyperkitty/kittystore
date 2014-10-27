@@ -30,10 +30,7 @@ def get_user_id(store, sender):
     except ValueError:
         return None
     else:
-        if mm_user.user_id is None:
-            return None
-        else:
-            return unicode(mm_user.user_id)
+        return mm_user.user_id
 
 
 @events.subscribe_to(events.NewMessage)

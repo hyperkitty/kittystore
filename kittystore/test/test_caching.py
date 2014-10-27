@@ -7,6 +7,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import unittest
 import datetime
+import uuid
 from urllib2 import HTTPError
 
 from mock import Mock
@@ -91,21 +92,22 @@ class UserIdCacheTestCase(unittest.TestCase):
         msg.set_payload("Dummy message")
         # setup Mailman's reply
         new_user_id = FakeMMUser()
-        new_user_id.user_id = "DUMMY-USER-ID"
+        uid = uuid.uuid1()
+        new_user_id.user_id = uid
         self.mm_client.get_user.side_effect = lambda addr: new_user_id
         # check the User does not exist yet
         self.assertEqual(0,
-                self.store.get_message_count_by_user_id("DUMMY-USER-ID"))
+                self.store.get_message_count_by_user_id(uid))
         # do the test and check
         self.store.add_to_list(FakeList("example-list"), msg)
         dbmsg = self.store.get_message_by_id_from_list(
                 "example-list", "dummy")
-        self.assertEqual(dbmsg.sender.user_id, "DUMMY-USER-ID")
+        self.assertEqual(dbmsg.sender.user_id, uid)
         self.assertTrue(dbmsg.sender.user is not None,
                 "A 'User' instance was not created")
-        self.assertEqual(dbmsg.sender.user.id, "DUMMY-USER-ID")
+        self.assertEqual(dbmsg.sender.user.id, uid)
         self.assertEqual(1,
-                self.store.get_message_count_by_user_id("DUMMY-USER-ID"))
+                self.store.get_message_count_by_user_id(uid))
         self.assertEqual(self.store.get_users_count(), 1)
 
     def test_on_new_message_no_reply_from_mailman(self):
@@ -130,19 +132,20 @@ class UserIdCacheTestCase(unittest.TestCase):
                 "example-list", "dummy")
         self.assertEqual(dbmsg.sender.user_id, None)
         # setup Mailman's reply
+        uid = uuid.uuid1()
         new_user_id = FakeMMUser()
-        new_user_id.user_id = "DUMMY-USER-ID"
+        new_user_id.user_id = uid
         self.mm_client.get_user.side_effect = lambda addr: new_user_id
         # do the test and check
         mailman_user.sync_mailman_user(self.store)
         #dbmsg = self.store.get_message_by_id_from_list(
         #        "example-list", "dummy")
-        self.assertEqual(dbmsg.sender.user_id, "DUMMY-USER-ID")
+        self.assertEqual(dbmsg.sender.user_id, uid)
         self.assertTrue(dbmsg.sender.user is not None,
                 "A 'User' instance was not created")
-        self.assertEqual(dbmsg.sender.user.id, "DUMMY-USER-ID")
+        self.assertEqual(dbmsg.sender.user.id, uid)
         self.assertEqual(1,
-                self.store.get_message_count_by_user_id("DUMMY-USER-ID"))
+                self.store.get_message_count_by_user_id(uid))
 
     def test_on_new_message_bad_reply_from_mailman(self):
         # Check that errors from mailmanclient are handled gracefully

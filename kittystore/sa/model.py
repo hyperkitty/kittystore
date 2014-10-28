@@ -177,7 +177,9 @@ class Sender(Base):
     # TODO: rename "email" to "address"
     email = Column(Unicode(255), primary_key=True, nullable=False)
     name = Column(Unicode(255))
-    user_id = Column(UUID, ForeignKey("user.id"), index=True)
+    user_id = Column(UUID,
+        ForeignKey("user.id", onupdate="CASCADE", ondelete="CASCADE"),
+        index=True)
     emails = relationship("Email", backref="sender", cascade="all, delete-orphan")
 
 
@@ -192,8 +194,8 @@ class Email(Base):
     __tablename__ = "email"
 
     list_name = Column(Unicode(255),
-                       ForeignKey("list.name", ondelete="CASCADE"),
-                       primary_key=True, nullable=False, index=True)
+        ForeignKey("list.name", onupdate="CASCADE", ondelete="CASCADE"),
+        primary_key=True, nullable=False, index=True)
     message_id = Column(Unicode(255), primary_key=True, nullable=False)
     # TODO: rename to sender_address
     sender_email = Column(Unicode(255), ForeignKey("sender.email"),
@@ -316,7 +318,8 @@ Email.__table__.append_constraint(
     ForeignKeyConstraint(
         ["list_name", "thread_id"],
         ["thread.list_name", "thread.thread_id"],
-        ondelete="CASCADE"
+        onupdate="CASCADE",
+        ondelete="CASCADE",
     ))
 # composite indexes
 Index("ix_email_list_name_message_id_hash",
@@ -343,7 +346,8 @@ EmailFull.__table__.append_constraint(
     ForeignKeyConstraint(
         ["list_name", "message_id"],
         ["email.list_name", "email.message_id"],
-        ondelete="CASCADE"
+        onupdate="CASCADE",
+        ondelete="CASCADE",
     ))
 
 
@@ -581,11 +585,12 @@ class Vote(Base):
     __tablename__ = "vote"
 
     list_name = Column(Unicode(255),
-                       ForeignKey("list.name", ondelete="CASCADE"),
-                       nullable=False, primary_key=True)
+        ForeignKey("list.name", onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False, primary_key=True)
     message_id = Column(Unicode(255), nullable=False, primary_key=True)
-    user_id = Column(UUID, ForeignKey("user.id"),
-                     nullable=False, primary_key=True, index=True)
+    user_id = Column(UUID,
+        ForeignKey("user.id", onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False, primary_key=True, index=True)
     value = Column(Integer, nullable=False, index=True)
     mlist = relationship("List")
 

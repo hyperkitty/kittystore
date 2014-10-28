@@ -37,12 +37,15 @@ def email_to_search_doc(email):
             "list_name": email.list_name,
             "message_id": email.message_id,
             "sender": u"%s %s" % (email.sender_name, email.sender_email),
-            "user_id": email.user_id,
             "subject": email.subject,
             "content": email.content,
             "date": email.date, # UTC
             "private_list": private_list,
     }
+    user_id = email.sender.user_id
+    if user_id is not None:
+        user_id = unicode(user_id.int)
+    search_doc["user_id"] = user_id
     attachments = [a.name for a in email.attachments]
     if attachments:
         search_doc["attachments"] = " ".join(attachments)

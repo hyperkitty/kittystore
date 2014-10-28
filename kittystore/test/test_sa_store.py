@@ -8,6 +8,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import unittest
 import email
 import datetime
+import uuid
 from shutil import rmtree
 from tempfile import mkdtemp
 #from traceback import format_exc
@@ -204,6 +205,20 @@ class TestSAStore(unittest.TestCase):
         yesterday = now - datetime.timedelta(days=1)
         self.assertEqual(expected,
             self.store.get_top_participants("example-list", yesterday, now))
+
+    def test_get_sender_name(self):
+        msg = Message()
+        msg["From"] = "Sender Name <dummy@example.com>"
+        msg["Message-ID"] = "<dummy>"
+        msg.set_payload("Dummy message")
+        self.store.add_to_list(FakeList("example-list"), msg)
+        stored_msg = self.store.db.query(Email).one()
+        user_id = stored_msg.sender.user_id
+        self.assertEqual(self.store.get_sender_name(user_id), "Sender Name")
+
+    def test_get_sender_name_no_result(self):
+        user_id = uuid.uuid1()
+        self.assertEqual(self.store.get_sender_name(user_id), None)
 
 
     #def test_payload_invalid_unicode(self):

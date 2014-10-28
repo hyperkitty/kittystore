@@ -386,7 +386,7 @@ class SAStore(Store):
     def get_sender_name(self, user_id):
         """ Returns a user's fullname when given his user_id """
         return self.db.query(Sender.name).filter(
-                              Sender.user_id == user_id).first()
+                              Sender.user_id == user_id).scalar()
 
     def get_senders_without_user(self, limit=None):
         q = self.db.query(Sender).filter(Sender.user_id == None)

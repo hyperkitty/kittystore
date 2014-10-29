@@ -198,7 +198,8 @@ class SAStore(Store):
 
         :returns: A list containing the names of the archived mailing-lists.
         """
-        return self.db.query(List.name).order_by(List.name).all()
+        return [ result.name for result in
+                 self.db.query(List.name).order_by(List.name).all() ]
 
     def get_lists(self):
         """Return the archived lists.
@@ -353,7 +354,8 @@ class SAStore(Store):
     def get_categories(self):
         """ Return the list of available categories
         """
-        return self.db.query(Category.name).order_by(Category.name).all()
+        return [ result.name for result in
+                 self.db.query(Category.name).order_by(Category.name).all() ]
 
 
     def get_first_post(self, list_name, user_id):

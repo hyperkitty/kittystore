@@ -18,7 +18,7 @@ from mailman.interfaces.archiver import ArchivePolicy
 
 from kittystore import _get_search_index
 from kittystore.sa import get_sa_store
-from kittystore.sa.model import Email, Attachment, Thread
+from kittystore.sa.model import Email, Attachment, Thread, List, Category
 from kittystore.utils import get_message_id_hash
 
 from kittystore.test import get_test_file, FakeList, SettingsModule
@@ -219,6 +219,18 @@ class TestSAStore(unittest.TestCase):
     def test_get_sender_name_no_result(self):
         user_id = uuid.uuid1()
         self.assertEqual(self.store.get_sender_name(user_id), None)
+
+    def test_get_list_names(self):
+        names = ["list1", "list2", "list3"]
+        for name in names:
+            self.store.db.add(List(name=name))
+        self.assertEqual(self.store.get_list_names(), names)
+
+    def test_get_categories(self):
+        names = ["cat1", "cat2", "cat3"]
+        for name in names:
+            self.store.db.add(Category(name=name))
+        self.assertEqual(self.store.get_categories(), names)
 
 
     #def test_payload_invalid_unicode(self):

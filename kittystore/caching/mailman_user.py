@@ -4,6 +4,7 @@ Cached values concerning emails
 """
 
 from urllib2 import HTTPError
+from uuid import UUID
 import mailmanclient
 
 from kittystore import events
@@ -30,7 +31,11 @@ def get_user_id(store, sender):
     except ValueError:
         return None
     else:
-        return mm_user.user_id
+        user_id = mm_user.user_id
+        if user_id is None:
+            return None
+        else:
+            return UUID(int=user_id)
 
 
 @events.subscribe_to(events.NewMessage)

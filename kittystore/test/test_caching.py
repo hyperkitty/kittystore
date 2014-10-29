@@ -93,7 +93,7 @@ class UserIdCacheTestCase(unittest.TestCase):
         # setup Mailman's reply
         new_user_id = FakeMMUser()
         uid = uuid.uuid1()
-        new_user_id.user_id = uid
+        new_user_id.user_id = uid.int
         self.mm_client.get_user.side_effect = lambda addr: new_user_id
         # check the User does not exist yet
         self.assertEqual(0,
@@ -134,7 +134,7 @@ class UserIdCacheTestCase(unittest.TestCase):
         # setup Mailman's reply
         uid = uuid.uuid1()
         new_user_id = FakeMMUser()
-        new_user_id.user_id = uid
+        new_user_id.user_id = uid.int
         self.mm_client.get_user.side_effect = lambda addr: new_user_id
         # do the test and check
         mailman_user.sync_mailman_user(self.store)

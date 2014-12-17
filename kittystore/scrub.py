@@ -96,6 +96,8 @@ class Scrubber(object):
         # Now walk over all subparts of this message and scrub out various types
         for part_num, part in enumerate(self.msg.walk()):
             ctype = part.get_content_type()
+            if not isinstance(ctype, unicode):
+                ctype = ctype.decode("ascii")
             # If the part is text/plain, we leave it alone
             if ctype == 'text/plain':
                 disposition = part.get('content-disposition')
@@ -153,6 +155,8 @@ class Scrubber(object):
             elif part.get_payload() and not part.is_multipart():
                 payload = part.get_payload(decode=True)
                 ctype = part.get_content_type()
+                if not isinstance(ctype, unicode):
+                    ctype.decode("ascii")
                 # XXX Under email 2.5, it is possible that payload will be None.
                 # This can happen when you have a Content-Type: multipart/* with
                 # only one part and that part has two blank lines between the
@@ -234,6 +238,8 @@ class Scrubber(object):
         # e.g. image/jpg (should be image/jpeg).  For now we just store such
         # things as application/octet-streams since that seems the safest.
         ctype = part.get_content_type()
+        if not isinstance(ctype, unicode):
+            ctype = ctype.decode("ascii")
         charset = get_charset(part, default=None, guess=False)
         # i18n file name is encoded
         try:

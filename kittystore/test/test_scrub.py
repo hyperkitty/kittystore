@@ -146,8 +146,7 @@ class TestScrubber(unittest.TestCase):
         self.assertEqual(len(attachments), 1)
         # text attachment
         self.assertEqual(attachments[0][0:4],
-                #(2, u"todo-déjeuner.txt", "text/plain", "utf-8"))
-                (2, u"attachment.bin", "text/plain", "utf-8"))
+                (2, u"todo-djeuner.txt", "text/plain", "utf-8"))
         self.assertEqual(len(attachments[0][4]), 112)
         # Scrubbed content
         self.assertEqual(contents, u'This is a test, HTML message with '
